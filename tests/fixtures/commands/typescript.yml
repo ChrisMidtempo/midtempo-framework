@@ -1,0 +1,16 @@
+# Minimal test fixture for TypeScript language defaults
+language: typescript
+
+core:
+  test:
+    command: "npm test"
+    description: "Run all tests"
+    category: "test"
+  lint:
+    command: "eslint src/ tests/"
+    description: "Run linter for code quality"
+    category: "lint"
+  typecheck:
+    command: "tsc --noEmit"
+    description: "Run type checker"
+    category: "typecheck"

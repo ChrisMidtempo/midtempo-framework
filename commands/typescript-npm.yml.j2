@@ -1,0 +1,197 @@
+# Midtempo Framework Configuration File
+#
+# IMPORTANT: If you edit this file you **MUST** re-generate the framework for changes to take effect
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 1. BASE CONFIG
+# ═══════════════════════════════════════════════════════════════════════════
+
+{{ base_config }}
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 2. CORE COMMANDS
+# ═══════════════════════════════════════════════════════════════════════════
+# test, lint, typecheck commands MUST be available. The framework depends on them
+
+commands:
+  test:
+    command: "npm run test"
+    description: "Run all tests"
+    category: "test"
+
+  lint:
+    command: "npm run lint"
+    description: "Run linter for code quality"
+    category: "lint"
+
+  typecheck:
+    command: "npm run typecheck"
+    description: "Run type checker"
+    category: "typecheck"
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 3. VARIANTS - Test/Lint/Typecheck
+# ═══════════════════════════════════════════════════════════════════════════
+# Organised variants of core commands by purpose - add/amend as required
+
+  # Testing variants
+  test_summary:
+    command: "npm run test -- --silent"
+    description: "Run tests with summary output (quiet mode for gate checks)"
+    category: "test"
+
+  test_coverage:
+    command: "npm run test:coverage -- --silent"
+    description: "Run tests with coverage report"
+    category: "test"
+
+  test_unit:
+    command: "npm run test:unit"
+    description: "Run unit tests only"
+    category: "test"
+
+  test_integration:
+    command: "npm run test:integration"
+    description: "Run integration tests only"
+    category: "test"
+
+  # test_e2e:
+  #   command: "npm run test:e2e"
+  #   description: "Run all E2E tests"
+  #   category: "test"
+
+  # Linting variants
+  lint_fix:
+    command: "npm run lint:fix"
+    description: "Auto-fix linting issues"
+    category: "lint"
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 4. FORMATTING
+# ═══════════════════════════════════════════════════════════════════════════
+# Code formatting tools - add/amend as required
+
+  format:
+    command: "npm run format"
+    description: "Format code with Prettier"
+    category: "format"
+
+  format_check:
+    command: "npm run format:check"
+    description: "Check formatting without changes"
+    category: "format"
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 5. DOCUMENTATION COMMANDS
+# ═══════════════════════════════════════════════════════════════════════════
+# Documentation generation tools - add/amend as required
+
+  # TypeDoc documentation
+  # typedoc:
+  #   command: "npm run docs"
+  #   description: "Generate TypeDoc documentation"
+  #   category: "docs"
+  #
+  # storybook:
+  #   command: "npm run storybook"
+  #   description: "Start Storybook documentation"
+  #   category: "docs"
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 6. OPTIONAL EXAMPLES
+# ═══════════════════════════════════════════════════════════════════════════
+# Categories are: test, lint, typecheck, docs, format, docker, db, utilities, discovery
+
+  # Development server
+  # dev:
+  #   command: "npm run dev"
+  #   description: "Start development server"
+  #   category: "docker"
+
+  # Database queries (if hasDB: true)
+  # db_query:
+  #   command: "npm run db:query"
+  #   description: "Query database for debugging"
+  #   category: "db"
+
+  # Docker commands
+  # build:
+  #   command: "npm run build"
+  #   description: "Build distribution packages"
+  #   category: "docker"
+
+  # Discovery tools are referenced during fact-finding stages
+  # (brainstorming and investigation)
+  # Add any scripts that might help uncover/understand new work
+
+  # Discovery
+  # generate:
+  # command: "npm run generate"
+  # description: Generate code from templates
+  # category: discovery
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 7. INSTRUCTIONS
+# ═══════════════════════════════════════════════════════════════════════════
+# Client-maintained/repo-specific documentation files injected into the midtempo-framework scripts
+
+instructions:
+  purpose:
+    page: 'purpose.md'
+    description: 'Provides an overview of the goal and capabilities of the service'
+
+  architecture:
+    page: 'architecture.md'
+    description: 'Services architectural structure and design principles'
+
+  error-handling:
+    page: 'error-handling.md'
+    description: 'Error handling patterns and conventions for the repository'
+
+  # Database service instructions
+  # db:
+  #   page: 'db.md'
+  #   description: 'Database access patterns, connection rules, and credential handling'
+
+  # Frontend design
+  # frontend-design:
+  #   page: 'frontend-design.md'
+  #   description: 'Component architecture, composition patterns, and UI organisation'
+
+  # UI page wiring instructions
+  # new-page:
+  #   page: 'new-page.md'
+  #   description: 'How to wire a new page into the UI'
+
+  # CSS style guide
+  # style-guide:
+  #   page: 'style-guide.md'
+  #   description: 'CSS style rules and conventions'
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 8. SECURITY
+# ═══════════════════════════════════════════════════════════════════════════
+# Bespoke security domain configuration 
+# If a repo requires bespoke rules, uncomment to replace security/ doc with instructions/ doc
+
+# security:
+# secrets-management:
+#    page: 'secrets-management.md'
+#    description: 'Credential handling, API keys, and secret storage rules'
+#  input-validation:
+#    page: 'input-validation.md'
+#    description: 'Input sanitisation, validation, and injection prevention'
+#  authentication:
+#    page: 'authentication.md'
+#    description: 'Authentication flows, session management, and access control'
+#  data-protection:
+#    page: 'data-protection.md'
+#    description: 'Encryption, data handling, and confidentiality rules'
+#  public-hardening:
+#    page: 'public-hardening.md'
+#    description: 'Public-facing security headers, CORS, and attack surface reduction'

@@ -1,0 +1,251 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Midtempo Framework Configuration",
+  "description": "Configuration schema for midtempo-frameworkk.yml files",
+  "type": "object",
+  "required": [
+    "name",
+    "repo",
+    "capabilities",
+    "commands"
+  ],
+  "definitions": {
+    "commandObject": {
+      "type": "object",
+      "required": [
+        "command",
+        "description",
+        "category"
+      ],
+      "properties": {
+        "command": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500,
+          "description": "The command to execute"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500,
+          "description": "Human-readable description of what this command does"
+        },
+        "category": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "Category for grouping commands (testing, development, build, quality, documentation, database, etc.)"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "properties": {
+    "name": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]*$",
+      "description": "Namespace identifier for generated output directories (must be valid directory name: start with alphanumeric, may contain dots, hyphens, underscores)"
+    },
+    "repo": {
+      "type": "object",
+      "required": [
+        "title",
+        "language"
+      ],
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Repository title"
+        },
+        "language": {
+          "type": "object",
+          "description": "Language to scope mapping. Keys are language names, values are scope identifiers for command naming.",
+          "patternProperties": {
+            "^[a-z][a-z0-9_-]*$": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]*$",
+              "minLength": 2,
+              "maxLength": 20,
+              "description": "Scope identifier: lowercase start, alphanumeric + hyphens/underscores, 2-20 chars"
+            }
+          },
+          "additionalProperties": false,
+          "minProperties": 1
+        },
+        "logfile": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 1000,
+          "default": null,
+          "description": "Optional path to log file for test output. Templates use {% if repo.logfile %} conditional logic to reference this path. Defaults to null (no log file)."
+        },
+        "setup": {
+          "type": "boolean",
+          "default": false,
+          "description": "Read-only flag indicating repository setup status. Used by setup.md skill. Humans edit this field manually in config."
+        },
+        "agentFile": {
+          "type": "string",
+          "enum": [
+            "AGENTS",
+            "CLAUDE"
+          ],
+          "default": "AGENTS",
+          "description": "Controls the output filename for the agent rules file. AGENTS generates AGENTS.md, CLAUDE generates CLAUDE.md."
+        }
+      },
+      "additionalProperties": false
+    },
+    "capabilities": {
+      "type": "object",
+      "required": [],
+      "properties": {
+        "hasUI": {
+          "type": "boolean",
+          "description": "Whether the repository has UI components"
+        },
+        "hasDB": {
+          "type": "boolean",
+          "description": "Whether the repository has database access"
+        },
+        "hasTypecheck": {
+          "type": "boolean",
+          "description": "Whether the repository has type checking"
+        },
+        "isPublicFacing": {
+          "type": "boolean",
+          "description": "Application serves public-facing traffic"
+        },
+        "handlesConfidentialData": {
+          "type": "boolean",
+          "description": "Application processes confidential or sensitive data"
+        },
+        "hasAuthentication": {
+          "type": "boolean",
+          "description": "Application implements authentication"
+        }
+      },
+      "additionalProperties": false
+    },
+    "commands": {
+      "type": "object",
+      "description": "Command definitions. Core commands (test, lint, typecheck) use language-specific defaults from commands/{language}.yml if not specified. Multi-language repos use scoped commands: {scope}_test, {scope}_lint, {scope}_typecheck.",
+      "properties": {
+        "test": {
+          "$ref": "#/definitions/commandObject",
+          "description": "Command to run tests (optional - uses default from commands/{language}.yml if not specified)"
+        },
+        "test_summary": {
+          "$ref": "#/definitions/commandObject",
+          "description": "Command to run tests with summary output using quiet flags (optional - for gate checks where pass/fail suffices)"
+        },
+        "test_unit": {
+          "$ref": "#/definitions/commandObject",
+          "description": "Command to run unit tests only (optional - fast tests without external dependencies)"
+        },
+        "test_integration": {
+          "$ref": "#/definitions/commandObject",
+          "description": "Command to run integration tests only (optional - slower tests using external resources)"
+        },
+        "test_e2e": {
+          "$ref": "#/definitions/commandObject",
+          "description": "Command to run end-to-end tests (optional - full system tests)"
+        },
+        "lint": {
+          "$ref": "#/definitions/commandObject",
+          "description": "Command to run linter (optional - uses default from commands/{language}.yml if not specified)"
+        },
+        "typecheck": {
+          "$ref": "#/definitions/commandObject",
+          "description": "Command to run type checker (optional - uses default from commands/{language}.yml if not specified)"
+        }
+      },
+      "patternProperties": {
+        "^[a-z][a-z0-9_-]*_(test|lint|typecheck)$": {
+          "$ref": "#/definitions/commandObject",
+          "description": "Scoped core commands for multi-language repos: {scope}_test, {scope}_lint, {scope}_typecheck where scope matches pattern ^[a-z][a-z0-9_-]*$"
+        }
+      },
+      "additionalProperties": {
+        "$ref": "#/definitions/commandObject",
+        "description": "Additional commands should use extended format with description and category for proper documentation"
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Metadata added by the generation system (optional, present in generated configs)",
+      "properties": {
+        "generated_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 timestamp of when this config was generated"
+        },
+        "framework_version": {
+          "type": "string",
+          "description": "Version of the Midtempo Framework used to generate this config"
+        }
+      },
+      "additionalProperties": false
+    },
+    "instructions": {
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9_-]*$": {
+          "type": "object",
+          "required": [
+            "page",
+            "description"
+          ],
+          "properties": {
+            "page": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000,
+              "description": "Path to instruction file relative to instructions/ directory"
+            },
+            "description": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 500,
+              "description": "Human-readable description of what this instruction covers"
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    "security": {
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9_-]*$": {
+          "type": "object",
+          "required": [
+            "page",
+            "description"
+          ],
+          "properties": {
+            "page": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000,
+              "description": "Path to security rule sub-document"
+            },
+            "description": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 500,
+              "description": "Human-readable description of the security domain"
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    }
+  }
+}

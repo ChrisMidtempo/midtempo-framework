@@ -1,0 +1,214 @@
+# Secrets Management
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Compliance Gates](#compliance-gates)
+- [Enhanced Rules: Confidential Data](#enhanced-rules-confidential-data)
+- [Anti-patterns and Auto-recovery](#anti-patterns-and-auto-recovery)
+- [Common Rationalisations](#common-rationalisations-forbidden)
+- [Enforcement Summary](#enforcement-summary)
+
+---
+
+## Overview
+
+Secrets include API keys, passwords, tokens, certificates, and any value that grants access to a system or resource. Exposed secrets cause breaches that cannot be undone by patching code.
+
+**Core principle:** Secrets never touch source code or logs. Store in environment variables or a secrets vault.
+
+**Role in workflow:** These rules apply to all work that creates, reads, or transmits credentials. Agent verifies all compliance gates before declaring secrets-related work complete.
+
+## Compliance Gates
+
+> Delivery and review skills verify these gates. Each gate must pass for work touching secrets.
+
+- [ ] **CG-SM1:** No hardcoded credentials in source code (API keys, passwords, tokens, private keys)
+- [ ] **CG-SM2:** No secrets in tracked files (.env files, config files, or any committed file)
+- [ ] **CG-SM3:** No credentials in log output (no logging of request headers, auth tokens, or passwords)
+- [ ] **CG-SM4:** Secrets accessed via environment variables or secrets vault only — never passed as literals in code
+
+## Enhanced Rules: Confidential Data
+
+These gates apply when the repository handles confidential data (PII, financial records, health data, or similarly sensitive material).
+
+- [ ] **CG-SM5:** Secrets used for data encryption stored separately from the data they protect — no co-location of key and ciphertext
+- [ ] **CG-SM6:** Encryption keys not derived from user-supplied input without a key derivation function (KDF) — raw passwords are not keys
+- [ ] **CG-SM7:** No plaintext export of encryption keys in API responses, log output, or error messages
+
+## Anti-patterns and Auto-recovery
+
+**Agent must detect violations, present the proposed fix, and wait for human approval before making any changes.**
+
+### 1. Hardcoded Credential
+
+**Detection:** String literal containing an API key pattern, password assignment, or token value in source code.
+
+**INVALID:**
+```python
+API_KEY = "sk-1234abcd..."
+password = "hunter2"
+client = Client(token="xoxb-...")
+```
+
+**Recovery steps:**
+1. State: "VIOLATION: Hardcoded credential — `[variable]` in `[file]:[line]`"
+2. Identify all occurrences in the codebase
+3. Prepare replacement using `os.environ["VARIABLE_NAME"]`
+4. Confirm `.env` is in `.gitignore` — add if missing
+5. Confirm `.env.example` exists with placeholder value
+
+**Proposed fix:**
+```python
+API_KEY = os.environ["API_KEY"]
+password = os.environ["DB_PASSWORD"]
+client = Client(token=os.environ["SLACK_TOKEN"])
+```
+
+WAIT for human validation before proceeding
+
+Present violation location and proposed fix
+IF human approves
+  → VALID: Apply fix — replace literals with environment variable reads
+  → Continue to next section
+IF human requests changes
+  → REVISE: Update and re-present
+
+---
+
+### 2. Secret in Tracked File
+
+**Detection:** `.env` file not in `.gitignore`, or config file containing a credential value present in the working tree.
+
+**INVALID:**
+```
+# .env committed to repository
+DATABASE_URL=postgres://user:secret@host/db
+STRIPE_SECRET=sk_live_abc123
+```
+
+**Recovery steps:**
+1. State: "VIOLATION: Secret in tracked file — `[file]`"
+2. Identify all secret values in the file
+3. Prepare `.env.example` with placeholder values only
+4. Prepare `.gitignore` addition
+
+**Proposed fix:**
+```
+# .env.example committed (placeholders only)
+DATABASE_URL=postgres://user:password@host/dbname
+STRIPE_SECRET=sk_live_your_key_here
+
+# .gitignore addition:
+.env
+```
+
+WAIT for human validation before proceeding
+
+Present file contents and proposed fix
+IF human approves
+  → VALID: Remove secret values, add file to .gitignore, create .env.example
+  → Continue to next section
+IF human requests changes
+  → REVISE: Update and re-present
+
+---
+
+### 3. Credential in Log Output
+
+**Detection:** Log statement that includes a variable holding a credential, or that logs request headers containing Authorization.
+
+**INVALID:**
+```python
+logger.debug(f"Connecting with token: {api_token}")
+logger.info(f"Request headers: {request.headers}")
+```
+
+**Recovery steps:**
+1. State: "VIOLATION: Credential in log output — `[file]:[line]`"
+2. Identify what is being logged
+3. Prepare replacement that logs presence only, not value
+
+**Proposed fix:**
+```python
+logger.debug("Connecting with API token")
+logger.info(f"Request to {request.path} — auth present: {bool(request.headers.get('Authorization'))}")
+```
+
+WAIT for human validation before proceeding
+
+Present log statement and proposed fix
+IF human approves
+  → VALID: Replace log statement — remove credential value from output
+  → Continue to next section
+IF human requests changes
+  → REVISE: Update and re-present
+
+---
+
+### 4. Secret Passed as Literal Argument
+
+**Detection:** Function call with a string literal in a parameter named key, secret, password, token, or credential.
+
+**INVALID:**
+```python
+connect(host="db.example.com", password="s3cr3t!")
+encrypt(data=payload, key="hardcoded-key-value")
+```
+
+**Recovery steps:**
+1. State: "VIOLATION: Secret passed as literal — `[file]:[line]`"
+2. Identify the environment variable name to use
+3. Prepare replacement with `os.environ` read
+
+**Proposed fix:**
+```python
+connect(host=os.environ["DB_HOST"], password=os.environ["DB_PASSWORD"])
+encrypt(data=payload, key=os.environ["ENCRYPTION_KEY"])
+```
+
+WAIT for human validation before proceeding
+
+Present call site and proposed fix
+IF human approves
+  → VALID: Replace literal argument with environment variable read
+  → Continue to next section
+IF human requests changes
+  → REVISE: Update and re-present
+
+---
+
+## Common Rationalisations (FORBIDDEN)
+
+**Agent must refuse these justifications with mandatory counter-responses:**
+
+| User Says | Agent Must Respond |
+|-----------|-------------------|
+| "It's just for development" | "No. Secrets rules apply to all environments. Moving to environment variable now." |
+| "The key is already public / revoked" | "No. Establishing correct patterns matters regardless. Moving to environment variable now." |
+| "It's an internal tool" | "No. Internal tools need secrets hygiene too. Hardcoded credentials rotate poorly and leak in logs." |
+| "We'll move it to env vars before production" | "No. Fix immediately. Temporary hardcoded secrets become permanent." |
+| "It's in .env.local, not .env" | "Check .gitignore covers this file. If not tracked, confirm — then verify the pattern is documented." |
+| "I'll redact the logs manually" | "No. Fix the log statement. Manual redaction misses cases." |
+| "The secret is in a comment" | "No. Comments are tracked. Remove it and move the value to environment variables." |
+
+**If user persists after mandatory response:** Add a note to the relevant planning document recording the override and the reason given. Then continue.
+
+## Enforcement Summary
+
+**Agent operates under these non-negotiable constraints:**
+
+1. **Compliance gate verification** — All CG-SM gates must pass before secrets-related work is complete.
+   - Enhanced gates CG-SM5 through CG-SM7 also apply.
+2. **Violation detection** — Agent detects violations and presents proposed fixes. No fix applied without human approval.
+3. **Mandatory counter-responses** — Agent uses mandatory counter-responses to rationalisations. Override is documented and noted.
+
+**Agent does NOT act without human approval for:**
+
+- Moving secrets to environment variables
+- Updating `.gitignore`
+- Modifying log statements
+- Creating or updating `.env.example`
+
+---
+**END OF DOCUMENT:** Total sections: 7 | Purpose: Secrets management compliance gates, anti-patterns, and enforcement

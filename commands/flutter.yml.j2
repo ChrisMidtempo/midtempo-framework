@@ -1,0 +1,192 @@
+# Midtempo Framework Configuration File
+#
+# IMPORTANT: If you edit this file you **MUST** re-generate the framework for changes to take effect
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 1. BASE CONFIG
+# ═══════════════════════════════════════════════════════════════════════════
+
+{{ base_config }}
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 2. CORE COMMANDS
+# ═══════════════════════════════════════════════════════════════════════════
+# test, lint, typecheck commands MUST be available. The framework depends on them
+
+commands:
+  test:
+    command: "flutter test"
+    description: "Run all tests"
+    category: "test"
+
+  lint:
+    command: "flutter analyze"
+    description: "Run linter for code quality"
+    category: "lint"
+
+  typecheck:
+    command: "flutter analyze"
+    description: "Run static analysis type checker (same as lint in Flutter)"
+    category: "typecheck"
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 3. VARIANTS - Test/Lint/Typecheck
+# ═══════════════════════════════════════════════════════════════════════════
+# Organised variants of core commands by purpose - add/amend as required
+
+  # Testing variants
+  test_summary:
+    command: "flutter test --reporter compact"
+    description: "Run tests with summary output (quiet mode for gate checks)"
+    category: "test"
+
+  test_coverage:
+    command: "flutter test --coverage"
+    description: "Run tests with coverage report"
+    category: "test"
+
+  test_unit:
+    command: "flutter test test/unit/"
+    description: "Run unit tests only"
+    category: "test"
+
+  test_integration:
+    command: "flutter test integration_test/"
+    description: "Run integration tests only"
+    category: "test"
+
+  # test_e2e:
+  #   command: "flutter test integration_test/e2e/"
+  #   description: "Run all E2E tests"
+  #   category: "test"
+
+  # Linting variants
+  lint_fix:
+    command: "dart fix --apply"
+    description: "Auto-fix linting issues"
+    category: "lint"
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 4. FORMATTING
+# ═══════════════════════════════════════════════════════════════════════════
+# Code formatting tools - add/amend as required
+
+  format:
+    command: "dart format ."
+    description: "Format code with dart format"
+    category: "format"
+
+  format_check:
+    command: "dart format --output none ."
+    description: "Check formatting without changes"
+    category: "format"
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 5. DOCUMENTATION COMMANDS
+# ═══════════════════════════════════════════════════════════════════════════
+# Documentation generation tools - add/amend as required
+
+  # dart doc
+  # docs:
+  #   command: "dart doc"
+  #   description: "Generate dart doc documentation"
+  #   category: "docs"
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 6. OPTIONAL EXAMPLES
+# ═══════════════════════════════════════════════════════════════════════════
+# Categories are: test, lint, typecheck, docs, format, docker, db, utilities, discovery
+
+  # Development server
+  # dev:
+  #   command: "flutter run"
+  #   description: "Run app on connected device or emulator"
+  #   category: "docker"
+
+  # Database queries (if hasDB: true)
+  # db_query:
+  #   command: "dart run bin/db_query.dart"
+  #   description: "Query database for debugging"
+  #   category: "db"
+
+  # Docker commands
+  # build:
+  #   command: "flutter build apk --release"
+  #   description: "Build release APK"
+  #   category: "docker"
+
+  # Discovery tools are referenced during fact-finding stages
+  # (brainstorming and investigation)
+  # Add any scripts that might help uncover/understand new work
+
+  # Discovery
+  # generate:
+  # command: "dart run build_runner build"
+  # description: Generate code with build_runner
+  # category: discovery
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 7. INSTRUCTIONS
+# ═══════════════════════════════════════════════════════════════════════════
+# Client-maintained/repo-specific documentation files injected into the midtempo-framework scripts
+
+instructions:
+  purpose:
+    page: 'purpose.md'
+    description: 'Provides an overview of the goal and capabilities of the service'
+
+  architecture:
+    page: 'architecture.md'
+    description: 'Services architectural structure and design principles'
+
+  error-handling:
+    page: 'error-handling.md'
+    description: 'Error handling patterns and conventions for the repository'
+
+  # Database service instructions
+  # db:
+  #   page: 'db.md'
+  #   description: 'Database access patterns, connection rules, and credential handling'
+
+  # Frontend design
+  # frontend-design:
+  #   page: 'frontend-design.md'
+  #   description: 'Component architecture, composition patterns, and UI organisation'
+
+  # UI page wiring instructions
+  # new-page:
+  #   page: 'new-page.md'
+  #   description: 'How to wire a new page into the UI'
+
+  # CSS style guide
+  # style-guide:
+  #   page: 'style-guide.md'
+  #   description: 'CSS style rules and conventions'
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 8. SECURITY
+# ═══════════════════════════════════════════════════════════════════════════
+# Bespoke security domain configuration
+# If a repo requires bespoke rules, uncomment to replace security/ doc with instructions/ doc
+
+# security:
+# secrets-management:
+#    page: 'secrets-management.md'
+#    description: 'Credential handling, API keys, and secret storage rules'
+#  input-validation:
+#    page: 'input-validation.md'
+#    description: 'Input sanitisation, validation, and injection prevention'
+#  authentication:
+#    page: 'authentication.md'
+#    description: 'Authentication flows, session management, and access control'
+#  data-protection:
+#    page: 'data-protection.md'
+#    description: 'Encryption, data handling, and confidentiality rules'
+#  public-hardening:
+#    page: 'public-hardening.md'
+#    description: 'Public-facing security headers, CORS, and attack surface reduction'

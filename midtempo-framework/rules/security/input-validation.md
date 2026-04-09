@@ -1,0 +1,223 @@
+# Input Validation & Output Encoding
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Compliance Gates](#compliance-gates)
+- [Enhanced Rules: Confidential Data](#enhanced-rules-confidential-data)
+- [Anti-patterns and Auto-recovery](#anti-patterns-and-auto-recovery)
+- [Common Rationalisations](#common-rationalisations-forbidden)
+- [Enforcement Summary](#enforcement-summary)
+
+---
+
+## Overview
+
+Input validation rejects data that does not conform to expected format, type, and range before it reaches business logic. Output encoding ensures data rendered in HTML, JSON, or other contexts cannot be interpreted as executable code or commands.
+
+**Core principle:** Never pass unvalidated input to a database, command, or renderer. Reject anything not explicitly permitted. Encode all output for the context it will be consumed in.
+
+**Role in workflow:** These rules apply to all work that accepts user input, queries a database, or renders data in responses. Agent verifies all compliance gates before declaring input-handling work complete.
+
+## Compliance Gates
+
+> Delivery and review skills verify these gates. Each gate must pass for work touching input handling or output rendering.
+
+- [ ] **CG-IV1:** Structured inputs (IDs, codes, enums, dates) validated against explicit format or pattern — no unvalidated structured value passed to business logic
+- [ ] **CG-IV2:** All inputs enforce a maximum length at entry — no unbounded string, file, or payload accepted
+- [ ] **CG-IV3:** Validation occurs at the point input enters the system — not only in downstream functions that receive pre-processed data
+- [ ] **CG-IV4:** No user input passed to dynamic execution contexts — no `eval()`, `exec()`, `subprocess()`, or equivalent without strict pre-validation
+- [ ] **CG-IV6:** All output rendered in HTML uses context-appropriate encoding — no raw user input inserted into templates or responses
+
+## Enhanced Rules: Confidential Data
+
+These gates apply when the repository handles confidential data (PII, financial records, health data, or similarly sensitive material).
+
+- [ ] **CG-IV7:** File upload handling validates content type server-side — not via client-provided MIME type or file extension alone
+- [ ] **CG-IV8:** Validation decisions made once at entry — not re-evaluated differently in downstream functions receiving the same input
+
+## Anti-patterns and Auto-recovery
+
+**Agent must detect violations, present the proposed fix, and wait for human approval before making any changes.**
+
+### 1. String-Concatenated Query
+
+**Detection:** User input interpolated directly into a database query string via concatenation, f-string, or format call.
+
+**INVALID:**
+```python
+query = "SELECT * FROM users WHERE id = " + user_id
+cursor.execute(f"SELECT * FROM orders WHERE email = '{email}'")
+```
+
+**Recovery steps:**
+1. State: "VIOLATION: SQL string concatenation — `[file]:[line]`"
+2. Identify all query construction calls in the affected file
+3. Prepare replacement using parameterised statements or ORM
+
+**Proposed fix:**
+```python
+cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
+cursor.execute("SELECT * FROM orders WHERE email = %s", (email,))
+```
+
+WAIT for human validation before proceeding
+
+Present violation location and proposed fix
+IF human approves
+  → VALID: Replace string-concatenated query with parameterised statement
+  → Continue to next section
+IF human requests changes
+  → REVISE: Update and re-present
+
+---
+
+### 2. Raw User Input in Response
+
+**Detection:** User-supplied value inserted into an HTML template or response body without encoding.
+
+**INVALID:**
+```python
+return f"<p>Hello, {request.args['name']}</p>"
+return render_template_string("<h1>{{ name }}</h1>", name=request.args["name"])
+```
+
+**Recovery steps:**
+1. State: "VIOLATION: Unencoded output — `[file]:[line]`"
+2. Identify the user-supplied value and the rendering context
+3. Prepare replacement using the framework's encoding mechanism
+
+**Proposed fix:**
+```python
+from markupsafe import escape
+return f"<p>Hello, {escape(request.args['name'])}</p>"
+# Or use a template engine with auto-escaping enabled
+```
+
+WAIT for human validation before proceeding
+
+Present output location and proposed fix
+IF human approves
+  → VALID: Apply context-appropriate encoding to user-supplied value
+  → Continue to next section
+IF human requests changes
+  → REVISE: Update and re-present
+
+---
+
+### 3. Validation Only in Downstream Functions
+
+**Detection:** Input passed through to a service, repository, or utility function before any validation — the entry point performs no validation.
+
+**INVALID:**
+```python
+@app.route("/order", methods=["POST"])
+def create_order():
+    # No validation here — passed raw to service
+    return order_service.create(request.json)
+
+def create(data):
+    if not data.get("quantity"):   # Validation buried downstream
+        raise ValueError("quantity required")
+```
+
+**Recovery steps:**
+1. State: "VIOLATION: Validation not at entry point — `[file]:[line]`"
+2. Identify all inputs received at the entry point
+3. Prepare a validation schema or guard at the route/handler level
+
+**Proposed fix:**
+```python
+@app.route("/order", methods=["POST"])
+def create_order():
+    data = request.json
+    if not isinstance(data.get("quantity"), int) or data["quantity"] < 1:
+        return {"error": "quantity must be a positive integer"}, 400
+    return order_service.create(data)
+```
+
+WAIT for human validation before proceeding
+
+Present entry point and proposed boundary validation
+IF human approves
+  → VALID: Add validation at the entry point before passing to downstream functions
+  → Continue to next section
+IF human requests changes
+  → REVISE: Update and re-present
+
+---
+
+### 4. Unbounded Input Accepted
+
+**Detection:** No maximum length or size limit enforced on string fields, file uploads, or request payloads at the entry point.
+
+**INVALID:**
+```python
+@app.route("/comment", methods=["POST"])
+def post_comment():
+    comment = request.json.get("text")   # No length check
+    db.save_comment(comment)
+```
+
+**Recovery steps:**
+1. State: "VIOLATION: No length limit — `[file]:[line]`"
+2. Identify the field and a reasonable maximum for its purpose
+3. Prepare length check at the entry point
+
+**Proposed fix:**
+```python
+MAX_COMMENT_LENGTH = 2000
+
+@app.route("/comment", methods=["POST"])
+def post_comment():
+    comment = request.json.get("text", "")
+    if len(comment) > MAX_COMMENT_LENGTH:
+        return {"error": f"comment exceeds {MAX_COMMENT_LENGTH} characters"}, 400
+    db.save_comment(comment)
+```
+
+WAIT for human validation before proceeding
+
+Present input field and proposed length limit
+IF human approves
+  → VALID: Add maximum length enforcement at entry point
+  → Continue to next section
+IF human requests changes
+  → REVISE: Update and re-present
+
+---
+
+## Common Rationalisations (FORBIDDEN)
+
+**Agent must refuse these justifications with mandatory counter-responses:**
+
+| User Says | Agent Must Respond |
+|-----------|-------------------|
+| "It's only internal data, not user input" | "No. Internal data sources can be compromised. Validate at every system boundary." |
+| "The frontend already validates it" | "No. Client-side validation is not a security control. Server-side validation required." |
+| "Parameterised queries are slower" | "No. The performance difference is negligible. String concatenation is not an option." |
+| "We sanitise the input instead of validating it" | "Sanitisation is not validation. Define what is permitted and reject everything else." |
+| "The field is too free-form to validate" | "Enforce type and maximum length at minimum. Output encoding handles the rest." |
+| "We'll add validation before go-live" | "No. Fix now. Unvalidated inputs in development become unvalidated inputs in production." |
+| "Our ORM handles it automatically" | "Confirm the ORM uses parameterised queries for all dynamic values. Raw query methods bypass this." |
+
+**If user persists after mandatory response:** Add a note to the relevant planning document recording the override and the reason given. Then continue.
+
+## Enforcement Summary
+
+**Agent operates under these non-negotiable constraints:**
+
+1. **Compliance gate verification** — All CG-IV gates must pass before input-handling work is complete.
+   - Enhanced gates CG-IV7 and CG-IV8 also apply.
+2. **Violation detection** — Agent detects violations and presents proposed fixes. No fix applied without human approval.
+3. **Mandatory counter-responses** — Agent uses mandatory counter-responses to rationalisations. Override is documented and noted.
+
+**Agent does NOT act without human approval for:**
+
+- Adding or modifying input validation logic
+- Replacing string-concatenated queries with parameterised statements
+- Adding output encoding to templates or responses
+- Enforcing maximum length limits on existing fields
+
+---
+**END OF DOCUMENT:** Total sections: 8 | Purpose: Input validation and output encoding compliance gates, anti-patterns, and enforcement

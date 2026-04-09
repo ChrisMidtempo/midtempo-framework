@@ -1,0 +1,151 @@
+# Installation
+
+Run a setup skill to create grounding documents, and make sure your testing, linting, and documentation states are healthy.
+
+## Table of Contents
+
+- [Quickstart](#quickstart)
+- [Requirements](#requirements)
+- [Setup](#setup)
+- [Next Steps](#next-steps)
+  - [Unit Tests](#unit-tests)
+  - [Linting](#linting)
+  - [Documentation](#documentation)
+- [Finally](#finally)
+
+---
+
+## Quickstart
+
+- Move `{{ repo.agentFile }}.md` to your repo root
+- Leave everything else in `midtempo-framework/`.
+- Run setup
+    ```
+    Setup Stage 1 using `/midtempo-framework/setup.md`
+    ```
+
+## Requirements
+
+A repository with:
+- Working test suite
+- Linting
+- Type checking
+
+The first priority, after setting up the framework, will be to get to zero test/lint/typecheck errors **and** warnings (clean baseline).
+
+External metrics are the ONLY way to validate LLM output, and even one prior issue can be an excuse for an Agent to ignore the rules.
+
+> IMPORTANT: ONE framework setup per repo, not one-per-user.
+
+## Setup
+
+1. **Copy files**
+
+    Copy the generated docs into your repository's root in a folder called `/midtempo-framework/`
+
+2. **Move {{ repo.agentFile }}.md file**
+
+    Move the {{ repo.agentFile }}.md file from the `/midtempo-framework/` folder into the repository root.
+
+3. **Run Setup** (9 stages)
+
+Start a new conversation with a coding LLM - Claude Sonnet provides consistent results - using the following prompt:
+
+```
+Setup Stage 1 using `/midtempo-framework/setup.md`
+```
+
+The setup orchestrator aligns the framework with your environment and coding approach. This process is done once per repo.
+
+Setup should be overseen by someone who knows the host environment. The documents generated during setup dictate everything the framework does. Any errors or omissions in these docs **will** magnify into delivery problems later.
+
+There are nine setup stages:
+
+  - [1] Command alignment validation
+
+  - [2-4] Mandatory Instructions (purpose, architecture, error-handling)
+
+  - [5-8] Conditional Documents (database, frontend, style guide, wiring a new page)
+
+  - [9] Final configuration checks
+
+After each stage completes, the LLM provides the prompt to run the next stage. Keep going until the final configuration checks (Stage 9) are complete
+
+**Important:** These instruction files are the repo's source of truth. The framework updates them automatically when features are delivered. These docs are foundational, so if you're finding delivery isn't aligned with the codebase, then review/update the instruction/*.md files.
+
+> You can re-run the setup skills at any point to regenerate any of the instruction documents afresh.
+
+Once setup is run, the framework is ready to use. 
+
+---
+
+## Next Steps
+
+The framework needs high coverage unit tests, and linting, type checks, and doc generation to run without warnings or errors. Without clean external metrics the approach _will_ struggle. 
+
+The framework contains skills to support that transition if your repo doesn't hit these metrics, but this may be a vast over-simplification depending on your environment/profile (i.e. fixing 200 lint warnings in a CAT-1 payment processing service is no small task).
+
+### Unit tests
+Are unit tests running GREEN? If not, get to Green before you do anything else (try the bugs.md skill to resolve?)
+
+The framework's foundation is test-driven development. If coverage is low, if runs take a long time, if integration and unit tests are mixed, then development will be painful.
+
+There's a `fix-tests.md` skill - run it and see whether it can uncover anything useful to improve your test harness.
+
+```
+Run /midtempo-framework/setup-skills/fix-tests.md
+```
+
+
+---
+
+### Linting
+
+How about your linting rules? How tight are they? What state are they in? Can we identify anything that might help the agent stick to the right standards for this environment?
+
+```
+Run /midtempo-framework/setup-skills/fix-linting.md
+```
+
+Ideally linting should enforce the following:
+ - Function length ≤75 lines
+ - Cyclomatic complexity ≤10 per function
+ - File length 500 lines (if linting supports)
+ - Nested ternaries < 3
+
+The fix-linting skill will check settings and the state of the current output before recommending changes.
+
+Fixing will (very likely) include refactoring production code. This could be a significant change, depending on the health of your code base. 
+
+> Ideally zero linting errors. Get them gone. Even one warning is enough for the LLM to ignore the rules.
+
+---
+
+### Documentation
+
+How about documentation? Does sphinx/jsdocs/swagger/whatever run without warnings?
+
+```
+Run /midtempo-framework/setup-skills/fix-docs.md
+```
+
+Note that this is a one-off skill to get the repo ready to use the midtempo-framework.
+
+If there are too many changes to handle at once, it will batch-process one at a time. Remember that the agent *should* read both the function and how the function is used for full context, so check it doesn't feed too many files into each pass.
+
+Adding/improving documentation can be process intensive - STOP as soon as the thread compacts/summarises.
+
+> and another reminder not to run sequential tasks in the same conversation - start each one fresh
+
+Documentation is perfect for agent understanding. Want to avoid multiple functions that do the same thing? Having clear docs helps. And make sure your generation rules are precise - enforcing strict rules with LLMs is A GOOD THING.
+
+
+## Finally
+
+Did creating the instructions documentation uncover any repo conflicts? Multiple error-handling paths for the same processes? Confusing db rules? Something missing?
+
+```
+Run /midtempo-framework/investigate.md 
+Read the /midtempo-framework/instructions/*.md documents 
+Identify areas of concern that should be addressed and discuss
+```

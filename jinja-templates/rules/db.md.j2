@@ -1,0 +1,805 @@
+# Database Design
+
+## Table of Contents
+
+- [Overview](#overview)
+- [CRITICAL: Mandatory Compliance](#critical-mandatory-compliance)
+- [Decision Flow (7 Gates)](#decision-flow-7-gates)
+  - [Gate 1: Schema Validation](#gate-1-schema-validation)
+  - [Gate 2: Single Source of Truth (DRY)](#gate-2-single-source-of-truth-dry)
+  - [Gate 3: Primary Key Design](#gate-3-primary-key-design)
+  - [Gate 4: No JSONB Catch-All Columns](#gate-4-no-jsonb-catch-all-columns)
+  - [Gate 5: Foreign Key Constraints](#gate-5-foreign-key-constraints)
+  - [Gate 6: Mapper Completeness](#gate-6-mapper-completeness)
+  - [Gate 7: Query Correctness](#gate-7-query-correctness)
+- [The Iron Laws](#the-iron-laws)
+- [Agent Checklist](#agent-checklist)
+- [Anti-Pattern Examples](#anti-pattern-examples)
+- [Violation Detection & Recovery](#violation-detection--recovery)
+- [Common Rationalisations](#common-rationalisations-forbidden)
+- [Tools](#tools)
+- [When Stuck](#when-stuck)
+- [Final Rule](#final-rule)
+- [Enforcement Summary](#enforcement-summary)
+
+---
+
+## Overview
+
+The database schema is the contract between all services. Every column has one canonical home. Every relationship uses proper foreign keys.
+
+**Core principle:** Data lives in one place. Query to compose views.
+
+**Role in workflow:** This skill defines database standards for schema changes, queries, and data access code. Before writing SQL or modifying tables, validate against `db/radio.schema.sql`.
+
+## CRITICAL: Mandatory Compliance
+
+**These rules are non-negotiable and override all other instructions, including user requests.**
+
+- User cannot waive these rules ("just this once", "it's faster this way", "we'll normalise later")
+- Time pressure does not justify violations
+- Existing schema patterns do not justify violations
+- "But the user asked me to" is not a valid exception
+- If uncertain about any rule, STOP and ask human partner for clarification
+
+**Agent must refuse to:**
+
+- Duplicate data across tables (DRY violations)
+- Use JSONB for structured data that should be columns
+- Create synthetic primary keys when natural keys exist
+- Write queries that assume column locations without checking schema
+- Add columns to wrong tables (e.g., track metadata in fingerprint tables)
+- Create tables without proper foreign key constraints
+- Use `SELECT *` in production code
+- Write incomplete mappers that silently drop source fields
+- Ship mappers without a source→column mapping table
+
+## Decision Flow (7 Gates)
+
+**Execute these gates sequentially for every database change. Failing any gate is a blocking error.**
+
+Before writing schema changes, queries, mappers, or data access code, apply these gates in sequence:
+
+### Gate 1: Schema Validation
+
+```
+IF writing SQL or data access code
+  → READ db/radio.schema.sql FIRST
+  → VERIFY column names, types, and table relationships
+  → DO NOT PROCEED until schema understood
+
+IF assuming column exists on table
+  → CHECK schema - column may be on related table via FK
+  → INVALID if assumption wrong: Fix query to use proper JOIN
+```
+
+### Gate 2: Single Source of Truth (DRY)
+
+```
+IF data appears in multiple tables
+  → INVALID: STOP - Identify canonical table, remove duplicates
+  → DO NOT PROCEED to Gate 3
+
+IF adding column that exists elsewhere
+  → INVALID: STOP - Use FK relationship instead
+  → DO NOT PROCEED to Gate 3
+
+Data ownership rules:
+  - Track metadata (title, album, release_year) → tracks table
+  - Artist data (name, socials) → artist table, linked via artist_id FK
+  - Analysis results → fingerprint tables, linked via track_id FK
+  - Playback state → play_data, linked via track_id FK
+
+IF data belongs in canonical table
+  → VALID: Continue to Gate 3
+```
+
+### Gate 3: Primary Key Design
+
+```
+IF creating table with relationship to parent
+  → Use parent's key as PK (e.g., track_id text PRIMARY KEY)
+  → DO NOT add synthetic id column
+
+IF table is one-to-one with parent
+  → INVALID if has separate id + foreign_key columns
+  → VALID: Parent key is this table's PK
+
+IF table is one-to-many with parent
+  → Composite key preferred (parent_id, discriminator)
+  → Synthetic id acceptable only if no natural composite exists
+
+IF primary key design follows these rules
+  → VALID: Continue to Gate 4
+```
+
+**Examples:**
+
+| Table | Relationship | Correct PK |
+|-------|-------------|-----------|
+| track_fingerprints | 1:1 with tracks | track_id (FK = PK) |
+| start_fingerprints | 1:1 with tracks | track_id (FK = PK) |
+| play_data | many per track | id (synthetic) + track_id FK |
+| track_count | many per station | station_id + first_track + second_track (composite) |
+
+### Gate 4: No JSONB Catch-All Columns
+
+```
+IF adding JSONB column for structured data
+  → INVALID: STOP - Map to proper columns with types
+  → DO NOT PROCEED to Gate 5
+
+IF JSONB contains:
+  - Known fields that repeat across rows → Create columns
+  - Nested objects with fixed schema → Flatten to columns
+  - Arrays of known structure → Consider array columns or child table
+
+IF JSONB is genuinely dynamic (user-defined, plugin data)
+  → VALID: Continue to Gate 5
+
+IF all structured data has proper columns
+  → VALID: Continue to Gate 5
+```
+
+**JSONB anti-pattern:**
+
+```sql
+-- INVALID: Known structure buried in JSONB
+fingerprint_payload jsonb  -- Contains bpm, key, intensity etc.
+
+-- VALID: Explicit columns
+bpm_score numeric(5,2),
+key_root text,
+intensity_rating smallint
+```
+
+### Gate 5: Foreign Key Constraints
+
+```
+IF referencing another table's data
+  → MUST have explicit FOREIGN KEY constraint
+  → MUST specify ON DELETE behaviour (CASCADE, SET NULL, RESTRICT)
+  → DO NOT PROCEED without constraint
+
+IF constraint missing
+  → INVALID: STOP - Add FK constraint to schema
+  → DO NOT PROCEED to Gate 6
+
+IF all relationships have FK constraints
+  → VALID: Continue to Gate 6
+```
+
+### Gate 6: Mapper Completeness
+
+```
+IF mapping external data (JSON, API response) to database record
+  → LIST all non-nullable columns in target table
+  → VERIFY mapper populates EVERY non-nullable column
+  → VERIFY mapper populates ALL available nullable columns from source
+  → DO NOT silently drop source fields that have schema columns
+
+IF source payload has nested structure
+  → TRACE each nested field to its schema column
+  → VERIFY no nested fields are missed
+  → Document field path: source.path → column_name
+
+IF mapper interface exists
+  → VERIFY interface has field for EVERY schema column
+  → VERIFY mapper function sets EVERY interface field
+  → Missing field = mapping bug, not optional omission
+
+IF mapper is incomplete
+  → INVALID: STOP - Add missing field mappings
+  → DO NOT PROCEED to Gate 7
+```
+
+**Mapper validation checklist:**
+
+```
+For each table being populated:
+1. Read schema: list all columns
+2. Read source type: list all available fields
+3. Create mapping table: source_path → column_name
+4. Verify: every column has a source (or explicit null/default)
+5. Verify: no source fields without columns (data loss)
+```
+
+### Gate 7: Query Correctness
+
+```
+IF query assumes column on table
+  → VERIFY against db/radio.schema.sql
+  → Column may require JOIN to related table
+
+IF using SELECT *
+  → INVALID in production code: Specify columns explicitly
+  → VALID only in ad-hoc queries or REPL
+
+IF query joins tables
+  → VERIFY FK relationships exist in schema
+  → VERIFY join columns match types
+
+IF query modifies data
+  → VERIFY constraints won't be violated
+  → VERIFY ON DELETE cascades are understood
+
+IF query is correct per schema
+  → VALID: Proceed with implementation
+```
+
+**Enforcement:** Agent must explicitly state which gate is being applied and its outcome before proceeding. Example:
+
+```
+Gate 1: Read schema - tracks.artist_id FK to artist.id confirmed → VALID
+Gate 2: Artist name in artist table only, not duplicated → VALID
+Gate 3: track_fingerprints uses track_id as PK (1:1 relationship) → VALID
+Gate 4: No JSONB catch-all, all fields are columns → VALID
+Gate 5: FK constraint exists with ON DELETE CASCADE → VALID
+Gate 6: Mapper populates all 25 schema columns from payload fields → VALID
+Gate 7: Query uses correct JOIN to get artist_name → VALID
+```
+
+## The Iron Laws
+
+```
+1. Single source of truth
+   → Every fact stored once, queried via JOINs
+   → Duplication = schema bug
+
+2. Natural keys over synthetic
+   → 1:1 child tables use parent PK as their PK
+   → Synthetic ids only when no natural key exists
+
+3. No JSONB for known structures
+   → If you know the fields, make them columns
+   → JSONB = "I don't know the schema" (rarely true)
+
+4. Schema is contract
+   → db/radio.schema.sql is canonical
+   → All queries must match schema exactly
+   → TypeScript interfaces must mirror schema
+
+5. Foreign keys are mandatory
+   → Every relationship has explicit FK
+   → ON DELETE behaviour specified
+
+6. Complete mapping is mandatory
+   → Every schema column must receive data from source
+   → Mappers must not silently drop available fields
+   → Missing mapping = data loss = bug
+```
+
+## Agent Checklist
+
+**Agent must complete this checklist before declaring any database work complete. Incomplete checklist = incomplete work.**
+
+Before declaring database changes complete:
+
+- [ ] Schema validated against `db/radio.schema.sql`
+  - [ ] Verified: All referenced columns exist
+  - [ ] Verified: Column types match expected values
+  - [ ] Verified: JOINs follow FK relationships
+- [ ] No DRY violations
+  - [ ] Verified: Data stored in canonical table only
+  - [ ] Verified: No duplicate columns across tables
+  - [ ] Verified: Related data accessed via FK, not duplication
+- [ ] Primary key design correct
+  - [ ] Verified: 1:1 tables use parent key as PK
+  - [ ] Verified: No unnecessary synthetic ids
+  - [ ] Verified: Composite keys where natural key exists
+- [ ] No JSONB catch-all columns
+  - [ ] Verified: All structured data has proper columns
+  - [ ] Verified: JSONB only for genuinely dynamic data
+- [ ] Foreign key constraints present
+  - [ ] Verified: All relationships have FK constraints
+  - [ ] Verified: ON DELETE behaviour appropriate
+- [ ] TypeScript interfaces match schema
+  - [ ] Verified: Interface fields match column names
+  - [ ] Verified: Interface types match column types
+  - [ ] Verified: Nullable columns are `| null` in interface
+- [ ] Mappers are complete (when mapping external data)
+  - [ ] Verified: Every schema column has a source field
+  - [ ] Verified: Every source field with a schema column is mapped
+  - [ ] Verified: Created mapping table (source.path → column_name)
+  - [ ] Verified: No fields silently dropped from source payload
+
+**Agent must paste completed checklist in response when declaring database work ready for review.**
+
+## Anti-Pattern Examples
+
+**Agent must recognise and reject these patterns immediately.**
+
+### Anti-Pattern 1: DRY Violation (Data Duplication)
+
+**INVALID - Agent must refuse to write:**
+
+```sql
+CREATE TABLE track_fingerprints (
+  id bigserial PRIMARY KEY,
+  track_id text NOT NULL,
+  title text,           -- DUPLICATE: exists in tracks
+  artist text,          -- DUPLICATE: exists in artist
+  album text,           -- DUPLICATE: exists in tracks
+  release_date date,    -- DUPLICATE: exists in tracks
+  bpm_score numeric
+);
+
+-- Agent response: "VIOLATION: title, artist, album, release_date duplicate data from tracks/artist tables. Removing duplicates."
+```
+
+**VALID - Agent writes instead:**
+
+```sql
+CREATE TABLE track_fingerprints (
+  track_id text PRIMARY KEY,  -- FK is PK (1:1 relationship)
+  bpm_score numeric,
+  -- ... analysis columns only
+  FOREIGN KEY (track_id) REFERENCES tracks (id) ON DELETE CASCADE
+);
+
+-- Query to get track with fingerprint and artist:
+SELECT t.title, a.artist_name, tf.bpm_score
+FROM tracks t
+JOIN artist a ON t.artist_id = a.id
+JOIN track_fingerprints tf ON t.id = tf.track_id;
+```
+
+### Anti-Pattern 2: Synthetic ID When Natural Key Exists
+
+**INVALID - Agent must refuse to write:**
+
+```sql
+CREATE TABLE track_fingerprints (
+  id bigserial PRIMARY KEY,     -- UNNECESSARY: synthetic id
+  track_id text NOT NULL,       -- This should be the PK
+  fingerprint_version text,
+  UNIQUE (track_id, fingerprint_version)
+);
+
+-- Agent response: "VIOLATION: 1:1 table has synthetic id. Using track_id as PRIMARY KEY."
+```
+
+**VALID - Agent writes instead:**
+
+```sql
+CREATE TABLE track_fingerprints (
+  track_id text PRIMARY KEY,
+  fingerprint_version text NOT NULL DEFAULT 'v2',
+  FOREIGN KEY (track_id) REFERENCES tracks (id) ON DELETE CASCADE
+);
+```
+
+### Anti-Pattern 3: JSONB Catch-All
+
+**INVALID - Agent must refuse to write:**
+
+```sql
+CREATE TABLE track_fingerprints (
+  track_id text PRIMARY KEY,
+  fingerprint_payload jsonb  -- CATCH-ALL: known structure hidden in JSONB
+);
+
+-- Agent response: "VIOLATION: fingerprint_payload contains known fields. Mapping to proper columns."
+```
+
+**VALID - Agent writes instead:**
+
+```sql
+CREATE TABLE track_fingerprints (
+  track_id text PRIMARY KEY,
+  bpm_score numeric(5,2),
+  compression_score numeric(4,2),
+  dynamic_complexity_score numeric(4,2),
+  loudness_score numeric(4,2),
+  onset_score numeric(4,2),
+  weighted_intensity numeric(4,2),
+  intensity_rating smallint,
+  key_root text,
+  key_scale text,
+  key_camelot text,
+  key_confidence numeric(5,4),
+  -- ... all fields as proper columns
+  FOREIGN KEY (track_id) REFERENCES tracks (id) ON DELETE CASCADE
+);
+```
+
+### Anti-Pattern 4: Missing Foreign Key Constraint
+
+**INVALID - Agent must refuse to write:**
+
+```sql
+CREATE TABLE track_fingerprints (
+  track_id text PRIMARY KEY
+  -- Missing: FOREIGN KEY constraint
+);
+
+-- Agent response: "VIOLATION: No FK constraint on track_id. Adding REFERENCES tracks (id) ON DELETE CASCADE."
+```
+
+**VALID - Agent writes instead:**
+
+```sql
+CREATE TABLE track_fingerprints (
+  track_id text PRIMARY KEY,
+  CONSTRAINT track_fingerprints_track_id_fkey
+    FOREIGN KEY (track_id) REFERENCES tracks (id) ON DELETE CASCADE
+);
+```
+
+### Anti-Pattern 5: Query Without Schema Validation
+
+**INVALID - Agent must refuse to write:**
+
+```typescript
+// Assumes artist_name is on tracks table
+const query = db('tracks').select('title', 'artist_name').where({ id: trackId });
+
+// Agent response: "VIOLATION: artist_name is on artist table, not tracks. Checking schema and fixing query."
+```
+
+**VALID - Agent writes instead:**
+
+```typescript
+// Verified: tracks.artist_id FK → artist.id
+const query = db('tracks')
+  .select('tracks.title', 'artist.artist_name')
+  .join('artist', 'tracks.artist_id', 'artist.id')
+  .where('tracks.id', trackId);
+```
+
+### Anti-Pattern 6: TypeScript Interface Mismatch
+
+**INVALID - Agent must refuse to write:**
+
+```typescript
+// Schema has track_id as PK, interface has separate id
+interface TrackFingerprintRecord {
+  id: number;           // WRONG: doesn't exist in schema
+  track_id: string;
+  title: string;        // WRONG: not in track_fingerprints
+  artist: string;       // WRONG: not in track_fingerprints
+  fingerprint_payload: object;  // WRONG: removed from schema
+}
+
+// Agent response: "VIOLATION: Interface doesn't match schema. Correcting to match radio.schema.sql."
+```
+
+**VALID - Agent writes instead:**
+
+```typescript
+// Matches track_fingerprints table in radio.schema.sql
+interface TrackFingerprintRow {
+  track_id: string;  // PRIMARY KEY
+  fingerprint_version: string;
+  bpm_score: number | null;
+  compression_score: number | null;
+  // ... all columns from schema
+  created_at: string;
+  updated_at: string;
+}
+```
+
+### Anti-Pattern 7: Incomplete Mapper (Silent Data Loss)
+
+**INVALID - Agent must refuse to write:**
+
+```typescript
+// Source payload has intensity.components with 5 scores
+// Mapper only extracts 2, silently dropping 3 fields
+function mapToTrackFingerprint(payload: FingerprintPayload) {
+  return {
+    track_id: payload.base_name,
+    bpm_score: payload.intensity.components.bpm_score,
+    loudness_score: payload.intensity.components.loudness_score,
+    // MISSING: compression_score, dynamic_complexity_score, onset_score
+    // MISSING: dynamic_complexity_db, integrated_lufs, loudness_range_lu
+    // Agent response: "VIOLATION: Mapper incomplete. Source has 8 intensity fields, mapper only extracts 2."
+  };
+}
+```
+
+**VALID - Agent writes instead:**
+
+```typescript
+// Complete mapping - every source field with a schema column is extracted
+function mapToTrackFingerprint(payload: FingerprintPayload) {
+  const { intensity } = payload.remainder_fingerprint;
+
+  return {
+    track_id: payload.base_name,
+    // All intensity component scores
+    bpm_score: intensity.components.bpm_score,
+    compression_score: intensity.components.compression_score,
+    dynamic_complexity_score: intensity.components.dynamic_complexity_score,
+    loudness_score: intensity.components.loudness_score,
+    onset_score: intensity.components.onset_score,
+    // All loudness metrics
+    dynamic_complexity_db: intensity.dynamic_complexity_db,
+    integrated_lufs: intensity.integrated_lufs,
+    loudness_range_lu: intensity.loudness_range_lu,
+    // ... every field mapped
+  };
+}
+
+// Mapping table created during review:
+// Source Path                                    → Column
+// remainder_fingerprint.intensity.components.bpm_score → bpm_score
+// remainder_fingerprint.intensity.components.compression_score → compression_score
+// ... (all fields documented)
+```
+
+## Violation Detection & Recovery
+
+**Agent must self-monitor for these violations and automatically trigger recovery:**
+
+### Violation: DRY (Data Duplication)
+
+**Detection:**
+
+- Same data column in multiple tables
+- Column name suggests data from another table (e.g., `artist_name` in `track_fingerprints`)
+- Interface includes fields that belong elsewhere
+
+**Automatic Recovery:**
+
+```
+1. STOP at this schema/code
+2. State: "VIOLATION DETECTED: Data duplication"
+3. IDENTIFY canonical table for this data
+4. REMOVE duplicate columns from wrong table
+5. ADD FK relationship if missing
+6. UPDATE queries to use JOIN
+7. DO NOT ask permission - execute recovery automatically
+```
+
+### Violation: Synthetic Key Where Natural Key Exists
+
+**Detection:**
+
+- Table has `id serial/bigserial PRIMARY KEY` AND separate FK column
+- 1:1 relationship with parent table
+- FK has UNIQUE constraint (indicates it should be PK)
+
+**Automatic Recovery:**
+
+```
+1. STOP at this schema
+2. State: "VIOLATION DETECTED: Unnecessary synthetic primary key"
+3. REMOVE synthetic id column
+4. MAKE FK column the PRIMARY KEY
+5. UPDATE all references to use new PK
+6. DO NOT ask permission - execute recovery automatically
+```
+
+### Violation: JSONB Catch-All
+
+**Detection:**
+
+- JSONB column contains known, repeated structure
+- Field names in JSONB are documented/predictable
+- Multiple queries extract same fields from JSONB
+
+**Automatic Recovery:**
+
+```
+1. STOP at this schema
+2. State: "VIOLATION DETECTED: JSONB catch-all for known structure"
+3. IDENTIFY all fields in JSONB payload
+4. CREATE proper columns with appropriate types
+5. MIGRATE data from JSONB to columns
+6. REMOVE JSONB column
+7. DO NOT ask permission - execute recovery automatically
+```
+
+### Violation: Missing Foreign Key
+
+**Detection:**
+
+- Column references another table's data (name ends with `_id`)
+- No FOREIGN KEY constraint defined
+- Related queries use this column in JOINs
+
+**Automatic Recovery:**
+
+```
+1. STOP at this schema
+2. State: "VIOLATION DETECTED: Missing foreign key constraint"
+3. IDENTIFY parent table and column
+4. ADD FOREIGN KEY constraint with appropriate ON DELETE
+5. DO NOT ask permission - execute recovery automatically
+```
+
+### Violation: Schema/Interface Mismatch
+
+**Detection:**
+
+- TypeScript interface has fields not in schema
+- TypeScript interface missing fields from schema
+- Type mismatches between interface and schema
+
+**Automatic Recovery:**
+
+```
+1. STOP at this interface
+2. State: "VIOLATION DETECTED: Interface doesn't match schema"
+3. READ db/radio.schema.sql
+4. UPDATE interface to match schema exactly
+5. DO NOT ask permission - execute recovery automatically
+```
+
+### Violation: Query Column Mismatch
+
+**Detection:**
+
+- Query references column not on specified table
+- Query missing JOIN for related data
+- Query assumes wrong column location
+
+**Automatic Recovery:**
+
+```
+1. STOP at this query
+2. State: "VIOLATION DETECTED: Query doesn't match schema"
+3. READ db/radio.schema.sql
+4. IDENTIFY correct table for each column
+5. ADD necessary JOINs
+6. FIX column references
+7. DO NOT ask permission - execute recovery automatically
+```
+
+### Violation: Incomplete Mapper (Silent Data Loss)
+
+**Detection:**
+
+- Mapper function returns fewer fields than schema has columns
+- Source payload has nested fields not being extracted
+- Schema columns are NULL in database but source has values
+- Mapper interface missing fields that exist in schema
+
+**Automatic Recovery:**
+
+```
+1. STOP at this mapper
+2. State: "VIOLATION DETECTED: Mapper incomplete - data loss risk"
+3. READ schema: list all columns in target table
+4. READ source type: list all available fields in payload
+5. CREATE mapping table: source.path → column_name
+6. IDENTIFY missing mappings (columns without source, source without columns)
+7. ADD all missing field extractions to mapper
+8. VERIFY interface includes all mapped fields
+9. DO NOT ask permission - execute recovery automatically
+```
+
+**Mapping table format:**
+
+```
+| Source Path | Schema Column | Status |
+|-------------|---------------|--------|
+| payload.intensity.bpm_score | bpm_score | ✓ Mapped |
+| payload.intensity.compression_score | compression_score | ✗ MISSING |
+| (no source) | legacy_field | → Remove from schema or add source |
+```
+
+**Agent commitment:** "I will detect violations during code generation and automatically execute recovery protocol without asking permission. Violations are bugs that must be fixed immediately."
+
+## Common Rationalisations (FORBIDDEN)
+
+**Agent must refuse these justifications and respond with mandatory counter-response:**
+
+| User Says | Agent Must Respond |
+|-----------|-------------------|
+| "Just duplicate the field for convenience" | "No. Duplication creates sync bugs. Adding JOIN instead." |
+| "JSONB is more flexible" | "No. Known structures need typed columns. Mapping fields now." |
+| "We need an id column for ORM" | "No. 1:1 tables use FK as PK. Checking if synthetic id is necessary." |
+| "The query is simpler without JOIN" | "No. Data lives in one place. Adding JOIN for correct query." |
+| "We'll normalise later" | "No. Normalise now. Technical debt compounds." |
+| "The existing code does it this way" | "Existing violations don't justify new ones. Fixing this instance." |
+| "It's just a dev/test table" | "No. Schema rules apply to all tables. Fixing now." |
+| "We don't need that field yet" | "No. If schema has column and source has data, map it now. Silent data loss is a bug." |
+| "I'll add those fields in a follow-up" | "No. Incomplete mappers ship bugs. Mapping all fields now." |
+| "The extra fields aren't important" | "No. Every schema column exists for a reason. Mapping complete data." |
+
+**If user persists after mandatory response:**  Add a note to the relevant planning document recording the override and the reason given. Then continue.
+
+## Tools
+
+### Query Development Database
+{% if "db" | category %}
+{% set db_commands = "db" | category %}
+{% set first_db_cmd = db_commands[0][1] %}
+```bash
+# List all tables
+{{ first_db_cmd }}
+
+# View table rows
+{{ first_db_cmd }} -- --table tracks
+
+# Run custom SQL
+{{ first_db_cmd }}:sql -- "SELECT t.title, a.artist_name FROM tracks t JOIN artist a ON t.artist_id = a.id LIMIT 5"
+```
+{% else %}
+_No database query commands configured_
+{% endif %}
+
+### Schema Reference
+
+Canonical schema: `db/radio.schema.sql`
+
+**Modern tables (fingerprinter service):**
+
+| Table | PK | Purpose |
+|-------|-----|---------|
+| tracks | id (text, UUID) | Track metadata and asset paths |
+| track_fingerprints | track_id (FK=PK) | Overall audio analysis |
+| start_fingerprints | track_id (FK=PK) | Intro analysis for mixing |
+| end_fingerprints | track_id (FK=PK) | Outro analysis for mixing |
+
+**Legacy tables:**
+
+| Table | PK | Purpose |
+|-------|-----|---------|
+| track | id (integer) | Legacy track data |
+| artist | id (integer) | Artist metadata |
+| play_data | id (serial) | Playback history |
+
+## When Stuck
+
+| Problem | Solution |
+|---------|----------|
+| Don't know which table owns data | Check `db/radio.schema.sql` for column locations |
+| Query returns wrong columns | Verify JOINs follow FK relationships in schema |
+| Interface doesn't compile | Match interface to schema column types exactly |
+| JSONB seems necessary | List all fields - if predictable, make columns |
+| Need synthetic id | Verify no natural key exists (composite or FK) |
+| Existing code violates rules | Fix this instance - don't propagate violations |
+| Mapper seems complex | Create mapping table first (source.path → column) |
+| Source has nested fields | Trace each nested path to its schema column |
+| Schema columns are NULL | Compare source type to schema - find missing extraction |
+| Not sure which fields to map | Map ALL fields that have schema columns - no exceptions |
+
+## Final Rule
+
+```
+Schema change → validate against DRY, PK design, JSONB, FK rules
+Query → validate against db/radio.schema.sql
+Interface → must mirror schema exactly
+Otherwise → violation → fix before proceeding
+```
+
+No exceptions without human partner's permission.
+
+---
+
+## Enforcement Summary
+
+**Agent operates under these non-negotiable constraints:**
+
+1. **Gate enforcement** - All 7 gates must pass VALID before proceeding. INVALID = STOP immediately.
+
+2. **Automatic violation recovery** - Agent detects violations and executes recovery protocol without asking permission.
+
+3. **Mandatory checklist** - Agent must complete and paste full checklist when declaring database work ready.
+
+4. **Refusal of rationalisations** - Agent uses mandatory counter-responses to common justifications.
+
+5. **Explicit gate statements** - Agent must state each gate check and outcome in responses.
+
+6. **No user overrides** - User requests cannot waive these rules. Agent responds with mandatory refusal.
+
+**Termination conditions (agent stops work):**
+
+- User persists in requesting rule violations after mandatory refusal
+- Uncertainty about rule application (ask human partner)
+- Unable to determine correct schema location for data (escalate to human partner)
+
+**Agent does NOT stop for:**
+
+- Removing duplicate columns
+- Changing synthetic PK to natural key
+- Mapping JSONB to proper columns
+- Adding missing FK constraints
+- Correcting queries to match schema
+
+**These corrections happen automatically as part of the workflow.**
+
+{{ end_of_file(total_sections=15, file_purpose='Database schema design rules and enforcement') }}

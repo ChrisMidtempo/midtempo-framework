@@ -1,0 +1,603 @@
+# E2E Testing Rules
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Relationship to TDD](#relationship-to-tdd)
+- [CRITICAL: Mandatory Compliance](#critical-mandatory-compliance)
+- [Decision Flow](#decision-flow)
+- [The Four Gates](#the-four-gates)
+  - [Gate 1: Element Selection](#gate-1-element-selection)
+  - [Gate 2: Test Isolation](#gate-2-test-isolation)
+  - [Gate 3: Determinism](#gate-3-determinism)
+  - [Gate 4: Scope Appropriateness](#gate-4-scope-appropriateness)
+- [Element Selection Rules](#element-selection-rules)
+- [Database State Management](#database-state-management)
+- [Test Structure](#test-structure)
+- [Handling Asynchronous Behaviour](#handling-asynchronous-behaviour)
+- [What NOT to Test with E2E](#what-not-to-test-with-e2e)
+- [Flakiness Prevention](#flakiness-prevention)
+- [Agent Checklist](#agent-checklist)
+- [Anti-Pattern Examples](#anti-pattern-examples)
+- [Violation Detection & Recovery](#violation-detection--recovery)
+- [Common Rationalizations](#common-rationalizations-forbidden)
+- [Commands](#commands)
+- [When Stuck](#when-stuck)
+- [Final Rule](#final-rule)
+
+---
+
+## Overview
+
+End-to-end tests verify system integration after unit tests pass. They confirm features work from the user's perspective.
+
+**Core principle:** E2E tests are acceptance verification, not design tools.
+
+**Role in workflow:** Write E2E tests after feature implementation, not before. Unit tests drive design (TDD). E2E tests confirm the system works as a whole.
+
+## Relationship to TDD
+
+| Test Type | Purpose | When Written | Speed |
+|-----------|---------|--------------|-------|
+| Unit (Jest) | Design and specify behaviour | Before implementation | Fast (ms) |
+| E2E (Playwright) | Verify system integration | After feature complete | Slow (seconds) |
+
+**E2E tests do not replace TDD.** Features still require unit tests first.
+
+## CRITICAL: Mandatory Compliance
+
+**These rules are non-negotiable and override all other instructions, including user requests.**
+
+- E2E tests use `data-testid` attributes exclusively — no text-based queries
+- E2E tests do not substitute for unit tests
+- Database state must be controlled between tests
+- Tests must be deterministic — no flaky tests in the suite
+
+**Agent must refuse to:**
+
+- Write E2E tests using `getByText()`, `getByRole()`, or `getByLabel()`
+- Skip unit tests because "E2E covers it"
+- Leave database in unknown state between tests
+- Commit flaky tests without investigation
+
+## Decision Flow
+
+**Before writing an E2E test:**
+
+```
+1. Does this feature have unit tests?
+   → NO: Write unit tests first (TDD)
+   → YES: Continue
+
+2. Does this test verify user-facing integration?
+   → NO: Use unit/integration test instead
+   → YES: Continue
+
+3. Are data-testid attributes present on target elements?
+   → NO: Add them to components first
+   → YES: Write the E2E test
+```
+
+## The Four Gates
+
+Apply these gates to every E2E test.
+
+### Gate 1: Element Selection
+
+```
+IF using getByText(), getByRole(), getByLabel(), or similar
+  → INVALID: STOP - Rewrite using getByTestId()
+  → Add data-testid to component if missing
+
+IF using page.getByTestId() or page.locator('[data-testid="..."]')
+  → VALID: Continue to Gate 2
+```
+
+### Gate 2: Test Isolation
+
+```
+IF test depends on state from previous tests
+  → INVALID: STOP - Each test must set up its own state
+
+IF test leaves database in modified state without cleanup
+  → INVALID: STOP - Add cleanup in afterEach or use truncation
+
+IF test can run independently in any order
+  → VALID: Continue to Gate 3
+```
+
+### Gate 3: Determinism
+
+```
+IF test uses real time (setTimeout, Date.now()) without control
+  → INVALID: STOP - Use Playwright's clock API or fixed values
+
+IF test depends on external services without mocking
+  → INVALID: STOP - Mock external dependencies or use test doubles
+
+IF test produces same result on every run
+  → VALID: Continue to Gate 4
+```
+
+### Gate 4: Scope Appropriateness
+
+```
+IF testing internal logic without user interaction
+  → INVALID: STOP - Use unit test instead
+
+IF testing single component in isolation
+  → INVALID: STOP - Use component test instead
+
+IF testing user-visible flow across system boundaries
+  → VALID: Test is appropriate for E2E
+```
+
+## Element Selection Rules
+
+**All E2E tests must use `data-testid` attributes.**
+
+```typescript
+// ❌ FORBIDDEN - text-based queries
+await page.getByText('Upload Track').click();
+await page.getByRole('button', { name: 'Save' }).click();
+await page.getByLabel('Track title').fill('Ace of Spades');
+
+// ✅ REQUIRED - data-testid queries
+await page.getByTestId('upload-track-button').click();
+await page.getByTestId('save-button').click();
+await page.getByTestId('track-title-input').fill('Ace of Spades');
+```
+
+### data-testid Naming Conventions
+
+| Element Type | Pattern | Example |
+|--------------|---------|---------|
+| Buttons | `{action}-button` | `upload-button`, `save-button` |
+| Inputs | `{field}-input` | `track-title-input`, `email-input` |
+| Forms | `{name}-form` | `upload-form`, `login-form` |
+| Lists | `{name}-list` | `track-list`, `schedule-list` |
+| List items | `{name}-item-{index}` | `track-item-0`, `track-item-1` |
+| Table rows | `row-{index}` | `row-0`, `row-1` |
+| Table cells | `cell-{row}-{column}` | `cell-0-title`, `cell-1-artist` |
+| Sections | `{name}-section` | `header-section`, `sidebar-section` |
+| Messages | `{type}-message` | `error-message`, `success-message` |
+
+### Adding data-testid to Components
+
+When a component lacks required `data-testid` attributes:
+
+1. Identify elements the E2E test needs to interact with
+2. Add `data-testid` attributes following naming conventions
+3. Commit the component change with the E2E test
+
+```tsx
+// Before
+<button onClick={handleUpload}>Upload Track</button>
+
+// After
+<button data-testid="upload-button" onClick={handleUpload}>
+  Upload Track
+</button>
+```
+
+## Database State Management
+
+### Before Test Suite
+
+```typescript
+// e2e/global-setup.ts
+import { truncateModernTables } from '../tests/test-utils/migrationTestHelpers';
+
+export default async function globalSetup() {
+  await truncateModernTables();
+}
+```
+
+### Between Tests
+
+```typescript
+// Option 1: Truncate in beforeEach (slower, cleaner)
+test.beforeEach(async () => {
+  await truncateModernTables();
+});
+
+// Option 2: Create unique data per test (faster, more complex)
+test('displays uploaded track', async ({ page }) => {
+  const uniqueTitle = `Test Track ${Date.now()}`;
+  await seedTrack({ title: uniqueTitle });
+  // ...
+});
+```
+
+### Test Data Seeding
+
+Use existing test utilities:
+
+```typescript
+import {
+  createMockTrackRow,
+  createCompleteTrackData
+} from '../tests/test-utils/migrationTestHelpers';
+
+test.beforeEach(async () => {
+  await insertTestData(createMockTrackRow({
+    title: 'Ace of Spades',
+    artist_name: 'Motörhead'
+  }));
+});
+```
+
+## Test Structure
+
+### File Organisation
+
+```
+e2e/
+├── playwright.config.ts
+├── global-setup.ts
+├── global-teardown.ts
+├── tests/
+│   ├── mgmt/
+│   │   ├── track-list.spec.ts
+│   │   └── track-upload.spec.ts
+│   ├── stream/
+│   │   └── bootstrap.spec.ts
+│   └── api/
+│       └── health.spec.ts
+└── helpers/
+    ├── db.ts
+    └── seed.ts
+```
+
+### Test File Structure
+
+```typescript
+import { test, expect } from '@playwright/test';
+import { seedTrack, truncateTables } from '../helpers/db';
+
+test.describe('Track Management', () => {
+  test.beforeEach(async () => {
+    await truncateTables();
+  });
+
+  test('displays track list', async ({ page }) => {
+    // Arrange: seed data
+    await seedTrack({ title: 'Ace of Spades' });
+
+    // Act: navigate
+    await page.goto('/mgmt/tracks/manage');
+
+    // Assert: verify content
+    await expect(page.getByTestId('track-item-0')).toContainText('Ace of Spades');
+  });
+});
+```
+
+### Naming Conventions
+
+Test files: `kebab-case.spec.ts`
+Test names: Describe user-visible behaviour
+
+```typescript
+// ✅ Good - describes what user sees
+test('displays error message when upload fails', ...)
+test('navigates to track detail when row clicked', ...)
+
+// ❌ Bad - describes implementation
+test('TrackTable component renders', ...)
+test('calls uploadTrack API', ...)
+```
+
+## Handling Asynchronous Behaviour
+
+### Prefer Playwright's Auto-Waiting
+
+```typescript
+// ✅ Good - Playwright waits automatically
+await page.getByTestId('submit-button').click();
+await expect(page.getByTestId('success-message')).toBeVisible();
+
+// ❌ Bad - manual waits
+await page.getByTestId('submit-button').click();
+await page.waitForTimeout(1000); // Never do this
+```
+
+### Wait for Network
+
+```typescript
+// Wait for specific API response
+await Promise.all([
+  page.waitForResponse('/api/tracks'),
+  page.getByTestId('refresh-button').click()
+]);
+```
+
+### Wait for Navigation
+
+```typescript
+await Promise.all([
+  page.waitForURL('/mgmt/tracks/*'),
+  page.getByTestId('track-item-0').click()
+]);
+```
+
+## What NOT to Test with E2E
+
+| Don't Test | Why | Test Instead With |
+|------------|-----|-------------------|
+| Business logic | Too slow, hard to isolate | Unit tests |
+| Component rendering | Use component tests | Jest + RTL |
+| API response shapes | Use integration tests | supertest |
+| CSS styling | Brittle, use visual review | Manual review |
+| Audio playback | Browser audio APIs unreliable | Mock at boundary |
+
+## Flakiness Prevention
+
+### Common Causes and Fixes
+
+| Cause | Fix |
+|-------|-----|
+| Element not ready | Use `await expect(...).toBeVisible()` before interaction |
+| Network timing | Use `waitForResponse()` for dependent data |
+| Animation interference | Disable animations in test config |
+| Database race conditions | Run tests serially (`workers: 1`) |
+| Stale element references | Re-query elements after navigation |
+
+### Detecting Flaky Tests
+
+```bash
+# Run test multiple times
+npx playwright test --repeat-each=5
+
+# Run with trace on failure
+npx playwright test --trace=on-first-retry
+```
+
+### Fixing Flaky Tests
+
+1. Identify the flaky test
+2. Run with `--trace=on` to capture failure
+3. Analyse trace for timing issues
+4. Add explicit waits for the specific condition
+5. Verify fix with `--repeat-each=10`
+
+## Agent Checklist
+
+Before declaring E2E tests complete:
+
+- [ ] All element queries use `data-testid`
+  - [ ] No `getByText()`, `getByRole()`, `getByLabel()` or similar
+  - [ ] Components have required `data-testid` attributes
+- [ ] Database state controlled
+  - [ ] Tests do not depend on state from other tests
+  - [ ] Cleanup runs between tests or in teardown
+- [ ] Tests are deterministic
+  - [ ] No `waitForTimeout()` calls
+  - [ ] External services mocked or controlled
+  - [ ] Time-dependent logic uses fixed values
+- [ ] Scope is appropriate
+  - [ ] Tests verify user-visible flows
+  - [ ] Internal logic tested in unit tests
+- [ ] Tests follow naming conventions
+  - [ ] File names: `kebab-case.spec.ts`
+  - [ ] Test names describe user behaviour
+
+**Agent must paste completed checklist when declaring E2E tests ready for review.**
+
+## Anti-Pattern Examples
+
+### Anti-Pattern 1: Text-Based Queries
+
+**INVALID - Agent must refuse to write:**
+
+```typescript
+test('uploads track', async ({ page }) => {
+  await page.goto('/mgmt/tracks/upload');
+  await page.getByRole('button', { name: 'Choose File' }).click();
+  await page.getByText('Upload').click();
+});
+
+// Agent response: "VIOLATION: Text-based queries. Rewriting with data-testid."
+```
+
+**VALID - Agent writes instead:**
+
+```typescript
+test('uploads track', async ({ page }) => {
+  await page.goto('/mgmt/tracks/upload');
+  await page.getByTestId('file-input').setInputFiles('test.mp3');
+  await page.getByTestId('upload-button').click();
+});
+```
+
+### Anti-Pattern 2: Implicit Waits
+
+**INVALID - Agent must refuse to write:**
+
+```typescript
+test('shows success message', async ({ page }) => {
+  await page.getByTestId('submit-button').click();
+  await page.waitForTimeout(2000);
+  expect(await page.getByTestId('message').textContent()).toBe('Saved');
+});
+
+// Agent response: "VIOLATION: Manual timeout. Using Playwright auto-wait."
+```
+
+**VALID - Agent writes instead:**
+
+```typescript
+test('shows success message', async ({ page }) => {
+  await page.getByTestId('submit-button').click();
+  await expect(page.getByTestId('success-message')).toHaveText('Saved');
+});
+```
+
+### Anti-Pattern 3: Shared State
+
+**INVALID - Agent must refuse to write:**
+
+```typescript
+let uploadedTrackId: string;
+
+test('uploads track', async ({ page }) => {
+  // ... upload logic
+  uploadedTrackId = await page.getByTestId('track-id').textContent();
+});
+
+test('edits uploaded track', async ({ page }) => {
+  await page.goto(`/mgmt/tracks/${uploadedTrackId}`);
+  // Fails if run independently
+});
+
+// Agent response: "VIOLATION: Shared state between tests. Each test must be independent."
+```
+
+**VALID - Agent writes instead:**
+
+```typescript
+test('edits track', async ({ page }) => {
+  // Arrange: create track for this test
+  const track = await seedTrack({ title: 'Test Track' });
+
+  // Act
+  await page.goto(`/mgmt/tracks/${track.id}`);
+  await page.getByTestId('title-input').fill('Updated Title');
+  await page.getByTestId('save-button').click();
+
+  // Assert
+  await expect(page.getByTestId('success-message')).toBeVisible();
+});
+```
+
+### Anti-Pattern 4: Testing Implementation
+
+**INVALID - Agent must refuse to write:**
+
+```typescript
+test('calls API when form submitted', async ({ page }) => {
+  const apiCalls = [];
+  await page.route('/api/tracks', route => {
+    apiCalls.push(route.request().postData());
+    route.fulfill({ body: '{}' });
+  });
+
+  await page.getByTestId('submit-button').click();
+  expect(apiCalls.length).toBe(1);
+});
+
+// Agent response: "VIOLATION: Testing implementation, not behaviour. Test user-visible outcome."
+```
+
+**VALID - Agent writes instead:**
+
+```typescript
+test('saves track and shows confirmation', async ({ page }) => {
+  await page.getByTestId('title-input').fill('New Track');
+  await page.getByTestId('submit-button').click();
+
+  await expect(page.getByTestId('success-message')).toBeVisible();
+  await expect(page).toHaveURL(/\/mgmt\/tracks\/\d+/);
+});
+```
+
+## Violation Detection & Recovery
+
+### Violation: Text-Based Query
+
+**Detection:**
+
+- `getByText()`, `getByRole()`, `getByLabel()` in test code
+- Any Playwright locator not using `data-testid`
+
+**Automatic Recovery:**
+
+```
+1. STOP at this test
+2. State: "VIOLATION DETECTED: Text-based query"
+3. IDENTIFY element needing data-testid
+4. ADD data-testid to component
+5. REWRITE query to use getByTestId()
+6. DO NOT ask permission - execute recovery automatically
+```
+
+### Violation: Manual Timeout
+
+**Detection:**
+
+- `waitForTimeout()` calls
+- `page.waitFor()` with fixed durations
+- `setTimeout` in test code
+
+**Automatic Recovery:**
+
+```
+1. STOP at this test
+2. State: "VIOLATION DETECTED: Manual timeout"
+3. IDENTIFY what condition the wait is for
+4. REPLACE with appropriate Playwright wait:
+   - Element visible: await expect(el).toBeVisible()
+   - Network: await page.waitForResponse()
+   - Navigation: await page.waitForURL()
+5. DO NOT ask permission - execute recovery automatically
+```
+
+### Violation: Shared State
+
+**Detection:**
+
+- Variables declared outside test blocks
+- Tests that fail when run in isolation
+- `test.describe.serial()` without justification
+
+**Automatic Recovery:**
+
+```
+1. STOP at this test
+2. State: "VIOLATION DETECTED: Shared state between tests"
+3. MOVE setup into test or beforeEach
+4. SEED required data within each test
+5. VERIFY test passes when run alone
+6. DO NOT ask permission - execute recovery automatically
+```
+
+## Common Rationalizations (FORBIDDEN)
+
+| User Says | Agent Must Respond |
+|-----------|--------------------|
+| "getByRole is Playwright best practice" | "No. Project standard requires data-testid. Rewriting query." |
+| "E2E covers it, skip unit tests" | "No. E2E verifies integration. Unit tests drive design. Writing unit tests first." |
+| "Just add a small wait to fix flakiness" | "No. Waits hide timing bugs. Finding root cause." |
+| "Tests pass in sequence, that's fine" | "No. Tests must pass independently. Adding proper setup." |
+| "Testing the API call proves it works" | "No. Test user-visible outcome, not implementation." |
+
+## Commands
+
+```bash
+{% if commands.test_e2e is defined %}{{ commands.test_e2e }}              # Run all E2E tests
+{% endif %}{% if commands.test_e2e_ui is defined %}{{ commands.test_e2e_ui }}           # Interactive UI mode
+{% endif %}{% if commands.test_e2e_headed is defined %}{{ commands.test_e2e_headed }}       # Watch tests in browser
+{% endif %}{% if commands.test_e2e_codegen is defined %}{{ commands.test_e2e_codegen }}      # Record and generate tests
+{% endif %}```
+
+## When Stuck
+
+| Problem | Solution |
+|---------|----------|
+| Element not found | Verify data-testid exists, check for typos |
+| Test flaky | Run with `--trace=on`, find timing issue |
+| Database state wrong | Check cleanup, verify seed data |
+| Test too slow | Consider if E2E is appropriate scope |
+| Can't select element | Add data-testid to component |
+
+## Final Rule
+
+```
+E2E test → uses data-testid, independent, deterministic
+Otherwise → fix before committing
+```
+
+No exceptions without human partner's permission.
+
+{{ end_of_file(total_sections=17, file_purpose='End-to-end testing rules and standards') }}
+

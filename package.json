@@ -1,0 +1,40 @@
+{
+  "name": "midtempo-framework",
+  "version": "0.3.6",
+  "description": "Midtempo Framework - Templating and documentation tools",
+  "scripts": {
+    "lint:markdown": "markdownlint '**/*.md' --ignore node_modules --ignore venv --ignore rules --ignore templates --ignore typescript --ignore planning --ignore instructions",
+    "check:links": "markdown-link-check '**/*.md' --config .markdown-link-check.json || true",
+    "lint:python": "venv/bin/ruff check scripts/ tests/",
+    "lint:python:fix": "venv/bin/ruff check --fix scripts/ tests/",
+    "format:python": "venv/bin/black scripts/ tests/",
+    "format:python:check": "venv/bin/black --check scripts/ tests/",
+    "typecheck:python": "venv/bin/mypy scripts/ tests/",
+    "test:python": "bash -c 'venv/bin/pytest \"$@\" --tb=short | tee planning/last-test-ran.log' --",
+    "test:python:unit": "bash -c 'venv/bin/pytest -m \"not integration\" --tb=short | tee planning/last-test-ran.log'",
+    "test:python:integration": "bash -c 'venv/bin/pytest -m integration --tb=short | tee planning/last-test-ran.log'",
+    "test:python:coverage": "venv/bin/pytest --cov=scripts --cov-report=term-missing --cov-report=html -q | tee planning/last-test-ran.log",
+    "generate": "bash -c 'venv/bin/python scripts/cli.py --config \"$1/midtempo-framework.yml\" --output \".\"' --",
+    "schema:generate": "bash -c 'PYTHONPATH=. venv/bin/python scripts/generate_schema.py'",
+    "init": "bash -c 'venv/bin/python -c \"from scripts.init_framework import initialize_framework; initialize_framework(\\\"$1\\\", \\\"$2\\\")\"' --",
+    "language:add": "bash -c 'venv/bin/python scripts/add_language.py \"$@\"' --",
+    "validate:templates": "bash -c 'venv/bin/python scripts/validate_templates.py \"$@\"' --",
+    "docs:generate": "venv/bin/pdoc --html --output-dir docs --force scripts/",
+    "docs:validate": "venv/bin/python build-scripts/validate_docs.py",
+    "check:all": "npm run format:python:check && npm run lint:python && npm run typecheck:python && npm run test:python && npm run docs:validate && npm run lint:markdown",
+    "fix:all": "npm run format:python && npm run lint:python:fix",
+    "server": "PYTHONPATH=. venv/bin/uvicorn server.app:app --reload",
+    "ui:manifest": "PYTHONPATH=. venv/bin/python scripts/build_ui_manifest.py"
+  },
+  "devDependencies": {
+    "markdownlint-cli": "^0.39.0",
+    "markdown-link-check": "^3.12.0"
+  },
+  "keywords": [
+    "agentic",
+    "framework",
+    "templating"
+  ],
+  "author": "",
+  "license": "ISC"
+}

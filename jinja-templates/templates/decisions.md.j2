@@ -1,0 +1,77 @@
+# [Feature Name] Decisions
+
+**Status:** In Progress
+
+---
+
+## Understanding Summary
+
+> Captured during §1 of Build skill. Refined in §3.
+
+**Problem:** [1-2 sentence problem statement]
+
+**Acceptance Criteria:**
+- [ ] [Measurable criterion]
+- [ ] [Measurable criterion]
+
+**Out of Scope:** [list with reasons]
+
+**Constraints:** [technical dependencies, existing patterns, API limitations]
+
+---
+
+## 1. Problem & Goals
+
+[Refined problem statement after exploring approaches in §2. What does success look like?]
+
+---
+
+## 2. Solution & Decisions
+
+**Approach:** [High-level approach — one paragraph]
+
+### Decision Cards
+
+#### Decision 1: [Decision Name]
+
+**Category:** Architectural | Data Model | Integration | UX
+**Choice:** [What we decided]
+**Rationale:** [Why — one paragraph maximum]
+
+**Rejected:**
+
+- [Alternative]: [One-line reason]
+
+**Plan Handoff:**
+
+- **Affects:** [Component names from Section 3]
+- **Constraint:** [What implementation must respect]
+- **Reversibility:** Feature flag | Simple rollback | Permanent
+
+---
+
+## 3. Architecture & Data
+
+[Components, data model, integration points]
+
+---
+
+## 4. User Experience
+
+[UI changes, error states, edge cases — UI features only]
+
+---
+
+## 5. Constraints
+
+[Dependencies, security, performance limits]
+
+---
+
+## Notes
+
+[Additional context or observations about the codebase captured during investigations]
+
+---
+
+END OF DOCUMENT

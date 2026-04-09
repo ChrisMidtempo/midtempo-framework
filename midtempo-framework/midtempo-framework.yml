@@ -1,0 +1,233 @@
+# Midtempo Framework Configuration File
+#
+# IMPORTANT: If you edit this file you **MUST** re-generate the framework for changes to take effect
+
+# --------------------
+# 1. BASE CONFIG
+# --------------------
+
+name: midtempo-framework
+repo:
+  title: Midtempo Framework
+  language:
+    python: all
+  setup: true
+  logfile: /planning/last-test-ran.log
+  agentFile: CLAUDE
+capabilities:
+  hasUI: true
+  hasDB: false
+  hasTypecheck: true
+  hasAuthentication: true
+  handlesConfidentialData: true
+  isPublicFacing: true
+
+
+# --------------------
+# 2. CORE COMMANDS
+# --------------------
+# test, lint, typecheck commands MUST be available. 
+
+commands:
+  test:
+    command: npm run test:python
+    description: Run all Python tests
+    category: test
+
+  lint:
+    command: npm run lint:python
+    description: Run Python linter for code quality
+    category: lint
+
+  typecheck:
+    command: npm run typecheck:python
+    description: Run Python type checker (mypy)
+    category: typecheck
+
+
+# --------------------
+# 3. VARIANTS - Test/Lint/Typecheck
+# --------------------
+# Organised variants of core commands by purpose - add/amend as required
+
+  # Testing variants
+  test_unit:
+    command: npm run test:python:unit
+    description: Run Python unit tests only (fast, no external dependencies)
+    category: test
+
+  test_integration:
+    command: npm run test:python:integration
+    description: Run Python integration tests only (slower, may use external resources)
+    category: test
+
+  test_coverage:
+    command: npm run test:python:coverage
+    description: Run Python unit tests with coverage report
+    category: test
+
+  # Linting variants
+  lint_fix:
+    command: npm run lint:python:fix
+    description: Fix Python linting issues automatically
+    category: lint
+
+  fix_all:
+    command: npm run fix:all
+    description: Auto-fix formatting and linting issues
+    category: lint
+
+
+# --------------------
+# 4. FORMATTING
+# --------------------
+# Code formatting tools - add/amend as required
+
+  format:
+    command: npm run format:python
+    description: Format Python code with Black
+    category: format
+
+  format_check:
+    command: npm run format:python:check
+    description: Check Python code formatting
+    category: format
+
+
+# --------------------
+# 5. DOCUMENTATION COMMANDS
+# --------------------
+# Documentation generation tools - add/amend as required
+
+  docs_generate:
+    command: npm run docs:generate
+    description: Generate API documentation
+    category: docs
+
+  docs_validate:
+    command: npm run docs:validate
+    description: Validate docstring presence on all public functions and classes
+    category: docs
+
+
+# --------------------
+# 6. UTILITIES & DISCOVERY
+# --------------------
+# Categories are: test, lint, typecheck, docs, format, docker, db, utilities, discovery
+
+  # Utilities
+  lint_markdown:
+    command: npm run lint:markdown
+    description: Lint Markdown files
+    category: utilities
+
+  check_all:
+    command: npm run check:all
+    description: Run all quality checks (format, lint, typecheck, test, markdown)
+    category: utilities
+
+  check_links:
+    command: npm run check:links
+    description: Check Markdown links
+    category: utilities
+
+  validate_templates:
+    command: npm run validate:templates
+    description: Validate Jinja2 template syntax
+    category: utilities
+
+  validate_templates_strict:
+    command: npm run validate:templates -- --strict
+    description: Validate templates with strict mode (warnings as errors)
+    category: utilities
+
+  validate_templates_syntax:
+    command: npm run validate:templates -- --syntax-only
+    description: Validate template syntax only (skip variable checks)
+    category: utilities
+
+  add_language:
+    command: npm run language:add
+    description: Adds new language support to the framework
+    category: utilities
+
+  # Discovery tools are referenced during fact-finding stages
+  # (brainstorming and investigation)
+  # Add any scripts that might help uncover/understand new work
+
+  # Generation/Discovery
+  generate:
+    command: npm run generate midtempo-framework
+    description: Generate Midtempo Framework from templates
+    category: generate
+
+  schema_generate:
+    command: npm run schema:generate
+    description: Generates JSON schema from configuration
+    category: generate
+
+
+# --------------------
+# 7. INSTRUCTIONS
+# --------------------
+# Client-maintained/repo-specific documentation files injected into the midtempo-framework scripts
+
+instructions:
+  purpose:
+    page: 'purpose.md'
+    description: 'Provides an overview of the goal and capabilities of the service'
+
+  architecture:
+    page: 'architecture.md'
+    description: 'Services architectural structure and design principles'
+
+  error-handling:
+    page: 'error-handling.md'
+    description: 'Error handling patterns and conventions for the repository'
+
+  # Database service instructions
+  db:
+    page: 'db.md'
+    description: 'Database access patterns, connection rules, and credential handling'
+
+  # Frontend design
+  frontend-design:
+    page: 'frontend-design.md'
+    description: 'Component architecture, composition patterns, and UI organisation'
+
+  # UI page wiring instructions
+  new-page:
+    page: 'new-page.md'
+    description: 'How to wire a new page into the UI'
+
+  # CSS style guide
+  style-guide:
+    page: 'style-guide.md'
+    description: 'CSS style rules and conventions'
+
+
+# --------------------
+# 8. SECURITY
+# --------------------
+# Optional security domain configuration - overrides auto-detection from capabilities
+
+# security:
+#   secrets-management:
+#     page: 'secrets-management.md'
+#     description: 'Credential handling, API keys, and secret storage rules'
+#   input-validation:
+#     page: 'input-validation.md'
+#     description: 'Input sanitisation, validation, and injection prevention'
+#   authentication:
+#     page: 'authentication.md'
+#     description: 'Authentication flows, session management, and access control'
+#   data-protection:
+#     page: 'data-protection.md'
+#     description: 'Encryption, data handling, and confidentiality rules'
+#   public-hardening:
+#     page: 'public-hardening.md'
+#     description: 'Public-facing security headers, CORS, and attack surface reduction'
+
+metadata:
+  generated_at: '2026-04-09T11:40:31.935453+00:00'
+  framework_version: 0.3.7

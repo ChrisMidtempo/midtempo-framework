@@ -1,0 +1,811 @@
+# Architecture Review Skill
+
+## Overview
+
+Guard system shape: boundaries, complexity, pipelines, conventions. Each analysis section is validated by the human and persisted to file before the next begins.
+
+**Goal:** Produce an incremental review report and a grouped recommendations file with skill routing per finding.
+
+**NOT for:**
+
+- Code correctness → use [review-code.md](review-code.md)
+- Test quality → use [review-tests.md](review-tests.md)
+- E2E reliability → use [review-e2e.md](review-e2e.md)
+
+**Primary references:**
+
+- `purpose.md`
+- `architecture.md`
+- `frontend-design.md`
+
+**Outputs:**
+
+- `planning/reviews/arch-[date].md` — Review report (written incrementally, one section at a time)
+- `planning/reviews/arch-[date]-recommendations.md` — Grouped findings with severity and skill routing
+
+---
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Non-Negotiable Rules](#non-negotiable-rules)
+- [Design Principles](#design-principles)
+- [Layering Paths](#layering-paths-mandatory)
+- [Architecture Scorecard](#architecture-scorecard)
+- [Entry Gate](#entry-gate)
+- [Step 1: Scope & Intent](#step-1-scope--intent)
+- [Step 2: Map Dependencies](#step-2-map-dependencies)
+- [Step 3: Run Scorecard](#step-3-run-scorecard)
+- [Step 4: Check Design Principles](#step-4-check-design-principles)
+- [Step 5: Spot Structural Smells](#step-5-spot-structural-smells)
+- [Step 6: Verify Defensive Posture](#step-6-verify-defensive-posture)
+- [Step 7: Compile Recommendations](#step-7-compile-recommendations)
+- [Step 8: Complete Review](#step-8-complete-review)
+- [Anti-Patterns](#anti-patterns)
+- [Severity Taxonomy](#severity-taxonomy)
+- [Common Rationalisations](#common-rationalisations-forbidden)
+- [Final Rule](#final-rule)
+
+---
+
+## Non-Negotiable Rules
+
+<CRITICAL_REQUIREMENT type="MANDATORY">
+
+- You MUST review through official layering paths only.
+- You MUST cite a measurable metric and repository source for every finding.
+- You MUST include at least one positive observation.
+- You MUST label severity: blocking/recommended/nit.
+- You MUST verify planning docs exist and match implementation scope.
+- You MUST flag layering violations and architectural policy breaches.
+- You MUST check design principles (DRY, SOLID, KISS, YAGNI, LoD) systematically.
+- You MUST assume test coverage, linting, type checks, and documentation are handled elsewhere.
+- You MUST present each analysis section to the human before writing it to the review file.
+- You MUST wait for human validation on sections with findings before appending.
+- You MUST write sections with no findings (all PASS) without requiring validation.
+- You MUST write each validated section to `planning/reviews/arch-[date].md` before starting the next.
+- You MUST compile findings into `planning/reviews/arch-[date]-recommendations.md` with skill routing per finding.
+- You MUST NOT batch multiple sections into a single write.
+
+</CRITICAL_REQUIREMENT>
+
+---
+
+## Design Principles
+
+Flag violations of these non-negotiable principles:
+
+| Principle       | Rule                                                  | Violation Example                                      |
+| --------------- | ----------------------------------------------------- | ------------------------------------------------------ |
+| **DRY**         | Every piece of knowledge has one authoritative source | Duplicated validation logic in controller and service  |
+| **SRP**         | Each module has one reason to change                  | Service handling both business logic and HTTP concerns |
+| **OCP**         | Extend behaviour without modifying existing code      | Switch statements that grow with each new type         |
+| **LSP**         | Subtypes substitute for base types without breaking   | Override that changes method contract                  |
+| **ISP**         | No client depends on methods it doesn't use           | Fat interface forcing empty implementations            |
+| **DIP**         | Depend on abstractions, not concretions               | Component importing database driver directly           |
+| **KISS**        | Prefer simple solutions over clever ones              | Metaprogramming where a loop suffices                  |
+| **YAGNI**       | Build only what's needed now                          | Premature abstraction for hypothetical cases           |
+| **LoD**         | Talk only to immediate collaborators                  | `a.getB().getC().doThing()` chains                     |
+| **Composition** | Favour composition over inheritance                   | Deep inheritance hierarchies for code reuse            |
+
+---
+
+## Layering Paths (MANDATORY)
+
+Review through the official layering paths defined in instruction documents. These are the authoritative sources:
+
+- `architecture.md` — primary source of truth for layering and dependency rules
+- `frontend-design.md` — UI component hierarchy and state management rules
+
+READ the "Compliance Gates" section from each applicable instruction document:
+- `/midtempo-framework/instructions/architecture.md` §8 "Compliance Gates"
+- `/midtempo-framework/instructions/frontend-design.md` §5 "Compliance Gates"
+Check for structural violations — boundary breaches, layering misuse, and policy non-compliance.
+
+**Requirements:**
+
+- Flag component hierarchy violations defined in `frontend-design.md`
+- Flag state management policy violations
+- Flag cross-surface fan-out (≤ 3 imports outside surface)
+- Flag layer skipping as defined in `architecture.md`
+
+---
+
+## Architecture Scorecard
+
+Record PASS/FAIL with quantitative evidence per category. Targets come from instruction documents — do not assume defaults.
+
+| Category | Source |
+| --- | --- |
+| **Surface Ownership** | `architecture.md` |
+| **Coupling** | `architecture.md` |
+| **Build Entrypoints** | `architecture.md` |
+| **Layering** | `frontend-design.md` |
+| **State Management** | `frontend-design.md` |
+| **DRY** | Design principle — one authoritative source per piece of knowledge |
+| **SRP** | Design principle — one reason to change per module |
+| **Coupling Depth** | Design principle — ≤ 2 dots (Law of Demeter) |
+
+Ground every observation in the scorecard. Deviations block unless justified by signed RFC.
+
+**Note:** Complexity, function size, and file size metrics are handled by linting. Test coverage is handled by test reviews. This review focuses on architectural boundaries, design principles, and system shape.
+
+---
+
+## Entry Gate
+
+```
+IF human request is about code correctness
+  → REDIRECT to `/midtempo-framework/review-code.md`
+
+IF human request is about test quality
+  → REDIRECT to `/midtempo-framework/review-tests.md`
+
+IF human request is about E2E reliability
+  → REDIRECT to `/midtempo-framework/review-e2e.md`
+```
+
+READ ALL of `/midtempo-framework/rules/writing.md`
+
+READ ALL of `/midtempo-framework/instructions/purpose.md` # Provides an overview of the goal and capabilities of the service
+READ ALL of `/midtempo-framework/instructions/architecture.md` # Services architectural structure and design principles
+READ ALL of `/midtempo-framework/instructions/frontend-design.md` # Component architecture, composition patterns, and UI organisation
+READ ALL of `/midtempo-framework/instructions/db.md` # Database access patterns, connection rules, and credential handling
+
+```
+VERIFY-COMPLETE-READ:
+  CHECK the last line of all READ documents says "END OF DOCUMENT"
+  IF any CHECK fails → Re-read that document from offset until true end
+
+VALID: Continue to Step 1
+```
+
+---
+
+## Step 1: Scope & Intent
+
+### 1.1 Establish Scope
+
+ASK the human two questions. WAIT for each answer before continuing.
+
+**Q1 — What are you reviewing?**
+
+| Scope Type | Behaviour |
+|------------|-----------|
+| Feature/branch | Find planning docs, scope to feature files and surfaces |
+| Surface | Scope to that surface's layering path from instruction documents |
+| Module/area | Human provides entry point(s), agent maps the boundary |
+| Whole system | All surfaces from instruction documents |
+
+**Q2 — What's driving this review?**
+
+| Intent | Effect |
+|--------|--------|
+| Verify design | Measure findings against planning/design docs |
+| Investigate concern | Prioritise concern area, then standard checks |
+| Pre-change assessment | Focus on area about to change, frame findings as risks |
+| Health check | Standard full run, no bias |
+
+WAIT for both answers before continuing.
+
+### 1.2 Documentation Check
+
+**Based on scope type from Q1:**
+
+```
+IF feature/branch → REQUIRED: find and read planning docs. IF not found → STOP.
+IF surface or area → OPTIONAL: use if available.
+IF whole system → NOT EXPECTED: skip.
+```
+
+Search for:
+- `/planning/*-plan.md` — Implementation plans
+- `/planning/*-design.md` — Design documents
+
+Read and extract:
+- Intended architecture and scope
+- Surfaces and bundles affected
+- Integration points and dependencies
+
+If no docs exist and scope type requires them → ASK:
+> "No planning/design documentation found. Please provide:
+> (a) path to relevant docs, or (b) confirmation this is a minor change not requiring docs."
+
+### 1.3 Present Scope
+
+Present scope summary to human:
+
+```
+Review Scope: [Feature/Target Name]
+
+- Type: [feature / surface / area / whole system]
+- Target: [from Q1]
+- Intent: [from Q2]
+- Planning docs:
+  - Design: [path or "not applicable"]
+  - Plan: [path or "not applicable"]
+- Surfaces: [list]
+- Bundles: [list]
+```
+
+WAIT for human validation before proceeding
+
+Review scope, intent, and planning docs for accuracy
+IF human approves
+  → VALID: Continue to '§1.4 Create Review File'
+  → Continue to next section
+IF human requests changes
+  → REVISE: Update and re-present
+
+### 1.4 Create Review File
+
+CREATE `planning/reviews/arch-[date].md` with:
+
+```markdown
+# Architecture Review: [Feature Name]
+
+**Date:** [DD/MM/YYYY]
+**Status:** In Progress
+
+---
+
+## Review Scope
+
+- **Type:** [from Q1]
+- **Target:** [from Q1]
+- **Intent:** [from Q2]
+- **Planning docs:**
+  - Design: [path or "not applicable"]
+  - Plan: [path or "not applicable"]
+
+---
+
+## Scope
+
+- Feature: [name]
+- Surfaces: [list]
+- Bundles: [list]
+
+---
+
+## Intent Summary
+
+- [Key point from planning docs]
+- [Key point from planning docs]
+```
+IF Review File created → VALID: Continue to "Step 2: Map Dependencies"
+
+
+---
+
+## Step 2: Map Dependencies
+
+Trace from entrypoint to storage:
+
+- Confirm each jump uses allowed abstractions per `/midtempo-framework/instructions/architecture.md` §2 "Module Structure"
+- Flag layer skipping per `/midtempo-framework/instructions/architecture.md` §5.2 "Dependency Rules"
+- Flag circular dependencies per `/midtempo-framework/instructions/architecture.md` §5.2 "Dependency Rules"
+- Flag boundary exposure per `/midtempo-framework/instructions/architecture.md` §5.3 "Boundary Rules"
+- Flag improperly structured UI per `/midtempo-framework/instructions/frontend-design.md` §1 "Organisation"
+- Verify compliance gates per `/midtempo-framework/instructions/frontend-design.md` §5 "Compliance Gates"
+- Verify compliance gates per `/midtempo-framework/instructions/architecture.md` §8 "Compliance Gates"
+
+### 2.1 Present Results
+
+**Output to human:**
+
+```
+Dependencies: [Feature Name]
+
+Dependency chain:
+- [entrypoint] → [service] → [repo] → [storage]
+
+Findings:
+- [finding with file:line evidence] OR "No dependency violations found"
+
+Layering: PASS/FAIL
+Circular dependencies: PASS/FAIL
+Boundary exposure: PASS/FAIL
+Compliance gates: PASS/FAIL
+```
+
+### 2.2 Validation Gate
+
+```
+IF findings exist
+  → PRESENT results to human
+```
+
+WAIT for human validation before proceeding
+
+Review dependency findings for accuracy
+IF human approves
+  → VALID: APPEND to `planning/reviews/arch-[date].md`
+  → Continue to next section
+IF human requests changes
+  → REVISE: Update and re-present
+
+```
+IF no findings (all PASS)
+  → STATE: "Dependencies: PASS — no violations found"
+  → APPEND to `planning/reviews/arch-[date].md` without waiting
+
+Continue to Step 3.
+```
+
+---
+
+## Step 3: Run Scorecard
+
+Record PASS/FAIL with quantitative evidence per scorecard category (see §Architecture Scorecard).
+
+**Instruction-governed categories** — check against targets in the source document:
+
+- Surface ownership, coupling, build entrypoints → `architecture.md`
+- Layering, state management → `frontend-design.md`
+
+**Design principle categories** — universal targets:
+
+- DRY: one authoritative source per piece of knowledge
+- SRP: one reason to change per module
+- Coupling depth: ≤ 2 dots (Law of Demeter)
+
+### 3.1 Present Results
+
+**Output to human:**
+
+```
+Scorecard: [Feature Name]
+
+PASS ([N]/[total]):
+  [Category], [Category], [Category], ...
+
+FAIL ([N]/[total]):
+- [Category]
+  [file:line] — [evidence description]
+- [Category]
+  [file:line] — [evidence description]
+```
+
+### 3.2 Validation Gate
+
+```
+IF any category is FAIL
+  → PRESENT scorecard to human
+```
+
+WAIT for human validation before proceeding
+
+Review scorecard results and evidence for accuracy
+IF human approves
+  → VALID: APPEND to `planning/reviews/arch-[date].md`
+  → Continue to next section
+IF human requests changes
+  → REVISE: Update and re-present
+
+```
+IF all categories PASS
+  → STATE: "Scorecard: all PASS"
+  → APPEND to `planning/reviews/arch-[date].md` without waiting
+
+Continue to "§Step 4: Check Design Principles".
+```
+
+---
+
+## Step 4: Check Design Principles
+
+Check each principle from §Design Principles systematically. For each violation found, record:
+
+- Principle violated
+- File:line evidence
+- Concrete impact on maintainability
+
+### 4.1 Present Results
+
+**Output to human:**
+
+```
+Design Principles: [Feature Name]
+
+Violations:
+- [PRINCIPLE]: [description] at [file:line] — [impact]
+- ...
+
+OR
+
+"Design Principles: no violations found"
+```
+
+### 4.2 Validation Gate
+
+```
+IF violations found
+  → PRESENT findings to human
+```
+
+WAIT for human validation before proceeding
+
+Review design principle violations for accuracy
+IF human approves
+  → VALID: APPEND to `planning/reviews/arch-[date].md`
+  → Continue to next section
+IF human requests changes
+  → REVISE: Update and re-present
+
+```
+IF no violations found
+  → STATE: "Design Principles: PASS — no violations found"
+  → APPEND to `planning/reviews/arch-[date].md` without waiting
+
+Continue to Step 5.
+```
+
+---
+
+## Step 5: Spot Structural Smells
+
+Check for common anti-patterns (see §Anti-Patterns for full list):
+
+- **Cross-layer contamination** — backend/API code importing UI frameworks or vice versa
+- **Layer skipping** — routes/controllers accessing data layer directly without service abstraction
+- **Misplaced concerns** — business logic in controllers, data fetching in presentation components
+- **Leaky state** — global mutable state, improper state management patterns
+- **Circular dependencies** — modules importing each other directly or transitively
+
+### 5.1 Present Results
+
+**Output to human:**
+
+```
+Structural Smells: [Feature Name]
+
+Findings:
+- [SMELL]: [description] at [file:line]
+- ...
+
+OR
+
+"Structural Smells: no issues found"
+```
+
+### 5.2 Validation Gate
+
+```
+IF findings exist
+  → PRESENT findings to human
+```
+
+WAIT for human validation before proceeding
+
+Review structural smell findings for accuracy
+IF human approves
+  → VALID: APPEND to `planning/reviews/arch-[date].md`
+  → Continue to next section
+IF human requests changes
+  → REVISE: Update and re-present
+
+```
+IF no findings
+  → STATE: "Structural Smells: PASS — no issues found"
+  → APPEND to `planning/reviews/arch-[date].md` without waiting
+
+Continue to Step 6.
+```
+
+---
+
+## Step 6: Verify Defensive Posture
+
+Check for:
+
+- Typed errors (domain-specific error classes)
+- Retry policies (exponential backoff for API calls)
+- Dependency injection for services (testability)
+- Graceful degradation (fallbacks for failures)
+
+### 6.1 Present Results
+
+**Output to human:**
+
+```
+Defensive Posture: [Feature Name]
+
+Findings:
+- [CONCERN]: [description] at [file:line]
+- ...
+
+OR
+
+"Defensive Posture: no concerns found"
+```
+
+### 6.2 Validation Gate
+
+```
+IF findings exist
+  → PRESENT findings to human
+```
+
+WAIT for human validation before proceeding
+
+Review defensive posture findings for accuracy
+IF human approves
+  → VALID: APPEND to `planning/reviews/arch-[date].md`
+  → Continue to next section
+IF human requests changes
+  → REVISE: Update and re-present
+
+```
+IF no findings
+  → STATE: "Defensive Posture: PASS — no concerns found"
+  → APPEND to `planning/reviews/arch-[date].md` without waiting
+
+Continue to Step 7.
+```
+
+---
+
+## Step 7: Compile Recommendations
+
+Compile all findings from Steps 2–6 into a single recommendations file.
+
+### 7.1 Gather Positives
+
+Before compiling findings, record at least one positive observation — a concrete architectural strength with evidence.
+
+### 7.2 Group Findings
+
+Group findings by severity (see §Severity Taxonomy):
+
+1. **Blocking** — must resolve before further work
+2. **Recommended** — should resolve soon
+3. **Nit** — minor improvements
+
+For each finding, include:
+
+- **Severity:** blocking / recommended / nit
+- **Skill:** `/midtempo-framework/[bugs|refactor|build|refine].md`
+- **Evidence:** file:line references
+- **Summary:** one-sentence description
+- **Acceptance criteria:** measurable condition for resolution
+
+### 7.3 Present Results
+
+**Output to human:**
+
+```
+Recommendations: [Feature Name]
+
+Positives:
+- [Strength with evidence]
+
+Blocking:
+- [Finding] — Skill: [skill] — Evidence: [file:line]
+
+Recommended:
+- [Finding] — Skill: [skill] — Evidence: [file:line]
+
+Nit:
+- [Finding] — Skill: [skill] — Evidence: [file:line]
+
+Total: [N] findings ([N] blocking, [N] recommended, [N] nit)
+```
+
+### 7.4 Validation Gate
+
+This step always requires validation — it produces the recommendations file.
+
+WAIT for human validation before proceeding
+
+Review grouped recommendations for accuracy, severity, and skill routing
+IF human approves
+  → VALID: WRITE to `planning/reviews/arch-[date]-recommendations.md`
+  → Continue to next section
+IF human requests changes
+  → REVISE: Update and re-present
+
+### 7.5 Write Recommendations File
+
+After validation, CREATE `planning/reviews/arch-[date]-recommendations.md`:
+
+```markdown
+# Architecture Review Recommendations: [Feature Name]
+
+**Date:** [DD/MM/YYYY]
+**Source:** `planning/reviews/arch-[date].md`
+
+---
+
+## Positives
+
+- [Strength with evidence]
+
+---
+
+## Blocking
+
+### [Finding Title]
+
+- **Skill:** `/midtempo-framework/[skill].md`
+- **Evidence:** [file:line references]
+- **Summary:** [one sentence]
+- **Acceptance Criteria:**
+  - [ ] [measurable criterion]
+
+---
+
+## Recommended
+
+### [Finding Title]
+
+- **Skill:** `/midtempo-framework/[skill].md`
+- **Evidence:** [file:line references]
+- **Summary:** [one sentence]
+- **Acceptance Criteria:**
+  - [ ] [measurable criterion]
+
+---
+
+## Nit
+
+### [Finding Title]
+
+- **Skill:** `/midtempo-framework/[skill].md`
+- **Evidence:** [file:line references]
+- **Summary:** [one sentence]
+- **Acceptance Criteria:**
+  - [ ] [measurable criterion]
+```
+
+```
+IF no findings across Steps 2–6
+  → SKIP recommendations file
+  → STATE: "No findings — no recommendations file needed"
+
+Continue to Step 8.
+```
+
+---
+
+## Step 8: Complete Review
+
+### 8.1 Architecture Checklist
+
+Complete before finishing:
+
+- [ ] Scope declared (feature, surfaces, bundles)
+- [ ] Planning docs consulted or minor change confirmed
+- [ ] Dependencies mapped per surface (entrypoint → storage)
+- [ ] Scorecard recorded (PASS/FAIL + quantitative evidence)
+- [ ] UI component hierarchy rules checked
+- [ ] Design principles checked (DRY, SOLID, KISS, YAGNI, LoD)
+- [ ] Structural smells identified or confirmed absent
+- [ ] Defensive posture verified
+- [ ] Positive observation recorded (at least one)
+- [ ] Findings labelled (blocking/recommended/nit)
+- [ ] All sections written to `planning/reviews/arch-[date].md`
+- [ ] Recommendations file written (or no findings confirmed)
+
+### 8.2 Finalise Review File
+
+APPEND completed checklist to `planning/reviews/arch-[date].md`.
+
+UPDATE the file header: change `**Status:** In Progress` to `**Status:** Complete`.
+
+### 8.3 Completion Output
+
+<CRITICAL_REQUIREMENT type="MANDATORY">
+
+- You MUST produce this output after review completes - include every section and field
+- You MUST NOT skip, paraphrase, or omit any section
+- You MUST format the output for readability
+</CRITICAL_REQUIREMENT>
+
+```
+---
+                  ARCHITECTURE REVIEW COMPLETE: [FEATURE NAME]                 
+
+---
+
+Scope: [feature/surfaces/bundles]
+
+Review report:
+  `planning/reviews/arch-[date].md`
+
+Recommendations:
+  `planning/reviews/arch-[date]-recommendations.md` — [N] findings ([N] blocking, [N] recommended, [N] nit)
+
+  OR "No findings — no recommendations file created"
+
+Start follow-up work by opening the recommendations file
+and using it as context for a new conversation with the
+skill specified in each finding.
+```
+
+---
+
+## Anti-Patterns
+
+| Pattern                 | Example                                                  | Principle Violated |
+| ----------------------- | -------------------------------------------------------- | ------------------ |
+| **Surface bleed**       | Backend imports UI framework; UI imports data layer      | Layering, DIP      |
+| **Bundle drift**        | Component requires entry in different bundle without registration | Build isolation |
+| **Unbounded fan-out**   | Feature imports 4+ domains directly                      | SRP, Coupling      |
+| **God object**          | Service handles routing, business logic, and persistence | SRP                |
+| **Shotgun surgery**     | One change requires edits across 5+ files                | DRY, SRP           |
+| **Feature envy**        | Method uses another object's data more than its own      | LoD, Coupling      |
+| **Primitive obsession** | Passing raw strings/numbers instead of domain types      | OCP                |
+| **Copy-paste code**     | Duplicated logic across modules                          | DRY                |
+| **Deep nesting**        | 4+ levels of conditionals or callbacks                   | Complexity, KISS   |
+| **Upward imports**      | Child component imports from parent layer                | Component hierarchy |
+| **Leaky state**         | Global mutable state, improper state management          | State management   |
+| **Layer skipping**      | Route calls data layer directly without service          | Layering           |
+| **Weak semantic typing** | Multiple parameters/fields with same primitive type     | Type Safety, OCP   |
+
+---
+
+## Severity Taxonomy
+
+### Blocking
+
+- Layering violations (upward component imports, layer skipping)
+- State management violations (improper global state)
+- Cross-surface bleed (backend importing UI framework or vice versa)
+- Design principle violations threatening maintainability (God objects, deep coupling)
+- Missing build registration (bundle drift)
+
+### Recommended
+
+- Duplication (DRY violations)
+- Mixed responsibilities (SRP violations)
+- Coupling depth violations (method chains > 2 dots)
+- Primitive obsession (missing domain types)
+
+### Nit
+
+- Minor coupling improvements (relative vs alias imports)
+- Small refactors for clarity
+- Cosmetic structural improvements
+
+### Escalation
+
+- **Missing intent/requirements** → pause, request clarification
+- **Repeated metric failures** (systemic issues) → escalate to planning for RFC
+- **Build changes risking production** → run full build/typecheck suite
+
+---
+
+## Common Rationalisations (FORBIDDEN)
+
+**Agent must refuse these justifications:**
+
+| User Says                                | Agent Must Respond                                                               |
+| ---------------------------------------- | -------------------------------------------------------------------------------- |
+| "Skip the scorecard, architecture looks fine" | "No. Scorecard is mandatory. Recording metrics now."                             |
+| "Upward imports are fine for this case"   | "No. Component hierarchy rules are non-negotiable. Flagging violation."         |
+| "This state management is just temporary" | "No. State management policies apply to all code. Flagging violation."          |
+| "Don't check design principles, too slow" | "No. Design principle checks are mandatory. Checking now."                       |
+| "Skip planning docs for minor changes"    | "Need confirmation this is minor. Please confirm or provide docs."               |
+| "Just mark it as recommended, not blocking" | "No. Severity follows the taxonomy. Layering violations are blocking."          |
+| "Skip the validation, just write the review" | "No. Each section requires human validation before writing."                |
+| "Write all sections at once"              | "No. Sections are written one at a time after validation."                       |
+| "Skip the recommendations file"          | "No. Findings must be compiled with skill routing for follow-up."                |
+
+**If user persists:** Add a note to the relevant planning document recording the override and the reason given. Then continue.
+
+---
+
+## Final Rule
+
+```
+Review completion → scope declared, steps complete, checklist done, review file written
+Otherwise → review incomplete → do not mark as done
+```
+
+No exceptions without human partner's permission.
+
+This skill supplements behavioural correctness checks with system-level guard rails.
+
+---
+**END OF DOCUMENT:** Total sections: 19 | Purpose: Architecture review with sectional output and grouped recommendations

@@ -1,0 +1,148 @@
+[project]
+name = "midtempo-framework"
+version = "0.3.7"
+description = "Midtempo Coding Framework"
+requires-python = ">=3.14"
+
+[tool.black]
+line-length = 100
+target-version = ['py314']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.mypy_cache
+  | \.pytest_cache
+  | \.ruff_cache
+  | \.venv
+  | venv
+  | build
+  | dist
+)/
+'''
+
+[tool.ruff]
+line-length = 100
+target-version = "py314"
+
+# Exclude directories
+extend-exclude = [
+    ".git",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".venv",
+    "venv",
+    "build",
+    "dist",
+]
+
+[tool.ruff.lint]
+# Enable specific rule sets
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "N",   # pep8-naming
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "C90", # mccabe complexity
+    "DTZ", # flake8-datetimez
+    "SIM", # flake8-simplify
+    "PTH", # flake8-use-pathlib
+    "PLR", # pylint refactor (includes function/file length checks)
+]
+
+ignore = [
+    "E501",  # line too long (handled by black)
+    "PLR2004",  # magic value comparison (too strict)
+]
+
+# Complexity and length limits
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.pylint]
+max-statements = 75      # Roughly correlates to max lines per function
+max-branches = 10        # Complexity target (aligned with mccabe)
+max-returns = 6
+max-args = 5
+max-nested-blocks = 4    # Max nesting depth
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = [
+    "S101",  # Allow assert in tests
+]
+
+[tool.mypy]
+python_version = "3.14"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+strict_equality = true
+exclude = [
+    "venv/",
+    ".venv/",
+]
+
+# Per-module options
+[[tool.mypy.overrides]]
+module = "j2lint.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "markdown_it.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "_pytest.*"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--cov=scripts",
+    "--cov=server",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+]
+markers = [
+    "integration: marks tests as integration tests (deselect with '-m \"not integration\"')",
+]
+
+[tool.coverage.run]
+source = ["scripts", "server"]
+omit = [
+    "*/tests/*",
+    "*/test_*.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]

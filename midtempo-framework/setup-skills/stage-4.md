@@ -1,0 +1,1015 @@
+# Setup Error Handling Sub-Skill
+
+## 1. Overview
+
+This sub-skill guides the client to create the `/midtempo-framework/instructions/error-handling.md` file through structured dialogue and codebase analysis.
+
+**Goal:** Create error-handling.md documenting THIS REPO's error taxonomy, handling patterns, logging approach, error testing patterns, and repo-specific anti-patterns.
+
+**Target:** 300-400 lines total, regardless of repository size. Focus on error handling patterns and architecture, not exhaustive catalogues.
+
+**Scope:** This file documents THIS REPO's error handling architecture - specific files, utilities, and patterns. General best practices belong elsewhere.
+
+---
+
+## 2. The Process
+
+### 2.1 Non-Negotiable Rules
+
+<CRITICAL_REQUIREMENT type="MANDATORY">
+
+**CORE PRINCIPLE: Patterns over catalogues, architecture over exhaustive listings.**
+
+- You MUST target 300-400 lines total, regardless of repository size
+- You MUST focus on error handling patterns that define architecture
+- You MUST scan the codebase for error handling patterns before asking questions
+- You MUST detect error classification systems (error codes, types, enums)
+- You MUST identify error handling locations (middleware, boundaries, catch blocks)
+- You MUST find logging infrastructure and patterns
+- You MUST draft sections based on evidence from code
+- You MUST present each drafted section for validation before proceeding
+- You MUST write validated content to `/midtempo-framework/instructions/error-handling.md` incrementally
+- You MUST perform alignment check before marking complete (including line count check)
+- You MUST follow the `/midtempo-framework/rules/writing.md` rules
+- You MUST use UK English spelling throughout
+- You MUST focus on REPO-SPECIFIC patterns (files, utilities, architecture), not general best practices
+- You MUST not include line numbers in file links (code changes, lines will change)
+
+**IMPORTANT:** If no error handling patterns detected, ask user for confirmation before proceeding.
+
+</CRITICAL_REQUIREMENT>
+
+---
+
+### 2.2 ENTRY GATE 
+
+```
+IF  not read `/midtempo-framework/rules/writing.md`
+  → INVALID: STOP - Read `/midtempo-framework/rules/writing.md` before proceeding
+
+IF not sub-skill triggered from `setup.md`
+  → STOP: This is a sub-skill and MUST NOT run independently
+  → TELL: Human to run "Setup Stage 4 - `/midtempo-framework/setup.md`"
+  → Do not proceed 
+
+IF  not read `/midtempo-framework/instructions/architecture.md` # Services architectural structure and design principles
+  → INVALID: STOP - Read architecture.md before proceeding
+
+LS check if `/midtempo-framework/instructions/error-handling.md` exists
+IF `error-handling.md` exists
+  → EMPTY `error-handling.md` to create a fresh error-handling document before proceeding
+```
+
+## 3. Phase 1: Error Pattern Detection
+
+**Do not skip to questions.** Detect error handling patterns first.
+
+### 3.1 Agent Actions (Silent)
+
+```
+SEARCH for error classification systems:
+  - Error enums or types (ErrorCode, ErrorType, error-codes.ts)
+  - Custom error classes (AppError, DomainError, ValidationError)
+  - Error taxonomies or registries
+  - HTTP status mappings
+  - Severity levels (fatal, error, warning, info)
+  - Error message templates or constants
+
+IDENTIFY error handling locations:
+  - Middleware (error handlers, Express errorMiddleware)
+  - API boundaries (route handlers, controllers)
+  - Service layer try/catch patterns
+  - React error boundaries
+  - Global error handlers (window.onerror, unhandledRejection)
+  - Queue/worker error handlers
+
+ANALYSE logging infrastructure:
+  - Logger libraries (winston, pino, bunyan, console)
+  - Log levels and configuration
+  - Log destinations (files, stdout, external services)
+  - Structured logging patterns
+  - Error reporting services (Sentry, Rollbar, Datadog)
+
+FIND error transport patterns:
+  - API error response formats
+  - Error serialisation (JSON envelopes)
+  - Client-side error reporting endpoints
+  - Error context propagation
+
+IDENTIFY testing patterns:
+  - Error path test coverage
+  - Mock error scenarios
+  - Integration tests for error cases
+  - Test assertions for error responses
+
+FOCUS ON:
+  - Primary error categorisation system (3-5 categories)
+  - Key architectural boundaries for error handling
+  - Representative examples of patterns
+
+AVOID:
+  - Enumerating every error class
+  - Listing every middleware/handler file
+  - Exhaustive test utility catalogues
+```
+
+### 3.2 Present Detection Summary
+
+**Output to human:**
+
+```
+
+Error Handling Detection Summary:
+
+Error classification found:
+- [System 1]: [evidence - file paths, class names]
+- [System 2]: [evidence]
+
+Error handling locations:
+- [Location 1]: [pattern observed - middleware/boundaries/etc.]
+- [Location 2]: [pattern observed]
+
+Logging infrastructure:
+- Logger: [library/approach]
+- Destinations: [where logs go]
+- Structure: [JSON/text/structured]
+
+Error transport:
+- API format: [JSON envelope/status codes/etc.]
+- Client reporting: [endpoint/service]
+
+Testing patterns:
+- [Pattern observed]: [description]
+
+[If NO error handling detected:]
+No structured error handling found. Does this repository use ad-hoc error handling?
+
+[If error handling detected:]
+Does this match your error handling approach?
+
+```
+
+WAIT for human validation before proceeding
+
+IF human approves
+  → VALID: Append to `/midtempo-framework/instructions/error-handling.md` with: 
+      - Title: `# [Repository Name] Error Handling`
+      - Table of Contents section exactly as shown below (use this exact structure)
+      - Then the Error Pattern Detection section
+
+  → Continue to next section
+IF human requests changes
+  → REVISE: Update and re-present
+
+#### 3.3 Table of Contents section:
+```
+# [Repository Name] Error Handling
+
+## Table of Contents
+
+- [Error Classification](#1-error-classification)
+- [Error Handling Patterns](#2-error-handling-patterns)
+- [Error Logging & Reporting](#3-error-logging--reporting)
+- [Error Testing Patterns](#4-error-testing-patterns)
+- [Repo-Specific Anti-Patterns](#5-repo-specific-anti-patterns)
+- [File References](#6-file-references)
+
+```
+
+---
+
+## 4. Phase 2: Error Classification
+
+**Draft section documenting how errors are classified.**
+
+**CRITICAL:** Limit to 5 primary error categories. Group similar error types under broader categories. Focus on architectural significance, not exhaustive taxonomy.
+
+### 4.1 Draft "1. Error Classification"
+
+```
+1. Error Classification
+
+1.1 System
+
+[Custom error classes/enums/codes]
+
+1.2 Categories
+
+[5 primary categories maximum - group similar types]
+
+- [Category 1]: [purpose - validation/domain/infrastructure]
+- [Category 2]: [purpose]
+- [Category 3]: [purpose]
+
+1.3 Severity levels
+
+- [Level 1]: [when used - fatal/error/warning]
+- [Level 2]: [when used]
+
+1.4 HTTP mapping
+
+[how error types map to status codes]
+
+1.5 Error codes
+
+[enum/constants location if applicable]
+```
+
+### 4.2 Present Draft
+
+**Output to human:**
+
+```
+
+Error Classification (drafted from analysis):
+
+1. Error Classification
+
+[Draft section with evidence]
+
+Evidence:
+- [error class file]: Shows [X] error types
+- [enum/constants]: Defines [Y] error codes
+- [middleware]: Maps errors to [HTTP statuses]
+
+Does this capture how errors are classified?
+
+```
+
+WAIT for human validation before proceeding
+
+IF human approves
+  → VALID: Append to `/midtempo-framework/instructions/error-handling.md`
+  → Continue to next section
+IF human requests changes
+  → REVISE: Update and re-present
+
+### 4.3 Example
+
+```
+1. Error Classification
+
+1.1 System
+
+Custom error classes extending base `AppError` class
+
+1.2 Categories
+
+- `ValidationError`: Input validation failures (user-correctable)
+- `DomainError`: Business rule violations
+- `RepositoryError`: Database/persistence failures
+- `IntegrationError`: External API/service failures
+- `AuthenticationError`: Auth failures
+
+1.3 Severity levels
+
+- `fatal`: System cannot continue (database unreachable)
+- `error`: Operation failed but system stable (validation error)
+- `warning`: Degraded but functional (cache miss, fallback used)
+
+1.4 HTTP mapping
+
+- ValidationError → 400 Bad Request
+- AuthenticationError → 401 Unauthorized
+- DomainError → 403 Forbidden or 409 Conflict
+- RepositoryError → 500 Internal Server Error
+- IntegrationError → 502 Bad Gateway
+
+1.5 Error codes
+
+Defined in `src/lib/errors/codes.ts` (50 codes)
+```
+
+---
+
+## 5. Phase 3: Error Handling Patterns
+
+**Document where and how errors are caught and handled.**
+
+**CRITICAL:** Focus on 3-5 key error handling boundaries. Limit consistency rules to 5-7 most critical patterns. Reference primary middleware/utilities, not exhaustive listings.
+
+### 5.1 Draft "2. Error Handling Patterns"
+
+```
+2. Error Handling Patterns
+
+2.1 Boundaries
+
+[3-5 key boundaries where errors are caught]
+
+2.2 Middleware
+
+[Primary error handler middleware - not every file]
+
+2.3 Service layer
+
+[try/catch patterns, error propagation]
+
+2.4 Client-side
+
+[error boundaries, global handlers]
+
+2.5 Unhandled errors
+
+[process.on('unhandledRejection'), etc.]
+
+2.6 Consistency rules
+
+[5-7 most critical rules for maintaining consistency - reference specific files/utilities]
+```
+
+### 5.2 Present Draft
+
+**Output to human:**
+
+```
+
+Error Handling Patterns (drafted from code analysis):
+
+Error Handling Patterns
+
+[Draft section with evidence]
+
+Evidence:
+- [middleware file]: Catches all route errors
+- [service pattern]: Shows try/catch in [X] files
+- [boundary file]: React error boundary implementation
+- [global handler]: Captures unhandled rejections
+
+Does this capture where errors are handled?
+
+```
+
+WAIT for human validation before proceeding
+
+IF human approves
+  → VALID: Append to `/midtempo-framework/instructions/error-handling.md`
+  → Continue to next section
+IF human requests changes
+  → REVISE: Update and re-present
+
+### 5.3 Example
+
+```
+2. Error Handling Patterns
+
+2.1 Boundaries
+
+- API routes: Express middleware catches and transforms all errors
+- React components: ErrorBoundary at app root and major feature boundaries
+- Worker processes: Top-level try/catch in job handlers
+
+2.2 Middleware
+
+`src/middleware/errorHandler.ts`
+- Normalises all errors to `{ type: "error", code, severity, message, context }`
+- Maps error types to HTTP status codes
+- Never leaks stack traces in production
+- Calls logger exactly once per error
+
+2.3 Service layer
+
+- Repository methods throw typed errors (`RepositoryError`, `ValidationError`)
+- Services catch and re-throw with context
+- Never catch without re-throwing unless genuinely handled
+- Unknown errors wrapped in `UnexpectedError`
+
+2.4 Client-side
+
+- `ErrorBoundary` component catches render errors
+- API client normalises error responses to typed errors
+- Global `window.onerror` handler reports to `/api/errors`
+
+2.5 Unhandled errors
+
+- `process.on('unhandledRejection')` logs and exits (fail fast)
+- `process.on('uncaughtException')` logs and exits (fail fast)
+
+2.6 Consistency rules
+
+- Use error classes from `src/lib/errors/` (never generic `Error`)
+- Use error factories from `src/lib/errors/factories.ts` (never `new ValidationError()`)
+- Let `src/middleware/errorHandler.ts` transform errors (never manually construct error responses)
+- Catch only at: Express middleware, `ErrorBoundary` component, worker top-level (never in services unless genuinely handled)
+- Add context when re-throwing using `withContext()` helper from `src/lib/errors/context.ts`
+- Unknown errors must be wrapped using `UnexpectedError` class
+```
+
+---
+
+## 6. Phase 4: Error Logging & Reporting
+
+**Document logging approach and error reporting.**
+
+**CRITICAL:** List 4-6 critical context fields (not every possible field). Limit consistency rules to 5-7 key logging patterns. Focus on required patterns, not comprehensive guidelines.
+
+### 6.1 Agent Actions (Silent)
+
+```
+ANALYSE logging configuration:
+  - Logger initialisation
+  - Log levels (development vs production)
+  - Log format (JSON, text, structured)
+  - PII sanitisation
+  - Context propagation (request IDs, user IDs)
+
+FIND error reporting:
+  - Client-side reporting endpoints
+  - External error tracking services
+  - Alert configuration
+  - Error aggregation
+```
+
+### 6.2 Draft "3. Error Logging & Reporting"
+
+```
+3. Error Logging & Reporting
+
+3.1 Logger
+
+[library and configuration location]
+
+3.2 Log levels
+
+[mapping to error severity]
+
+3.3 Log format
+
+[JSON/structured/text]
+
+3.4 Destinations
+
+[stdout, files, external services]
+
+3.5 Context fields
+
+[4-6 critical context fields - not every possible field]
+
+3.6 PII handling
+
+[how sensitive data is sanitised]
+
+3.7 Client reporting
+
+[endpoint and format]
+
+3.8 External services
+
+[Sentry/Rollbar/etc. if applicable]
+
+3.9 Consistency rules
+
+[5-7 key logging patterns - reference specific utilities/helpers]
+```
+
+### 6.3 Present Draft
+
+**Output to human:**
+
+```
+
+Error Logging & Reporting (drafted from analysis):
+
+3. Error Logging & Reporting
+
+[Draft section with evidence]
+
+Evidence:
+- Logger config: [file path and setup]
+- Log format: [JSON/structured observed in [X] files]
+- Client endpoint: [/api/errors or similar]
+- External service: [Sentry/etc. in config]
+
+Does this capture logging and reporting?
+
+```
+
+WAIT for human validation before proceeding
+
+IF human approves
+  → VALID: Append to `/midtempo-framework/instructions/error-handling.md`
+  → Continue to next section
+IF human requests changes
+  → REVISE: Update and re-present
+
+### 6.4 Example
+
+```
+3. Error Logging & Reporting
+
+3.1 Logger
+
+Winston configured in `src/config/logger.ts`
+
+3.2 Log levels
+
+- `fatal` → logger.error with severity: 'fatal'
+- `error` → logger.error
+- `warning` → logger.warn
+- `info` → logger.info (not for errors)
+
+3.3 Log format
+
+JSON with timestamp, level, message, context
+
+3.4 Destinations
+
+- Development: stdout (pretty-printed)
+- Production: stdout (JSON) + CloudWatch Logs
+
+3.5 Context fields
+
+Always include:
+- `requestId`: Unique request identifier
+- `userId`: If authenticated (sanitised, ID only)
+- `errorCode`: From taxonomy
+- `severity`: Error severity level
+- `path`: API route or component name
+
+3.6 PII handling
+
+- Never log email addresses, passwords, tokens
+- User IDs only (no names, emails)
+- Sanitise error messages that might contain input
+- Pre-sanitise context objects before logging
+
+3.7 Client reporting
+
+POST to `/api/errors`
+- Format: `{ code, message, context, timestamp }`
+- Rate-limited: 10 errors per user per minute
+- Logged server-side to same logger
+
+3.8 External services
+
+Sentry configured in production
+- Automatic source map uploads
+- User context attached (ID only)
+- Breadcrumbs enabled for debugging
+
+3.9 Consistency rules
+
+- Use the logger from `src/config/logger.ts` (never `console.log`)
+- Call `sanitiseContext()` from `src/lib/errors/sanitise.ts` before logging
+- Use the error code prefix format: `"[${errorCode}] ${message}"`
+- Include required context fields using `buildLogContext()` helper from `src/lib/logging/context.ts`
+- Log errors exactly once (let `src/middleware/errorHandler.ts` handle logging, not services)
+- Use structured logging: `logger.error(message, context)` (never concatenate strings)
+```
+
+---
+
+## 7. Phase 5: Error Testing Patterns
+
+**Document repo-specific patterns for testing error handling.**
+
+**CRITICAL:** Focus on 2-4 key testing utilities unique to this repo. Document 3-5 primary error mocking patterns. Provide representative test examples, not exhaustive file listings.
+
+### 7.1 Agent Actions (Silent)
+
+```
+SEARCH for error testing patterns IN THIS REPO:
+  - How errors are mocked/triggered in tests
+  - Test utilities for error scenarios
+  - Patterns for testing error middleware/boundaries
+  - How logger calls are verified in tests
+  - Integration test patterns for error responses
+  - Specific test files demonstrating error testing
+
+IDENTIFY repo-specific patterns:
+  - Testing utilities unique to this codebase
+  - Common error mocking approaches used here
+  - How error context/logging is verified
+  - Test commands for running error tests
+
+FOCUS ON:
+  - Repo-specific test utilities (2-4 key utilities)
+  - Key error mocking patterns used consistently (3-5 patterns)
+  - Representative test examples
+
+AVOID:
+  - Listing every test file
+  - Exhaustive mocking approach catalogue
+  - Generic testing advice (focus on THIS repo's patterns)
+```
+
+### 7.2 Draft "4. Error Testing Patterns"
+
+```
+4. Error Testing Patterns
+
+4.1 Testing utilities
+
+[2-4 repo-specific test helpers for errors]
+
+4.2 Error mocking
+
+[3-5 primary patterns for how this repo mocks/triggers errors in tests]
+
+4.3 Middleware testing
+
+[patterns for testing error middleware/boundaries]
+
+4.4 Logger verification
+
+[how logger calls are verified - spies, mocks, etc.]
+
+4.5 Integration patterns
+
+[how error responses are tested end-to-end]
+
+4.6 Test commands
+
+[commands to run error-specific tests]
+```
+
+### 7.3 Present Draft
+
+**Output to human:**
+
+```
+
+Error Testing Patterns (found in this repo):
+
+4. Error Testing Patterns
+
+[Draft section with evidence from actual test files]
+
+Evidence:
+- Test utilities: [file paths to error test helpers]
+- Mocking patterns: [how errors are triggered in tests]
+- Example tests: [specific test files demonstrating patterns]
+
+Does this capture how errors are tested in this repo?
+
+```
+
+WAIT for human validation before proceeding
+
+IF human approves
+  → VALID: Append to `/midtempo-framework/instructions/error-handling.md`
+  → Continue to next section
+IF human requests changes
+  → REVISE: Update and re-present
+
+### 7.4 Example
+
+```
+4. Error Testing Patterns
+
+4.1 Testing utilities
+
+- `tests/helpers/mockErrors.ts`: Factory functions for creating test errors
+- `tests/helpers/loggerSpy.ts`: Winston spy wrapper for verifying log calls
+- `tests/helpers/errorAssertions.ts`: Custom matchers for error envelope format
+
+4.2 Error mocking
+
+- Mock errors by throwing from test doubles: `mockRepository.findById.mockRejectedValue(new RepositoryError())`
+- Use error factories: `createValidationError({ field: 'email', message: 'invalid' })`
+- Trigger HTTP errors: `mockAxios.get.mockRejectedValue({ response: { status: 500 } })`
+
+4.3 Middleware testing
+
+- Use `supertest` to test Express error middleware end-to-end
+- Verify error envelope format: `expect(res.body).toMatchErrorEnvelope()`
+- Test status code mapping: Routes throw typed errors, middleware returns correct status
+
+4.4 Logger verification
+
+- Spy on logger: `loggerSpy = jest.spyOn(logger, 'error')`
+- Verify single call: `expect(loggerSpy).toHaveBeenCalledOnce()`
+- Check context: `expect(loggerSpy).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ requestId }))`
+
+4.5 Integration patterns
+
+- Error boundary tests: `<ErrorBoundary><ThrowingComponent /></ErrorBoundary>` with `@testing-library/react`
+- API error flow: Trigger error in repository → verify middleware catches → check response format
+- Client reporting: Mock `/api/errors` endpoint, trigger error, verify payload
+
+4.6 Test commands
+
+- `npm test -- error`: Run all error-related tests
+- `npm test -- middleware/errorHandler`: Test error middleware specifically
+- `npm test -- --coverage`: Verify error path coverage
+```
+
+---
+
+## 8. Phase 6: Repo-Specific Anti-Patterns
+
+**Document anti-patterns that break THIS repo's error handling architecture.**
+
+**CRITICAL:** Limit to 5-7 most critical anti-patterns that break THIS repo's error handling. Focus on architectural violations, not style issues.
+
+### 8.1 Agent Actions (Silent)
+
+```
+SEARCH for repo-specific anti-patterns:
+  - Patterns that bypass the error handling system
+  - Common mistakes with this repo's error classes/middleware
+  - Violations of the error handling architecture
+  - Code comments marking incorrect patterns
+  - Examples of what NOT to do with these utilities
+
+IDENTIFY 5-7 critical anti-patterns:
+  - Patterns that bypass error handling architecture
+  - Violations specific to THIS repo's utilities/middleware
+  - Focus on architectural breaks, not style issues
+
+AVOID:
+  - Listing every possible mistake
+  - Generic anti-patterns not specific to this repo
+  - Style issues (focus on architectural violations)
+```
+
+### 8.2 Draft "5. Repo-Specific Anti-Patterns"
+
+```
+5. Repo-Specific Anti-Patterns
+
+5.1 Violations
+
+[5-7 critical anti-patterns that break THIS repo's error handling system]
+
+5.2 Enforcement
+
+[how violations are caught in THIS repo - linting, hooks, CI]
+```
+
+### 8.3 Present Draft
+
+**Output to human:**
+
+```
+
+Repo-Specific Anti-Patterns:
+
+5. Repo-Specific Anti-Patterns
+
+[Draft section with patterns that violate THIS repo's error handling]
+
+Evidence:
+- [Pattern 1]: Breaks [specific middleware/utility]
+- [Pattern 2]: Bypasses [specific error handling layer]
+
+These are specific to this codebase's error handling. Do you have additional anti-patterns to include?
+
+```
+
+WAIT for human validation before proceeding
+
+IF human approves
+  → VALID: Append to `/midtempo-framework/instructions/error-handling.md`
+  → Continue to next section
+IF human requests changes
+  → REVISE: Update and re-present
+
+### 8.4 Example
+
+```
+5. Repo-Specific Anti-Patterns
+
+5.1 Violations
+
+- **Bypassing errorMiddleware**: Never manually return error responses from routes. Always throw typed errors and let `src/middleware/errorHandler.ts` transform them.
+- **Instantiating errors directly**: Don't use `new ValidationError()`. Use the factory: `createValidationError()` from `src/lib/errors/factories.ts`.
+- **Creating custom ErrorBoundary components**: Don't create ad-hoc error boundaries. Use `src/components/ErrorBoundary.tsx`.
+- **Logging before middleware**: Don't log errors in service/repository layers. Let the middleware log exactly once.
+- **Manually mapping to HTTP status**: Don't use manual `switch` statements. The `resolveHttpStatus()` function handles mapping.
+- **Not using sanitiseContext()**: Always call `sanitiseContext()` before logging. Never pass raw context objects.
+- **Catching at wrong boundaries**: Only catch at: Express middleware, ErrorBoundary, worker top-level. Never catch in services unless genuinely handled.
+
+5.2 Enforcement
+
+- Pre-commit hook: Fails if error responses manually constructed
+- ESLint rule: `no-new-error-classes` (custom rule)
+- CI check: Verifies all routes throw, don't return errors
+- Code review: Check error handling flows through middleware
+```
+
+---
+
+
+## 9. Phase 7: Compliance Gates
+
+**Distil verifiable rules from the error handling document.**
+
+### 9.1 Agent Actions (Silent)
+
+```
+REVIEW content sections in error-handling.md:
+  - Error classification (§1) — which error classes to use
+  - Error handling patterns (§2) — where errors are caught, consistency rules
+  - Error logging (§3) — logging patterns and requirements
+  - Anti-patterns (§5) — violations that break the error handling system
+
+SELECT 5-7 rules that are:
+  - Verifiable by code inspection
+  - Specific to this repository (not generic advice)
+  - Focused on behavioural rules (error class usage, logging patterns, error propagation)
+
+WRITE rules using compliance gates format:
+  - Checklist items with CG-N prefix
+  - Each gate references its source section
+  - One-line verifiable statements
+```
+
+### 9.2 Draft Compliance Gates
+
+**Output to human:**
+
+```
+Compliance Gates (distilled from error handling document):
+
+## 6. Compliance Gates
+
+> Delivery and review skills verify these gates. Each gate must pass for code touching this domain.
+
+- [ ] **CG-1:** [Error class rule — e.g., "Third-party exceptions wrapped in domain exception classes before propagation"] (§5.1)
+- [ ] **CG-2:** [Chain rule — e.g., "Exception chain preserved — all `raise` statements use `from original`"] (§5.2)
+- [ ] **CG-3:** [Logging rule — e.g., "Errors logged via logger, never printed to stdout"] (§5.4)
+- [ ] **CG-4:** [Propagation rule — e.g., "Worker process errors returned as tuples, never raised across process boundary"] (§5.5)
+
+Target: 5-7 gates for error-handling.md (behavioural — error class usage, logging, propagation)
+
+Are these gates verifiable and correct?
+```
+
+WAIT for human validation before proceeding
+
+IF human approves
+  → VALID: Append to `/midtempo-framework/instructions/error-handling.md`
+  → Continue to next section
+IF human requests changes
+  → REVISE: Update and re-present
+
+
+---
+
+## 10. Phase 8: Alignment Check
+
+**Review all sections for coherence.**
+
+### 10.1 Check for Issues
+
+```
+READ all drafted sections from midtempo-framework/instructions/error-handling.md
+
+CHECK:
+1. Completeness — All error handling aspects covered?
+2. Clarity — Can agent implement error handling correctly?
+3. Conflicts — Any contradictions between sections?
+4. Specificity — Are rules specific enough to be actionable?
+5. Evidence — All patterns backed by actual code?
+6. Gaps — Any error scenarios not addressed?
+7. Line count — Is document within 300-400 line budget? If over, identify areas for condensing.
+```
+
+**SCALING GUIDANCE:**
+- Small repos (< 10 error types): Can detail individual error classes
+- Medium repos (10-20 error types): Group into categories, representative examples
+- Large repos (20+ error types): MUST group into 4-7 categories, focus on patterns not enumeration
+
+### 10.2 Present Findings
+
+**Output to human:**
+
+```
+
+Alignment Check Results:
+
+Completeness: [all aspects covered / gaps found]
+Clarity: [clear guidelines / areas needing detail]
+Conflicts: [none / issues found]
+Specificity: [actionable rules / too vague]
+Evidence: [backed by code / unsupported patterns]
+Gaps: [all scenarios covered / missing scenarios]
+
+[If issues found:]
+Fixes needed:
+1. [fix 1]
+2. [fix 2]
+
+Shall I apply these fixes?
+
+[If no issues:]
+Anything else to add?
+
+```
+
+WAIT for human validation before proceeding
+
+**If fixes approved:** Apply and re-present findings to human. Use '§10.2 Present Findings'
+IF human approves
+  → Continue to next section
+IF human requests changes
+  → REVISE: Update and re-present
+
+---
+
+## 11. Phase 9: Finalise Document
+
+**Add file references section and complete.**
+
+### 11.1 Add Final Section
+
+```
+ADD File References section (5-10 key files only):
+  - Error classification entry points
+  - Primary middleware/handlers
+  - Key logging/testing utilities
+  - Navigation landmarks only, not comprehensive listing
+
+## 7. File References
+
+### 7.1 Error classification
+
+[2-3 key files - error class definitions, error codes/enums]
+
+### 7.2 Error handling
+
+[2-3 key files - primary middleware, error boundary components]
+
+### 7.3 Logging
+
+[1-2 key files - logger configuration, sanitisation utilities]
+
+### 7.4 Testing
+
+[1-2 key files - test utilities, representative test examples]
+
+### 7.5 Other rules
+
+- Testing patterns: `/midtempo-framework/rules/testing.md`
+- Database standards: `/midtempo-framework/rules/db.md`
+- Coding standards: `/midtempo-framework/rules/coding.md`
+
+### 7.6 End Marker
+
+---
+**END OF DOCUMENT:** Total sections: 7 | Purpose: Error handling patterns and framework
+
+---
+
+```
+
+## 11.2 Exit Gate
+
+```
+IF midtempo-framework/instructions/error-handling.md exists
+IF Error classification system documented (3-7 categories, types, codes, severity)
+IF Error handling patterns documented (3-5 key boundaries, 5-7 consistency rules)
+IF Logging approach documented (logger, format, destinations, 4-6 context fields, 5-7 consistency rules)
+IF Error reporting documented (client reporting, external services)
+IF Error testing patterns documented (2-4 test utilities, 3-5 mocking patterns)
+IF Repo-specific anti-patterns documented (5-7 critical violations)
+IF File references complete (5-10 key files only)
+IF All patterns backed by evidence from code
+IF Document within 300-400 line budget
+IF Focus on patterns/architecture, not exhaustive catalogues
+IF Compliance Gates section exists with 5-7 verifiable gates in CG-N format
+
+THEN VALID: Proceed to "§11.3 Error Handling Complete Output"
+```
+
+### 11.3 Error Handling Complete Output
+
+<CRITICAL_REQUIREMENT type="MANDATORY">
+
+- You MUST produce this output after Exit Gate passes - include every section and field
+- You MUST NOT skip, paraphrase, or omit any section
+- You MUST format the output for readability
+- You MUST verify document is within 300-400 line budget and Compliance Gates exist before producing this output
+</CRITICAL_REQUIREMENT>
+
+```
+---
+                   ERROR HANDLING DOCUMENTATION COMPLETE
+---
+
+Documents created:
+- midtempo-framework/instructions/error-handling.md — Error handling framework
+
+Sections completed:
+✅ Error Classification (types, codes, severity, HTTP mapping)
+✅ Error Handling Patterns (boundaries, middleware, propagation)
+✅ Error Logging & Reporting (logger, format, PII, external services)
+✅ Error Testing Patterns (repo-specific testing approaches)
+✅ Repo-Specific Anti-Patterns (violations of this repo's error handling)
+✅ Compliance Gates
+✅ File References (quick lookup)
+
+Summary:
+- [X] error types documented
+- [Y] handling locations identified
+- Logger: [library] with [format]
+- Testing: [requirement]
+
+---
+
+Start the next setup stage in a new conversation with:
+Setup Phase 5 - /midtempo-framework/setup.md
+
+---
+```

@@ -1,0 +1,818 @@
+# Setup New Page Sub-Skill
+
+## Overview
+
+This sub-skill guides the human to create the `/midtempo-framework/instructions/new-page.md` file through structured dialogue and codebase analysis.
+
+**Goal:** Create new-page.md documenting how to wire a new page/screen into the application with verification gates for routing, navigation, data loading, and error handling.
+
+**Scope:** This file documents PAGE/SCREEN WIRING (routing, navigation, data flow, error handling). 
+
+---
+
+## The Process
+
+### Non-Negotiable Rules
+
+<CRITICAL_REQUIREMENT type="MANDATORY">
+
+- You MUST read `/midtempo-framework/instructions/architecture.md` and `/midtempo-framework/instructions/frontend-design.md` to understand the repo's structure
+- You MUST identify routing mechanism (React Router, Vue Router, Angular Router, UINavigationController, Navigation Component, etc.)
+- You MUST identify navigation patterns (nav components, tab bars, drawers, etc.)
+- You MUST identify data loading patterns (loaders, hooks, ViewModels, repositories)
+- You MUST draft sections based on evidence from code
+- You MUST present each drafted section for validation before proceeding
+- You MUST write validated content to `/midtempo-framework/instructions/new-page.md` incrementally
+- You MUST perform alignment check before marking complete
+- You MUST follow the `/midtempo-framework/rules/writing.md` rules
+- You MUST use UK English spelling throughout
+- You MUST focus on WIRING PATTERNS and RULES, not implementation details
+- You MUST limit scope to page WIRING verification (route, component, navigation, data, error handling, files)
+
+</CRITICAL_REQUIREMENT>
+
+---
+
+### ENTRY GATE 
+
+```
+IF not sub-skill triggered from `setup.md`
+  → STOP: This is a sub-skill and MUST NOT run independently
+  → TELL: Human to run "Setup Stage 7 - `/midtempo-framework/setup.md`"
+  → Do not proceed 
+
+IF not read ALL of `/midtempo-framework/rules/writing.md`
+  → INVALID: Read ALL of `/midtempo-framework/rules/writing.md` before proceeding
+
+IF not read ALL of `midtempo-framework/instructions/architecture.md`
+  → INVALID: Read ALL of `midtempo-framework/instructions/architecture.md` before proceeding
+
+IF not read ALL of `midtempo-framework/instructions/frontend-design.md`
+  → INVALID: Read ALL of `midtempo-framework/instructions/frontend-design.md` before proceeding
+
+LS check if `/midtempo-framework/instructions/new-page.md` exists
+IF `new-page.md` exists
+  → EMPTY `new-page.md` to create a fresh new-page document before proceeding
+```
+
+
+## Phase 1: UI Framework Detection
+
+**Do not skip to questions.** Detect UI framework and patterns first.
+
+### 1.1 Agent Actions (Silent)
+
+```
+SEARCH for UI framework indicators:
+  - React: *.jsx, *.tsx with JSX syntax, react imports, components/
+  - Vue: *.vue files, vue imports, components/
+  - Angular: *.component.ts, @angular imports, app/
+  - SwiftUI: *.swift with View protocol, @State, NavigationView
+  - Kotlin: *.kt with @Composable, Jetpack Compose imports
+  - UIKit: *.swift with UIViewController, storyboards/
+  - Android Views: *.kt with Activity, Fragment, layouts/
+  - Server templates: *.ejs, *.pug, *.erb, *.jinja2, views/
+
+IDENTIFY routing mechanism:
+  - React: react-router-dom (Route, Routes), Next.js (app/, pages/), Remix (routes/)
+  - Vue: vue-router (createRouter), Nuxt (pages/)
+  - Angular: @angular/router (RouterModule, routes)
+  - SwiftUI: NavigationStack, NavigationLink
+  - UIKit: UINavigationController, segues, storyboards
+  - Jetpack Compose: Navigation Component, NavHost, composable()
+  - Android Views: Intent navigation, FragmentManager
+  - Server: Express routes, Rails routes.rb, Django urls.py
+
+IDENTIFY navigation patterns:
+  - Web: Nav components, sidebars, headers, breadcrumbs
+  - Mobile: Tab bars, navigation bars, drawers, bottom navigation
+  - Location: Dedicated nav components or inline per page
+
+IDENTIFY data loading patterns:
+  - React: useEffect, loaders (Remix/React Router), getServerSideProps (Next.js)
+  - Vue: onMounted, asyncData (Nuxt), route guards
+  - Angular: Resolvers, ngOnInit
+  - SwiftUI: onAppear, @StateObject with ViewModel
+  - UIKit: viewDidLoad with service calls
+  - Jetpack Compose: LaunchedEffect, ViewModel with StateFlow
+  - Android Views: onCreate with ViewModel or direct calls
+
+IDENTIFY page structure patterns:
+  - File naming: PascalCase, kebab-case, snake_case
+  - Directory structure: Flat, nested by feature, nested by type
+  - Page templates: Layouts, wrappers, common structure
+  - Scaffolding tools: CLI generators, templates
+
+FIND testing patterns for pages:
+  - Unit tests: Component/screen rendering tests
+  - Integration tests: Navigation flow tests
+  - E2E tests: Full user journey tests
+  - Test file location: Co-located, separate test directories
+```
+
+### 1.2 Present Detection Summary
+
+**Output to human:**
+
+```
+UI Framework Detection Summary:
+
+Framework: [React/Vue/Angular/SwiftUI/Jetpack Compose/etc.]
+Evidence: [files with framework syntax, imports]
+
+Routing mechanism:
+- [System]: [evidence - router files, route definitions]
+- Route definition location: [file path or pattern]
+- Example routes: [X] routes found
+
+Navigation patterns:
+- [Pattern 1]: [location - nav component/tab bar/etc.]
+- [Pattern 2]: [location]
+
+Data loading:
+- [Pattern]: [hooks/ViewModels/loaders - evidence]
+- Example: [file showing pattern]
+
+Page structure:
+- Naming: [convention observed]
+- Location: [directory pattern]
+- Template: [layout/wrapper if present]
+
+Testing:
+- [Pattern observed]: [test files for pages]
+- Coverage: [X] page tests found
+
+[If NO UI detected:]
+No UI framework found. Does this repository have a user interface?
+
+[If UI detected:]
+Does this match your UI architecture?
+
+```
+
+{{ present_for_validation() }}
+
+---
+
+## 2. Phase 2: Routing & Route Registration
+
+**Draft section documenting how routes are defined and registered.**
+
+### 2.1 Draft "1. Route Registration"
+
+```
+1. Route Registration
+
+1.1 Overview
+
+**Routing system**: [React Router/Vue Router/etc.]
+
+**Route definition location**: [file path or directory]
+
+**Route registration pattern**: [centralised/file-based/convention-based]
+
+1.2 Route structure
+
+- Path format: [/path/:id or other convention]
+- Parameter extraction: [how params are accessed]
+- Nested routes: [how nesting works if applicable]
+
+1.3 Example route definition
+
+[code snippet from codebase]
+
+1.4 Routing Rules
+
+- [Rule 1]: [where to add new route]
+- [Rule 2]: [naming convention for paths]
+- [Rule 3]: [parameter requirements]
+```
+
+### 2.2 Present Draft
+
+**Output to human:**
+
+```
+Route Registration (drafted from analysis):
+
+Route Registration
+
+[Draft section with evidence]
+
+Evidence:
+- Router config: [file path showing routes]
+- [X] existing routes defined
+- Pattern: [centralized in routes.tsx / file-based in pages/ / etc.]
+
+Does this capture how routes are registered?
+
+```
+
+{{ present_for_validation(post_validation="Write to `/midtempo-framework/instructions/new-page.md` with:
+      - Title: `# [Repository Name] New Page`
+      - Table of Contents section exactly as shown below
+      - Then the Route Registration section
+") }}
+
+
+#### 2.2.1 Table of Contents:
+```
+## Table of Contents
+
+- [Route Registration](#1-route-registration)
+- [Page Component Creation](#2-page-component-creation)
+- [Navigation Integration](#3-navigation-integration)
+- [Data Loading](#4-data-loading)
+- [Compliance Gates](#5-compliance-gates)
+- [File References](#6-file-references)
+
+---
+```
+
+### 2.3 Example (React Router)
+
+```
+Demo-Repo New Page
+
+Table of Contents
+
+- [Route Registration](#1-route-registration)
+- [Page Component Creation](#2-page-component-creation)
+- [Navigation Integration](#3-navigation-integration)
+- [Data Loading](#4-data-loading)
+- [Compliance Gates](#5-compliance-gates)
+- [File References](#6-file-references)
+
+---
+1. Route Registration
+
+1.1 Overview
+
+**Routing system**: React Router v6
+
+**Route definition location**: `src/routes/index.tsx`
+
+**Route registration pattern**: Centralised route configuration with lazy loading
+
+1.2 Route structure
+
+- Path format: `/resource/:id` for dynamic segments
+- Parameter extraction: `useParams()` hook in components
+- Nested routes: Child routes nested in parent Route elements
+
+1.3 Example route definition
+
+{
+  path: '/users/:userId',
+  element: <UserProfile />,
+  loader: userProfileLoader,
+  children: [
+    { path: 'settings', element: <UserSettings /> }
+  ]
+}
+
+1.4 Routing Rules
+
+- Add new routes to `src/routes/index.tsx` in alphabetical order within section
+- Use kebab-case for multi-word paths (`/user-profile`, not `/userProfile`)
+- All routes with data dependencies MUST have loader functions
+- Dynamic segments use singular nouns (`:userId`, not `:user_id`)
+- Protected routes MUST use `ProtectedRoute` wrapper
+```
+
+## 3. Phase 3 - Page Component Creation
+
+**Document where page components live and how they're structured.**
+
+### 3.1 Draft "2. Page Component"
+
+```
+2. Page Component
+
+2.1 Location
+
+[directory path for page components]
+
+2.2 Naming convention
+
+[PascalCase.tsx / kebab-case.vue / etc.]
+
+2.3 Component structure
+
+[functional/class/View protocol/Activity/etc.]
+
+2.4 Required elements
+
+- [Element 1]: [props/parameters/state requirements]
+- [Element 2]: [lifecycle hooks/methods]
+- [Element 3]: [return/render structure]
+
+2.5 Template/scaffold
+
+[if CLI or template exists]
+
+2.6 File structure
+
+[example file structure for a page]
+
+2.7 Rules
+
+- [Rule 1]: [component structure requirements]
+- [Rule 2]: [prop/parameter validation]
+- [Rule 3]: [error boundary/error handling requirements]
+```
+
+### 3.2 Present Draft
+
+**Output to human:**
+
+```
+Page Component Creation (drafted from analysis):
+
+2. Page Component
+
+[Draft section with evidence]
+
+Evidence:
+- Existing pages: [directory with X pages]
+- Naming: [pattern observed across pages]
+- Structure: [common pattern in page files]
+
+Does this capture how page components are created?
+
+```
+
+{{ present_for_validation(post_validation="Write to `/midtempo-framework/instructions/new-page.md`")}}
+
+### 3.3 Example (Jetpack Compose)
+
+```
+2. Page Component
+
+2.1 Location
+
+`app/src/main/java/com/[company]/[app]/ui/screens/`
+
+2.2 Naming convention
+
+PascalCase with "Screen" suffix (e.g., `UserProfileScreen.kt`, `ProjectDashboardScreen.kt`)
+
+2.3 Component structure
+
+@Composable functions with state hoisting
+
+2.4 Required elements
+
+- ViewModel for state management
+- State class for UI state
+- Event sealed class for user actions
+- Error and loading state handling
+
+2.5 Template/scaffold
+
+N/A - manually create screens
+
+2.6 File structure
+
+UserProfileScreen.kt          # Composable UI
+UserProfileViewModel.kt       # State management
+UserProfileUiState.kt        # UI state data class
+UserProfileEvent.kt          # User event sealed class
+
+2.7 Rules
+
+- All screens MUST have ViewModel (no direct repository calls in composables)
+- State MUST be hoisted from ViewModel via StateFlow
+- Loading, error, and empty states MUST be handled explicitly
+- Navigation MUST be passed as lambda, not called directly
+- All user input MUST be validated before sending to ViewModel
+- For TDD workflow (tests first), see `/midtempo-framework/rules/tdd.md`
+```
+
+---
+
+## 4. Phase 4 - Navigation Integration
+
+**Document how pages are added to navigation UI.**
+
+### 4.1 Draft "3. Navigation Integration"
+
+```
+3. Navigation Integration
+
+3.1 Navigation component location
+
+[file path]
+
+3.2 Navigation type
+
+[sidebar/header/tab bar/drawer/bottom navigation]
+
+3.3 Adding navigation entry
+
+1. [Step 1 - where to add]
+2. [Step 2 - what to add]
+3. [Step 3 - validation]
+
+3.4 Navigation structure
+
+[nested/flat/conditional]
+
+3.5 Conditional navigation
+
+[how permissions/auth affect nav]
+
+3.6 Rules
+
+- [Rule 1]: [when page should appear in nav]
+- [Rule 2]: [navigation order/grouping]
+- [Rule 3]: [active state handling]
+```
+
+### 4.2 Present Draft
+
+**Output to human:**
+
+```
+Navigation Integration (drafted from analysis):
+
+3. Navigation Integration
+
+[Draft section with evidence]
+
+Evidence:
+- Nav component: [file path]
+- Navigation items: [X] items found
+- Pattern: [how nav items are defined]
+
+Does this capture navigation integration?
+
+```
+
+{{ present_for_validation(post_validation="Write to `/midtempo-framework/instructions/new-page.md`")}}
+
+### 4.3 Example (React web app)
+
+```
+3. Navigation Integration
+
+3.1 Navigation component location
+
+`src/components/Navigation/NavBar.tsx`
+
+3.2 Navigation type
+
+Sidebar navigation with nested sections
+
+3.3 Adding navigation entry
+
+1. Add route config to `NAV_ITEMS` array in `src/config/navigation.ts`
+2. Include icon from `react-icons`, label, path, and required permissions
+3. Add E2E test for navigation link in `tests/e2e/navigation.test.ts`
+
+3.4 Navigation structure
+
+Nested by feature area (Admin, Projects, Settings)
+
+3.5 Conditional navigation
+
+Items filtered by `usePermissions()` hook
+
+**Example navigation item**:
+
+{
+  label: 'User Profile',
+  path: '/users/:userId',
+  icon: FiUser,
+  permissions: ['users.read'],
+  section: 'admin'
+}
+
+3.6 Rules
+
+- Only add to navigation if page is user-accessible (not API-only routes)
+- Navigation items MUST include permission requirements
+- Navigation order within sections MUST be alphabetical
+- Active state styling handled automatically via `useLocation()`
+- All navigation changes MUST have E2E test for link click
+```
+
+## 5. Phase 5: Data Loading & State Management
+
+**Document how pages load and manage data.**
+
+### 5.1 Draft "4. Data Loading"
+
+```
+4. Data Loading
+
+4.1 Data loading pattern
+
+[hooks/loaders/ViewModels/services]
+
+4.2 Location
+
+[where data loading code lives]
+
+4.3 Loading states
+
+[how loading/error/empty states are handled]
+
+4.4 Data flow
+
+1. [Step 1 - where data loading happens]
+2. [Step 2 - how data propagates to UI]
+3. [Step 3 - how updates are handled]
+
+4.5 State management
+
+[local/global/ViewModel/Redux/etc.]
+
+4.6 Caching
+
+[how data is cached if applicable]
+
+4.7 Rules
+
+- [Rule 1]: [where to fetch data]
+- [Rule 2]: [loading state requirements]
+- [Rule 3]: [error handling requirements]
+- [Rule 4]: [when to use global vs local state]
+```
+
+### 5.2 Present Draft
+
+**Output to human:**
+
+```
+
+Data Loading & State Management (drafted from analysis):
+
+## Data Loading
+
+[Draft section with evidence]
+
+Evidence:
+- Pattern: [hooks/ViewModels/etc. in X files]
+- Loading states: [observed in Y files]
+- State management: [library/approach found]
+
+Does this capture data loading approach?
+
+```
+
+{{ present_for_validation(post_validation="Write to `/midtempo-framework/instructions/new-page.md`")}}
+
+### 5.4 Example (Android with ViewModel)
+
+```
+4. Data Loading
+
+4.1 Data loading pattern
+
+ViewModel with Kotlin Flow, Repository pattern for data access
+
+4.2 Location
+
+ViewModels in `ui/screens/[feature]/`, repositories in `data/repositories/`
+
+4.3 Loading states
+
+Sealed class `UiState<T>` with Loading, Success, Error states
+
+4.4 Data flow
+
+1. ViewModel calls repository on initialization
+2. Repository returns Flow<Result<T>>
+3. ViewModel maps to UiState and exposes as StateFlow
+4. Composable collects StateFlow and renders based on state
+
+4.5 State management
+
+ViewModel holds screen state, Room Database for persistence, DataStore for preferences
+
+4.6 Caching
+
+Room with in-memory cache, background sync via WorkManager
+
+**Example ViewModel**:
+
+class UserProfileViewModel(
+    private val userRepository: UserRepository,
+    savedStateHandle: SavedStateHandle
+) : ViewModel() {
+    private val userId: String = checkNotNull(savedStateHandle["userId"])
+
+    val uiState: StateFlow<UiState<User>> = userRepository
+        .getUserFlow(userId)
+        .map { result -> UiState.fromResult(result) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), UiState.Loading)
+}
+
+4.7 Rules
+
+- All screens MUST use ViewModel (never call repository from composable)
+- ViewModels MUST expose StateFlow, not mutable state
+- All data loading MUST use sealed UiState class
+- Error states MUST be explicit (not null/empty treated as error)
+- Repository MUST be injected via Hilt
+- All database queries MUST use Flow for automatic updates
+- Reference `/midtempo-framework/instructions/error-handling.md` for error mapping
+- Reference `/midtempo-framework/instructions/db.md` for Room query patterns
+```
+
+---
+
+## 6. Phase 6: Compliance Gates
+
+**Distil verifiable rules from the new-page document.**
+
+### 6.1 Agent Actions (Silent)
+
+```
+REVIEW content sections in new-page.md:
+  - Route Registration (§1) — routing system, route definition, path format
+  - Page Component (§2) — location, naming, structure, required elements
+  - Navigation Integration (§3) — nav component, entry pattern, conditional nav
+  - Data Loading (§4) — loading pattern, state management, caching
+
+SELECT 4-5 rules that are:
+  - Verifiable by code inspection
+  - Specific to this repository (not generic advice)
+  - Focused on page wiring rules (route placement, component location, nav integration, data loading)
+
+WRITE rules using compliance gates format:
+  - Checklist items with CG-N prefix
+  - Each gate references its source section
+  - One-line verifiable statements
+```
+
+### 6.2 Draft Compliance Gates
+
+**Output to human:**
+
+```
+Compliance Gates (distilled from new-page document):
+
+## 5. Compliance Gates
+
+> Delivery and review skills verify these gates. Each gate must pass for code touching this domain.
+
+- [ ] **CG-1:** [Route rule — e.g., "New routes added to correct router config file in specified format"] (§1.4)
+- [ ] **CG-2:** [Component rule — e.g., "Page components placed in correct directory with required elements"] (§2.1)
+- [ ] **CG-3:** [Navigation rule — e.g., "User-accessible pages added to navigation config with required fields"] (§3.3)
+- [ ] **CG-4:** [Data loading rule — e.g., "Pages with data dependencies use specified loading pattern with all states handled"] (§4.1)
+- [ ] **CG-5:** [Error handling rule — e.g., "Pages that fetch data include error boundary and validate against error-handling.md"] (§5)
+
+Target: 4-5 gates for new-page.md (page wiring — route placement, component structure, nav integration, data loading)
+
+Are these gates verifiable and correct?
+```
+
+{{ present_for_validation(post_validation="Write to `/midtempo-framework/instructions/new-page.md`")}}
+
+---
+
+## 7. Phase 7: Alignment Check
+
+**Review all sections for coherence.**
+
+### 7.1 Check for Issues
+
+READ all drafted sections from midtempo-framework/instructions/new-page.md
+
+CHECK:
+1. Completeness — All aspects of page/screen wiring covered?
+2. Framework accuracy — Instructions match detected framework (web/mobile)?
+3. Clarity — Can agent wire pages/screens following this?
+4. Conflicts — Any contradictions between sections?
+5. Error handling — References to instructions/error-handling.md?
+6. Specificity — Are rules specific enough to be actionable?
+7. Evidence — All patterns backed by actual code?
+8. Gaps — Any page/screen wiring scenarios not addressed?
+9. Scope boundary — Does it only focus on wiring content?
+
+
+### 7.2 Present Findings
+
+**Output to human:**
+
+```
+
+Alignment Check Results:
+
+Completeness: [all wiring aspects covered / gaps found]
+Framework accuracy: [matches codebase (web/mobile) / corrections needed]
+Clarity: [clear wiring instructions / areas needing detail]
+Conflicts: [none / issues found]
+Cross-references: [deliver.md, TDD, testing properly linked / missing links]
+Error handling: [properly referenced / missing links]
+Specificity: [actionable rules / too vague]
+Evidence: [backed by code / unsupported patterns]
+Gaps: [all wiring scenarios covered / missing scenarios]
+Scope boundary: [focuses on wiring only / bleeds into TDD enforcement]
+
+[If issues found:]
+Fixes needed:
+1. [fix 1]
+2. [fix 2]
+
+Shall I apply these fixes?
+
+[If no issues:]
+Anything else to add?
+
+```
+
+{{ present_for_validation(pre_validation="**If fixes approved:** Apply and re-present`")}}
+
+---
+
+## Phase 8: Finalise Document
+
+**Add file references section and complete.**
+
+### 8.1 Add Final Section
+
+```
+6. File References
+
+**Routing:**
+- [router configuration file]
+- [route definitions location]
+
+**Page components:**
+- [directory for pages]
+- [example page for reference]
+
+**Navigation:**
+- [navigation component file]
+- [navigation configuration]
+
+**Data loading:**
+- [loaders/ViewModels directory]
+- [API/repository directory]
+
+**Example reference**: [Link to canonical page that follows all patterns]
+
+6.1 End Marker
+
+{{ end_of_file(total_sections=6, file_purpose='Page wiring patterns and procedures') }}
+
+
+```
+---
+
+### 8.2 Exit Gate
+
+```
+IF  midtempo-framework/instructions/new-page.md exists
+IF Route registration documented (how to add routes, where, format)
+IF Page/screen component creation documented (location, naming, structure, requirements)
+IF Navigation integration documented (how to add to nav, when to add)
+IF Data loading documented (pattern, loading states, error handling)
+IF Compliance gates section exists with 4-5 verifiable CG-N rules for page wiring
+IF File references complete with links to related documentation
+IF Proper cross-references to deliver.md, rules/tdd.md, rules/testing.md, instructions/error-handling.md
+IF All patterns backed by evidence from codebase
+IF Framework-specific patterns accurately documented (web and/or mobile)
+IF Scope correctly limited to page WIRING (not TDD workflow enforcement)
+
+THEN: VALID → Output "§8.3 Phase 8 Complete Output"
+
+STATUS: Sub-skill complete when new-page.md provides clear page/screen wiring instructions with compliance gates.
+```
+
+### 8.3 Phase 8 Complete Output
+
+{{ exit_gate_requirements(extra_rules=["You MUST verify compliance gates exist and scope is limited to page wiring before producing this output"]) }}
+
+```
+---
+                    NEW PAGE DOCUMENTATION COMPLETE
+
+---
+
+Documents created:
+- midtempo-framework/instructions/new-page.md — Page/screen wiring instructions
+
+Sections completed:
+✅ Route Registration (how to add routes)
+✅ Page/Screen Component (structure and requirements)
+✅ Navigation Integration (how to add to nav)
+✅ Data Loading (how pages/screens fetch data)
+✅ Compliance Gates (4-5 verifiable page wiring rules)
+✅ File References (quick lookup)
+
+Summary:
+- Framework: [detected framework - web/mobile]
+- Routing: [routing system]
+- 4-5 compliance gates enforce correct page/screen wiring
+
+---
+
+Start the next setup stage in a new conversation with:
+Setup Stage 9 - /midtempo-framework/setup.md
+
+---
+```

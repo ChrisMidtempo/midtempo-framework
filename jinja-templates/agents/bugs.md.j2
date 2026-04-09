@@ -1,0 +1,567 @@
+# Bug Investigation & Root Cause Tracing
+
+## Overview
+
+Bugs manifest deep in call stacks. Your instinct: fix where the error appears. That treats symptoms.
+
+**Goal:** Trace backward through the call chain until you find the original trigger. Fix at source.
+
+**NOT for:**
+
+- New feature delivery → use [build.md](build.md)
+- Unknown problems or uncertainty → use [investigate.md](investigate.md)
+- Delivered features needing tweaks → use [refine.md](refine.md)
+- Code quality concerns → use [refactor.md](refactor.md)
+
+**Outputs:**
+
+- Failing test reproducing the bug
+- Fix applied at root cause
+- Defence-in-depth validation (for complex bugs)
+- Updated documentation (if design/plan affected)
+
+---
+
+## Table of Contents
+
+- [Overview](#overview)
+- [The Process](#the-process)
+  - [Non-Negotiable Rules](#non-negotiable-rules)
+  - [Entry Gate](#entry-gate)
+- [Step 1: Reproduce Bug](#step-1-reproduce-bug)
+- [Step 2: Locate Symptom](#step-2-locate-symptom)
+- [Step 3: Trace to Root Cause](#step-3-trace-to-root-cause)
+- [Step 4: Plan Fix](#step-4-plan-fix)
+- [Step 5: Execute Fix](#step-5-execute-fix)
+- [Step 6: Verify & Document](#step-6-verify--document)
+- [Bug Fix Complete](#bug-fix-complete)
+- [Anti-Patterns](#anti-patterns)
+- [Common Rationalisations](#common-rationalisations-forbidden)
+- [Defence-in-Depth Example](#defence-in-depth-example)
+- [Quick Reference](#quick-reference)
+- [Final Rule](#final-rule)
+
+---
+
+## The Process
+
+### Non-Negotiable Rules
+
+<CRITICAL_REQUIREMENT type="MANDATORY">
+
+- You MUST write a failing test reproducing the bug before fixing
+- You MUST READ `/midtempo-framework/rules/testing.md` before writing any test
+- You MUST verify all compliance gates ({{ testing_cg_range() }}) from `/midtempo-framework/rules/testing.md` on the reproducing test
+- You MUST READ `/midtempo-framework/instructions/error-handling.md` if the bug involves error handling, API failures, or error UI states
+- You MUST trace to root cause before fixing — never fix at the symptom point
+- You MUST evaluate complexity to determine if defence-in-depth is required
+- You MUST {% if repo.logfile is defined and repo.logfile %} read `{{ repo.logfile }}` {% else %} run `{{ "test" | cmd }}` {% endif %} to understand test failures
+- You MUST locate and read the `*-design.md` document — the single source of truth for the feature
+- You MUST search `planning/` and `planning/archive/` (including subfolders) — most recent relevant design doc supersedes older ones
+- You MUST update the design document with all fix context, implementation changes, and understanding gained
+
+</CRITICAL_REQUIREMENT>
+
+---
+
+### ENTRY GATE
+
+```
+IF bug cannot be described with reproducible steps
+  → INVALID: STOP - Gather reproduction steps from user first
+
+IF test suite is currently failing (unrelated failures)
+  → INVALID: STOP - Fix existing failures before adding new test
+
+IF issue is unclear or uncertain (not a known bug)
+  → INVALID: REDIRECT to `/midtempo-framework/investigate.md`
+
+IF issue is a small tweak to delivered feature
+  → INVALID: REDIRECT to `/midtempo-framework/refine.md`
+
+READ repo documentation:
+
+{{ entry_gate_reads(this, rules=['testing'], instructions=['purpose', 'architecture']) }}
+{{ conditional_db_reads(capabilities, instructions) }}
+{{ conditional_ui_reads(capabilities, instructions) }}
+
+{{ find_design_doc() }}
+
+IF bug has clear symptoms AND can be reproduced
+  → VALID: Continue to Step 1
+```
+
+---
+
+## Step 1: Reproduce Bug
+
+**Write a failing test first. No test, no fix.**
+
+### 1.1 Agent Actions
+
+```
+
+WRITE failing test that:
+  - Reproduces the exact bug behaviour
+  - Asserts on expected correct behaviour
+  - Fails for the right reason (bug present)
+
+RUN test:
+  {{ test_targeted(this) }}
+
+VERIFY test fails as expected
+```
+
+### 1.2 Testing Compliance Gates
+
+The reproducing test MUST pass all compliance gates from `/midtempo-framework/rules/testing.md`:
+
+{{ testing_compliance_gates_summary() }}
+
+### 1.3 Gate Check
+
+```
+IF test does not exist
+  → INVALID: STOP - Write reproducing test first
+
+IF test passes (bug not reproduced)
+  → INVALID: STOP - Test must fail to prove bug exists
+
+IF test fails for wrong reason (typo, missing import)
+  → INVALID: STOP - Fix test, not bug
+
+IF test fails for correct reason AND passes all testing gates
+  → VALID: Continue to Step 2
+```
+
+---
+
+## Step 2: Locate Symptom
+
+**Find where the error manifests.**
+
+### 2.1 Agent Actions
+
+```
+IDENTIFY symptom location:
+  - Stack trace analysis
+  - Error message location
+  - Failing assertion point
+
+IF location unclear:
+  - Add console.error() debugging (not console.log)
+  - Re-run test
+
+DOCUMENT:
+  Symptom location: [file:line]
+  Error observed: [description]
+```
+
+### 2.2 Adding Stack Traces
+
+When manual tracing stalls:
+
+```
+FUNCTION problematic_function(input):
+  stack = CAPTURE_STACK_TRACE()
+  LOG_TO_STDERR("DEBUG:", {
+    input: input,
+    working_directory: GET_WORKING_DIRECTORY(),
+    stack: stack,
+  })
+  // ... rest of function
+```
+
+**Log to stderr in tests.** Logger may be suppressed.
+
+### 2.3 Gate Check
+
+```
+IF symptom location unknown
+  → INVALID: STOP - Add stack trace logging, re-run test
+
+IF symptom location identified with file:line reference
+  → VALID: Continue to Step 3
+```
+
+---
+
+## Step 3: Trace to Root Cause
+
+**Follow the call chain backward. Find the original trigger.**
+
+### 3.1 The Tracing Process
+
+```
+STARTING from symptom location:
+
+1. Observe Symptom
+   Error: [what error appears]
+   Location: [file:line]
+
+2. Find Immediate Cause
+   [code that triggers the error]
+
+3. Trace Call Chain Upward
+   symptom_function()
+     ← called_by()
+       ← called_by()
+         ← original_trigger()
+
+4. Identify Bad Value
+   [variable] = [bad value]
+   [why this value is wrong]
+
+5. Find Original Trigger
+   [where the bad value originates]
+   Root cause: [description]
+```
+
+### 3.2 Document Trace
+
+**Output format:**
+
+```
+Trace Summary:
+
+Symptom: [error at file:line]
+  ↑
+Immediate cause: [code at file:line]
+  ↑
+Call chain: [function] → [function] → [function]
+  ↑
+Bad value: [variable] = [value] at [file:line]
+  ↑
+Root cause: [original trigger at file:line]
+
+Why: [explanation of how bad value propagates to symptom]
+```
+
+WRITE trace summary to the design document immediately.
+Do not hold trace output in conversation memory.
+
+### 3.3 Gate Check
+
+```
+IF planning to fix at symptom point
+  → INVALID: STOP - Trace one level up first
+
+IF root cause identified (original trigger found)
+  → VALID: Continue to Step 4
+```
+
+---
+
+## Step 4: Plan Fix
+
+**Assess complexity. Determine fix scope.**
+
+### 4.1 Complexity Assessment
+
+Evaluate the bug:
+
+| Criteria | Simple Bug | Complex Bug |
+|----------|------------|-------------|
+| Fix type | Typo, off-by-one, wrong operator | Logic error, data flow issue |
+| Entry points | Single entry point to buggy code | Multiple entry points possible |
+| Severity | Nit-level (cosmetic, minor UX) | Blocking (crash, data loss, security) |
+| Root cause | Clear, isolated | Subtle, easy to reintroduce |
+
+### 4.2 Defence-in-Depth Decision
+
+```
+IF simple bug (all criteria match "Simple Bug"):
+  → Single-point fix at root cause is sufficient
+
+IF complex bug (any criteria match "Complex Bug"):
+  → Defence-in-depth required:
+    - Fix at root cause
+    - Add validation at intermediate layers
+    - Each layer that handles the bad value should validate
+```
+
+### 4.3 Document Fix Plan
+
+**Output to human:**
+
+```
+Fix Plan:
+
+Root cause: [file:line] — [description]
+
+Complexity: [Simple / Complex]
+
+Proposed fix:
+- Root: [what to change at root cause]
+
+IF complex bug:
+- Layer 1: [validation to add]
+- Layer 2: [validation to add]
+
+Files affected:
+- [file1]
+- [file2]
+
+Ready to execute fix?
+```
+
+{{ present_for_validation(
+    pre_validation="Present fix plan to human for review.",
+    post_validation="APPEND fix plan to the design document"
+) }}
+
+---
+
+## Step 5: Execute Fix
+
+**Apply fix at root cause. Add defence layers if complex.**
+
+### 5.1 Execution Steps
+
+```
+FOR root cause fix:
+  1. Make minimal change at root cause location
+  2. Run reproducing test — should pass now
+  3. Run full test suite — all tests green
+
+IF complex bug, FOR each defence layer:
+  1. Add validation at intermediate layer
+  2. Run test suite — still green
+  3. Verify validation catches bad value
+```
+
+### 5.2 Execution Checklist
+
+During fix:
+
+- [ ] Fix applied at root cause (not symptom)
+- [ ] No behaviour changes beyond bug fix
+- [ ] Defence-in-depth added (if complex bug)
+- [ ] Each defence layer independently catches the issue
+
+### 5.3 Gate Check
+
+```
+IF reproducing test still fails
+  → INVALID: STOP - Revise fix
+
+IF other tests now failing
+  → INVALID: STOP - Fix broke something else, revise
+
+IF complex bug AND only fixed at root (no defence layers)
+  → INVALID: STOP - Add intermediate layer validation
+
+IF reproducing test passes AND all tests green
+  → VALID: Continue to Step 6
+```
+
+---
+
+## Step 6: Verify & Document
+
+**Confirm fix. Update documentation.**
+
+### 6.1 Run Full Verification
+
+```bash
+{{ test_gate(this) }}           # Full test suite — must pass
+{{ "lint" | cmd }}           # Lint clean
+{% if capabilities.hasTypecheck %}{{ "typecheck" | cmd }}      # Types clean
+{% endif %}```
+
+### 6.2 Documentation Updates
+
+**The design document is the single source of truth.** Update `planning/[feature]-design.md` with everything learned during this fix.
+
+**Format for design doc bug fix notes:**
+
+```markdown
+## Bug Fixes
+
+### [Date] - [Brief description]
+
+**Root cause:** [where the bug originated]
+
+**Fix:** [what was changed at root and intermediate layers]
+
+**Impact on design:** [None, or explain how design assumptions changed]
+
+**Implementation learnings:** [understanding gained during investigation]
+```
+
+The design doc must reflect the current state of the feature. If the fix revealed that original decisions or acceptance criteria were wrong, update those sections too — do not leave stale information.
+
+### 6.3 Self-Check
+
+Before presenting the Bug Fix Complete output, verify:
+
+1. Every file path in the output references a real file (not invented)
+2. Root cause description matches the trace summary written to the design document
+3. Defence-in-depth field is "N/A - simple bug" only if all complexity criteria matched "Simple Bug" in §4.1
+4. Design document contains trace summary and fix plan (written in Steps 3–4)
+5. No section contains placeholder text ("[TODO]", "[TBD]", "...")
+
+IF any check fails → Fix before presenting. Do not present output with known violations.
+
+---
+
+## Bug Fix Complete
+
+{{ exit_gate_requirements(extra_rules=["You MUST verify root cause description matches the trace summary before producing this output"]) }}
+
+```
+---
+                            BUG FIX COMPLETE
+
+---
+
+Root cause: [where the bug originated]
+Fix applied: [what was changed at root]
+Defence added: [intermediate layer validations OR "N/A - simple bug"]
+
+Reproducing test: `tests/path/to/file.test.ts`
+All tests passing. Lint{% if capabilities.hasTypecheck %}/typecheck{% endif %} clean.
+
+Documentation updated:
+- Design doc: [Updated with fix context / N/A - no design impact]
+
+## Commit
+
+fix: [brief description of what was broken]
+
+Body: 3 lines describing root cause identified, fix and defence-in-depth.
+Construct from actual investigation and fix.
+
+---
+Review fix and commit.
+
+---
+```
+
+---
+
+## Anti-Patterns
+
+### Anti-Pattern 1: Symptom Fix
+
+**INVALID:**
+
+```typescript
+// Error appears here, add null check
+if (!directory) directory = process.cwd();
+```
+
+**VALID:** Trace to where empty string originates. Fix there.
+
+### Anti-Pattern 2: No Reproducing Test
+
+**INVALID:**
+
+```
+User: "It's broken"
+Agent: *fixes code without test*
+```
+
+**VALID:** Write failing test first. Watch it fail. Then fix.
+
+### Anti-Pattern 3: Single-Point Fix for Complex Bugs
+
+**INVALID:** Fix only at root cause for complex, blocking bugs with multiple entry points.
+
+**VALID for complex bugs:** Add validation at root + each layer that could catch the bug.
+
+**VALID for simple bugs:** Single-point fix at root cause (typo, off-by-one, nit-level).
+
+### Anti-Pattern 4: Guessing
+
+**INVALID:**
+
+```
+"Probably this variable is wrong"
+*changes code*
+```
+
+**VALID:** Add logging, read stack trace, prove causation.
+
+### Anti-Pattern 5: Reproducing Test Violates Compliance Gates
+
+**INVALID:**
+
+```
+TEST "reproduces bug":
+  mock = CREATE_MOCK()
+  CALL function_under_test(mock)
+  ASSERT mock.was_called()    // Asserts on mock, not behaviour
+```
+
+**VALID:** Verify all testing.md compliance gates ({{ testing_cg_range() }}). Assert on real behaviour.
+
+### Anti-Pattern 6: Skipping Steps
+
+**INVALID:**
+
+```
+Step 1 complete → Jump to Step 5 (execute fix)
+Found symptom → Fix immediately without tracing
+```
+
+**VALID:** Complete steps in order: 1 → 2 → 3 → 4 → 5 → 6. No skipping.
+
+---
+
+## Common Rationalisations (FORBIDDEN)
+
+| Human Says                           | Agent Must Respond                                                                    |
+| ------------------------------------ | ------------------------------------------------------------------------------------- |
+| "Just fix it here"                   | "I must trace to root cause first."                                                   |
+| "We'll add tests later"              | "Test reproducing bug comes first."                                                   |
+| "It's obvious what's wrong"          | "Prove it. Add logging, capture stack trace."                                         |
+| "One fix is enough"                  | "For complex bugs, defence-in-depth required. Simple bugs can use single-point fix."  |
+| "Skip testing gates for bug repro"   | "Reproducing tests follow the same rules. See `/midtempo-framework/rules/testing.md`." |
+| "Just mock it to make the test pass" | "Must understand dependency first. Run with real implementation."                     |
+
+---
+
+## Defence-in-Depth Example
+
+**Scenario:** Empty directory string passed through call chain
+
+**Root cause fix:** Getter that throws if accessed before `beforeEach`
+
+**Intermediate layers:**
+
+- Layer 1: `Project.create()` validates directory not empty
+- Layer 2: `WorkspaceManager` validates not empty
+- Layer 3: `NODE_ENV` guard refuses git init outside tmpdir
+- Layer 4: Stack trace logging before git init
+
+Now the bug is impossible at four levels.
+
+---
+
+## Quick Reference
+
+| Task               | Command / Location                    |
+| ------------------ | ------------------------------------- |
+| Run tests          | `{{ "test" | cmd }}`                  |
+| Run filtered tests | `{{ "test" | cmd }} <pattern>`        |
+{% if repo.logfile is defined and repo.logfile %}| Read test output   | `{{ repo.logfile }}`          |{% endif %}
+{% if capabilities.hasDB and ("db" | category) %}{% for key, cmd, desc in "db" | category %}| {{ desc }} | `{{ cmd }}` |
+{% endfor %}{% endif %}
+{% if commands.test_coverage is defined %}| Coverage report    | `{{ "test_coverage" | cmd }}`         |
+{% endif %}| Testing gates      | `/midtempo-framework/rules/testing.md` |
+| Error handling     | `/midtempo-framework/instructions/error-handling.md` |
+
+---
+
+## Final Rule
+
+```
+TRACE BACKWARD TO ROOT CAUSE. NEVER FIX AT SYMPTOM POINT.
+```
+
+Never guess. Never fix without a failing test. Never skip steps.
+
+No exceptions without human partner's permission.
+
+{{ end_of_file(total_sections=10, file_purpose='Trace bugs to root cause and fix at source') }}

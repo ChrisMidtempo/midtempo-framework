@@ -1,0 +1,589 @@
+# Fix Linting Skill
+
+## Overview
+
+This skill establishes a clean linting baseline. It enforces correct lint configuration, then resolves all existing issues using the refactor skill. Each batch runs in a separate conversation.
+
+**Goal:** ZERO lint errors. ZERO lint warnings. All rules configured as errors.
+
+**Execution:** Fixes are applied using `/midtempo-framework/refactor.md` skill process.
+
+**Progress file:** `planning/lint-fix-progress.md` tracks state between conversations.
+
+---
+
+## The Process
+
+### Non-Negotiable Rules
+
+<CRITICAL_REQUIREMENT type="MANDATORY">
+
+**CORE PRINCIPLE: Enforce correct configuration. Achieve zero issues. No exceptions.**
+
+- You MUST apply all recommended lint settings
+- You MUST convert all warning rules to errors
+- You MUST achieve ZERO errors AND ZERO warnings
+- You MUST use `/midtempo-framework/refactor.md` skill for all fixes
+- You MUST update progress file after each batch
+- You MUST start a new conversation for each batch
+- You MUST NOT disable lint rules to "fix" issues
+- You MUST NOT add inline rule suppressions without human approval
+- You MUST NOT skip any step or offer "skip" options
+- You MUST NOT complete until lint output is clean
+
+**End state:** All lint rules as errors. Zero issues. No exceptions.
+
+</CRITICAL_REQUIREMENT>
+
+---
+
+## Required Lint Settings
+
+These settings are MANDATORY. Apply all of them.
+
+| Setting | Value | Rationale |
+|---------|-------|-----------|
+| Function length | ≤75 lines | Fits in context window, single responsibility |
+| Cyclomatic complexity | ≤10 | Reducible decision paths, testable |
+| File length | ≤500 lines | Manageable scope, clear boundaries |
+| Nested ternaries | <3 | Readable conditionals |
+| Max parameters | ≤5 | Interface simplicity |
+| Max nesting depth | ≤4 | Flat code, easier to follow |
+| All rules | error (not warn) | No ambiguity, CI enforcement |
+
+---
+
+## ENTRY GATE
+
+```
+CHECK if `planning/lint-fix-progress.md` exists
+
+IF progress file exists
+  → READ ALL of `planning/lint-fix-progress.md`
+  → EXTRACT: batch number, remaining issues, phase
+  → GOTO "§2. Continuation Entry Gate"
+
+IF progress file does NOT exist
+  → GOTO "§1. Fresh Start Entry Gate"
+```
+
+---
+
+## 1. Fresh Start Entry Gate
+
+**First time running this skill.**
+
+### 1.1 Read Refactor Skill
+
+```
+READ ALL of `/midtempo-framework/refactor.md`
+
+This skill uses refactor.md for all code changes. Understand its:
+  - Entry gates (tests must be green)
+  - Process (metrics, plan, execute, verify)
+  - Exit gates (tests still green, behaviour unchanged)
+```
+
+### 1.2 Enforce Lint Configuration
+
+```
+CHECK `/midtempo-framework/midtempo-framework.yml` for repo.language field
+IDENTIFY the primary language(s) used in this repository
+SEARCH for lint configuration files appropriate for that language
+
+READ configuration completely
+
+CHECK against REQUIRED settings:
+
+**Settings Check:**
+| Setting | Required | Current | Status |
+|---------|----------|---------|--------|
+| Function length | ≤75 lines | [value] | [✓/✗/not set] |
+| Cyclomatic complexity | ≤10 | [value] | [✓/✗/not set] |
+| File length | ≤500 lines | [value] | [✓/✗/N/A] |
+| Nested ternaries | <3 | [value] | [✓/✗/not set] |
+| Max parameters | ≤5 | [value] | [✓/✗/not set] |
+| Max nesting depth | ≤4 | [value] | [✓/✗/not set] |
+
+IDENTIFY rules set as "warn" (must be "error")
+
+PRESENT configuration changes to human:
+
+**LINT CONFIGURATION - REQUIRED CHANGES**
+
+Tool: [linter name]
+Config location: [path]
+
+Settings check: [table from above]
+
+**Changes to apply:**
+1. [Set function length rule to 75]
+2. [Set complexity rule to 10]
+3. [Convert rule X from warn to error]
+4. [Convert rule Y from warn to error]
+...
+
+These changes are REQUIRED. Applying now.
+
+APPLY all configuration changes
+
+RUN: {{ "lint" | cmd }}
+
+VERIFY configuration applied correctly
+
+CONTINUE to §1.3
+```
+
+### 1.3 Assess Lint State
+
+```
+RUN: {{ "lint" | cmd }}
+
+CAPTURE full output:
+  - Error count
+  - Warning count (should be 0 if all rules are errors now)
+  - Files affected
+  - Rule violations by type
+
+CATEGORISE issues:
+  - Complexity violations (function length, cyclomatic, nesting)
+  - Style violations (formatting, naming)
+  - Best practice violations (no-console, explicit types)
+  - Potential bugs (no-unused-vars, no-implicit-any)
+
+PRESENT assessment to human:
+
+**LINT STATE ASSESSMENT**
+
+Total errors: [N]
+Total warnings: [M] (target: 0)
+
+**By category:**
+- Complexity: [count]
+- Style: [count]
+- Best practice: [count]
+- Potential bugs: [count]
+
+**By rule (top 10):**
+- [rule-name]: [count]
+- [rule-name]: [count]
+...
+
+Files affected: [count]
+Estimated batches: ~[X]
+
+**Strategy recommendation:** [by-file | by-rule based on distribution]
+
+**Confirm strategy to proceed:**
+- [A] By file (2-4 files per batch)
+- [B] By rule (1-2 rules across codebase per batch)
+- [C] By folder (focus on specific directory)
+
+WAIT for human to confirm strategy.
+
+CREATE progress file and proceed to §3.
+```
+
+### 1.4 Create Progress File
+
+```
+CREATE `planning/lint-fix-progress.md` with:
+
+# Lint Fix Progress
+
+## Status
+- **Current batch:** 1
+- **Started:** [DD/MM/YYYY]
+- **Strategy:** [by-file | by-rule | folder: X]
+
+## Configuration
+- **Config updated:** [DD/MM/YYYY]
+- **All rules as errors:** Yes
+- **Settings applied:** function-length:75, complexity:10, file-length:500, nesting:4, params:5
+
+## Summary
+- **Total issues at start:** [N]
+- **Issues fixed:** 0
+- **Issues remaining:** [N]
+
+## Remaining Issues
+
+### By Rule
+- [ ] `[rule-name]`: [count] occurrences
+- [ ] `[rule-name]`: [count] occurrences
+...
+
+### By File
+- [ ] `[file-path]`: [count] issues
+- [ ] `[file-path]`: [count] issues
+...
+
+## Completed Batches
+
+[None yet]
+
+---
+
+PROCEED to §3. Execute Batch.
+```
+
+---
+
+## 2. Continuation Entry Gate
+
+**Returning to continue from previous batch.**
+
+```
+READ ALL of `planning/lint-fix-progress.md`
+
+READ ALL of `/midtempo-framework/refactor.md`
+
+EXTRACT:
+  - Current batch number
+  - Strategy (by-file/by-rule/folder)
+  - Remaining issues
+  - Issues fixed so far
+
+VERIFY current state:
+  RUN: {{ "lint" | cmd }}
+  COMPARE output with remaining issues
+
+IF issue count differs from progress file
+  → UPDATE progress file with current state
+  → INFORM human of change
+
+PRESENT continuation summary:
+
+**CONTINUING LINT FIX**
+
+Batch: [N]
+Strategy: [by-file | by-rule | folder]
+
+**Progress:**
+- Issues fixed: [count]
+- Issues remaining: [count]
+
+Ready to proceed with batch [N]?
+
+WAIT for human confirmation.
+
+VALID: Proceed to §3. Execute Batch.
+```
+
+---
+
+## 3. Execute Batch
+
+### 3.1 Select Batch Issues
+
+```
+BASED ON strategy:
+
+IF by-file:
+  SELECT 2-4 files with most issues
+
+IF by-rule:
+  SELECT 1-2 related rules (~20 occurrences max)
+
+IF by-folder:
+  SELECT issues in target folder (~20 max)
+
+PRESENT batch to human:
+
+**BATCH [N] - [count] ISSUES**
+
+Strategy: [by-file | by-rule | folder]
+
+**Scope:** [files/rules/folder details]
+
+**Issues:**
+1. `[file:line]` - [rule] - [message]
+2. `[file:line]` - [rule] - [message]
+...
+
+Executing via /midtempo-framework/refactor.md
+
+PROCEED to §3.2
+```
+
+### 3.2 Execute Using Refactor Skill
+
+```
+FOLLOW /midtempo-framework/refactor.md EXACTLY:
+
+1. ENTRY GATE (from refactor.md)
+   - Verify tests are green before starting
+   - If tests not green → STOP, fix tests first
+
+2. FOR each lint issue:
+
+   ANALYSE the violation:
+   - Read full file context
+   - Understand what the code does
+   - Identify refactor approach
+
+   APPLY refactor patterns:
+
+   IF function too long:
+     → Extract logical sections into helper functions
+     → Each helper has single responsibility
+     → Names describe what, not how
+
+   IF complexity too high:
+     → Simplify conditionals (guard clauses, early returns)
+     → Extract conditional logic to named functions
+     → Reduce nesting depth
+
+   IF file too long:
+     → Split by responsibility
+     → Extract cohesive modules
+     → Maintain clear boundaries
+
+   IF too many parameters:
+     → Group related params into objects
+     → Consider builder pattern
+     → Review if function does too much
+
+   VERIFY after each change:
+     → Tests still pass
+     → Behaviour unchanged
+     → Lint issue resolved
+     → No new issues introduced
+
+3. EXIT GATE (from refactor.md)
+   - All tests green
+   - Behaviour unchanged
+   - Metrics improved (lint issues reduced)
+
+IMPORTANT - DO NOT:
+  - Add eslint-disable comments
+  - Disable rules
+  - Make functional changes (only structural)
+  - Create meaningless helper functions just to reduce line count
+```
+
+### 3.3 Verify Batch
+
+```
+AFTER all batch fixes applied:
+
+RUN: {{ "lint" | cmd }}
+RUN: {{ test_gate(this) }}
+
+VERIFY:
+  - Batch issues resolved
+  - No new lint issues
+  - All tests pass
+
+IF tests fail
+  → STOP
+  → Fix immediately
+  → Tests MUST pass before proceeding
+
+IF new lint issues introduced
+  → Fix immediately (same batch)
+  → Re-verify
+```
+
+---
+
+## 4. Batch Complete
+
+### 4.1 Update Progress File
+
+```
+UPDATE `planning/lint-fix-progress.md`:
+
+1. INCREMENT batch number
+2. UPDATE issues fixed count
+3. MARK completed items with [x]
+4. ADD to Completed Batches:
+
+### Batch [N] - [DD/MM/YYYY]
+- Fixed [count] issues
+- Files: [list]
+- Rules addressed: [list]
+- Tests: passing
+```
+
+### 4.2 Check Completion Status
+
+```
+RUN: {{ "lint" | cmd }}
+
+COUNT errors and warnings
+
+IF errors = 0 AND warnings = 0
+  → GOTO §5. All Complete Output
+
+IF errors > 0 OR warnings > 0
+  → GOTO §4.3 Batch Complete Output
+```
+
+### 4.3 Batch Complete Output
+
+{{ exit_gate_requirements("for next conversation") }}
+
+**BATCH [N] COMPLETE**
+
+Issues fixed this batch: [count]
+Total issues fixed: [total]
+Issues remaining: [count]
+
+**Files modified:**
+- [file 1]
+- [file 2]
+
+Tests: passing
+
+Progress file updated: planning/lint-fix-progress.md
+
+---
+
+**COMMIT**
+
+refactor: resolve lint issues batch [N]
+
+- [Primary refactor: e.g., "Extract helpers in X"]
+- [count] lint issues resolved, [remaining] remaining
+
+---
+
+**NEXT BATCH**
+
+Start a NEW conversation with:
+
+> Continue fix-linting batch [N+1] using /midtempo-framework/setup-skills/fix-linting.md
+
+---
+
+## 5. All Complete Output
+
+{{ exit_gate_requirements("when zero issues achieved") }}
+
+**LINT BASELINE COMPLETE**
+
+Lint check: CLEAN
+Errors: 0
+Warnings: 0
+
+**Configuration enforced:**
+- Function length: ≤75 lines ✓
+- Cyclomatic complexity: ≤10 ✓
+- File length: ≤500 lines ✓
+- Max nesting: ≤4 ✓
+- Max parameters: ≤5 ✓
+- All rules as errors ✓
+
+Batches completed: [N]
+Total issues fixed: [count]
+Tests: passing
+
+---
+
+**CLEANUP**
+
+Archive progress file:
+`mv planning/lint-fix-progress.md planning/archive/`
+
+---
+
+**BASELINE ESTABLISHED ✓**
+
+**Future enforcement:**
+- Zero lint issues on all code
+- No lint-disable without approval
+- CI blocks on any violation
+
+COMMIT MESSAGE (copy/paste):
+─────────────────────────────────────────────────────────────────
+
+refactor: establish clean lint baseline
+
+Configured lint rules to enforce code quality standards:
+- Function length ≤75 lines
+- Cyclomatic complexity ≤10
+- File length ≤500 lines
+- Max nesting depth ≤4
+- Max parameters ≤5
+- All rules configured as errors (not warnings)
+
+Resolved [count] lint issues across [N] batches:
+- [list primary refactors: e.g., "Extracted helpers in auth module"]
+- [list primary refactors: e.g., "Simplified conditionals in parser"]
+- [list primary refactors: e.g., "Split large files in services/"]
+
+Files modified: [count]
+Tests: passing
+
+─────────────────────────────────────────────────────────────────
+```
+
+---
+
+## Quick Reference
+
+### Invocation
+
+**Fresh start:**
+```
+Fix linting using /midtempo-framework/setup-skills/fix-linting.md
+```
+
+**Continue batch:**
+```
+Continue fix-linting batch [N] using /midtempo-framework/setup-skills/fix-linting.md
+```
+
+### Commands
+
+```bash
+{{ "lint" | cmd }}         # Run linting
+{% if commands.lint_fix is defined %}
+{{ "lint_fix" | cmd }}     # Auto-fix where possible
+{% endif %}
+{{ "test" | cmd }}         # Verify tests pass
+```
+
+### Progress File
+
+`planning/lint-fix-progress.md`
+
+### Required Configuration by Linter
+
+**ESLint (TypeScript/JavaScript):**
+```json
+{
+  "rules": {
+    "max-lines-per-function": ["error", { "max": 75 }],
+    "complexity": ["error", 10],
+    "max-lines": ["error", { "max": 500 }],
+    "max-depth": ["error", 4],
+    "max-params": ["error", 5],
+    "no-nested-ternary": "error"
+  }
+}
+```
+
+**Pylint (Python):**
+```ini
+[DESIGN]
+max-args=5
+max-locals=15
+max-branches=10
+max-statements=50
+
+[FORMAT]
+max-module-lines=500
+max-line-length=100
+```
+
+**Ruff (Python):**
+```toml
+[tool.ruff.pylint]
+max-args = 5
+max-branches = 10
+max-statements = 50
+```
+
+---

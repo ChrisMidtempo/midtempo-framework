@@ -1,0 +1,16 @@
+# Minimal test fixture for Python language defaults
+language: python
+
+core:
+  test:
+    command: "pytest"
+    description: "Run all tests"
+    category: "test"
+  lint:
+    command: "ruff check ."
+    description: "Run linter for code quality"
+    category: "quality"
+  typecheck:
+    command: "mypy ."
+    description: "Run type checker"
+    category: "quality"

@@ -1,0 +1,396 @@
+# [Feature Name] Design Document
+
+**Status**: Draft
+
+---
+
+## 1. Problem Statement
+
+### 1.1 Current Situation
+
+[Describe what exists today and what's not working. Be specific about symptoms.]
+
+**Evidence:**
+
+- [User feedback, bug reports, or observed behaviour]
+- [Metrics or measurements showing the problem]
+- [Technical debt or architectural limitations]
+
+### 1.2 Root Cause
+
+[Why does this problem exist? What's the underlying cause?]
+
+---
+
+## 2. Goals & Non-Goals
+
+### 2.1 Goals
+
+[What outcomes will success deliver? Focus on capabilities, not implementation.]
+
+**Primary:**
+
+1. [Main goal - the must-have outcome]
+2. [Another critical goal]
+
+**Secondary:**
+
+- [Nice-to-have outcome]
+- [Additional benefit]
+
+### 2.2 Explicitly Out of Scope
+
+[What are we deliberately NOT solving? Why?]
+
+- [Feature or capability explicitly excluded]
+  - **Reason:** [Why it's out of scope - future work, different problem, YAGNI, etc.]
+- [Another exclusion]
+  - **Reason:** [Justification]
+
+### 2.3 Acceptance Criteria
+
+[How will we verify this works? Focus on observable behaviour, not numeric targets.]
+
+- [Behaviour that tests can verify]
+- [Capability that demonstrates success]
+- [Edge case that must be handled correctly]
+
+---
+
+## 3. Proposed Solution
+
+### 3.1 Overview
+
+[High-level description of the solution. What are we building/changing? 2-3 paragraphs maximum.]
+
+### 3.2 Key Design Decisions
+
+#### Decision 1: [Decision Name]
+
+**Category:** Architectural | Data Model | Integration | UX
+**Choice:** [What we decided]
+**Rationale:** [Why — one paragraph maximum]
+
+**Rejected:**
+
+- [Alternative 1]: [One-line reason]
+- [Alternative 2]: [One-line reason]
+
+**Plan Handoff:**
+
+- **Affects:** [Section 3.3 component names]
+- **Constraint:** [What implementation must respect]
+- **Reversibility:** Feature flag | Simple rollback | Permanent
+
+#### Decision 2: [Another Decision]
+
+[Repeat structure from Decision 1]
+
+---
+
+### 3.3 Architecture
+
+[Describe the logical architecture - components, their responsibilities, and how they interact. Use diagrams if helpful. Focus on structure, not implementation details.]
+
+**Components:**
+
+| Component | Responsibility | Dependencies    |
+| --------- | -------------- | --------------- |
+| [Name]    | [What it does] | [What it needs] |
+| [Name]    | [What it does] | [What it needs] |
+
+**Data Flow:**
+
+1. [Step in the process]
+2. [Next step]
+3. [Final step]
+
+**Integration Points:**
+
+- [Existing system or service this touches]
+  - **Interface:** [How they connect - API, event, database, etc.]
+  - **Contract:** [Key expectations or requirements]
+
+---
+
+### 3.4 Data Model
+
+[Describe new or modified data structures, entities, or state. What needs to be stored or tracked?]
+
+{% if capabilities.hasDB -%}
+**Database Rules:** If adding tables or columns, read `/midtempo-framework/rules/db.md` first. Key rules: single source of truth (no duplication), natural keys over synthetic, no JSONB for known structures, FK constraints mandatory.
+
+{% endif -%}
+**New Entities:**
+
+```
+Entity: [EntityName]
+  [key_field]: [type]
+  [another_field]: [type]
+```
+
+**Modified Entities:**
+
+- [Existing entity name]
+  - **Changes:** [What's being added/removed/modified]
+  - **Reason:** [Why this change is needed]
+
+**State Requirements:**
+
+- [What state must persist]
+- [What state is transient]
+- [What state is derived]
+
+---
+
+### 3.5 User Experience
+
+[How will users interact with this? What changes from their perspective?]
+
+**User Journey:**
+
+1. [User action or entry point]
+2. [System response or next step]
+3. [Outcome or exit point]
+
+**UI/UX Changes:**
+
+- [Visible change to interface]
+  - **Reason:** [Why this change improves UX]
+- [Another change]
+  - **Reason:** [Justification]
+
+- [New component type needed - atom/molecule/organism/template/page]
+  - **Purpose:** [What it represents in the design system]
+  - **Reusability:** [Where else it might be used]
+
+---
+
+### 3.6 Error Handling & Edge Cases
+
+[What can go wrong? How should the system respond?]
+
+
+**Error Scenarios:**
+
+| Error Condition   | Expected Behaviour | User Experience              |
+| ----------------- | ------------------ | ---------------------------- |
+| [What fails]      | [System response]  | [What user sees/experiences] |
+| [Another failure] | [Response]         | [User impact]                |
+
+**Edge Cases:**
+
+- [Boundary condition or unusual input]
+  - **Handling:** [How the system should behave]
+- [Another edge case]
+  - **Handling:** [Expected behaviour]
+
+---
+
+### 3.7 Security & Privacy
+
+{% if security is defined and security -%}
+**Security Rules:** Review applicable security domains for this feature:
+{% for domain, config in security.items() %}
+- {{ domain | replace('-', ' ') | title }}: `/midtempo-framework/rules/security/{{ config.page }}`
+{% endfor %}
+
+**Threats:**
+
+- [Threat or attack vector this feature introduces]
+  - **Domain:** [secrets-management | input-validation | authentication | data-protection | public-hardening]
+  - **Vector:** [How this could be exploited]
+
+**CG Applicability:**
+
+| Domain | Gate | Applies | Rationale |
+| ------ | ---- | ------- | --------- |
+| [domain] | [CG-S1: description] | Yes / No | [Why this gate applies or not] |
+
+**Security Tests Required:**
+
+- [Security scenario that needs a test]
+  - **Verifies:** [CG reference, e.g., secrets-management CG-S1]
+
+{% else -%}
+[What security or privacy concerns does this introduce or address?]
+{% endif -%}
+
+**Security Considerations:**
+
+- [Security concern or requirement]
+  - **Mitigation:** [How design addresses it]
+- [Another concern]
+  - **Mitigation:** [Solution]
+
+**Privacy Implications:**
+
+- [Data sensitivity or privacy concern]
+  - **Approach:** [How design protects privacy]
+- [Another privacy consideration]
+  - **Approach:** [Protection mechanism]
+
+---
+
+### 3.8 Performance Mitigations
+
+[What design choices reduce performance risk? Focus on decisions, not predictions.]
+
+**Data Model Efficiency:**
+
+- [Index strategy for query patterns]
+- [N+1 query patterns avoided by: ...]
+- [Denormalisation trade-offs, if any]
+
+**Query & Data Access Patterns:**
+
+- [Pagination approach for unbounded results]
+- [Batch vs single-row operations]
+- [Lazy loading strategy]
+
+**Caching Strategy:**
+
+- [What's cached and why]
+- [Invalidation approach]
+- [Or: N/A — no caching needed because ...]
+
+**Algorithmic Choices:**
+
+- [Complexity class of key operations — O(n), O(log n), etc.]
+- [Trade-offs accepted]
+
+**Explicitly Not Optimising:**
+
+- [Area deliberately left simple — optimise only if proven slow]
+- [YAGNI: premature optimisation avoided because ...]
+
+---
+
+## 4. Dependencies & Constraints
+
+### 4.1 External Dependencies
+
+[What external systems, services, or libraries does this depend on?]
+
+- [Service/Library name]
+  - **Purpose:** [What we need from it]
+
+### 4.2 Technical Constraints
+
+[What technical limitations or requirements must be respected?]
+
+- [Constraint description]
+  - **Impact:** [How this limits the solution]
+- [Another constraint]
+  - **Impact:** [Effect on design]
+
+### 4.3 Compatibility Requirements
+
+[What existing systems, formats, or contracts must remain compatible?]
+
+- [System or format name]
+  - **Requirement:** [What must stay the same]
+  - **Reason:** [Why compatibility is required]
+
+---
+
+## 5. Testing Strategy Principles
+
+[What testing approach will verify this design? High-level only - detailed test scenarios go in test manifest.]
+
+### 5.1 Testability Requirements
+
+[What makes this design testable?]
+
+- [Aspect that must be testable]
+- [Another testability requirement]
+
+### 5.2 Test Coverage Areas
+
+[What categories of testing will be needed?]
+
+**Functional:**
+
+- [Behaviour that must be verified]
+- [Another functional area]
+
+**Non-Functional:**
+
+- [Performance/security/reliability aspect to test]
+- [Another non-functional area]
+
+**Integration:**
+
+- [Cross-component interaction to verify]
+- [External integration to test]
+
+### 5.3 Test Data Requirements
+
+[What test data or fixtures will be needed?]
+
+- [Data type or scenario needed for testing]
+- [Another data requirement]
+
+---
+
+## 6. Migration
+
+### 6.1 Migration Requirements
+
+[If changing existing functionality, how do we migrate?]
+
+[Note that this is not a public system, single internal user, etc. so migration is centred on production data and feature transition]
+
+**Data Migration:**
+
+- [What data needs migrating]
+  - **Approach:** [Strategy for migration]
+
+**Feature Migration:**
+
+- [How to transition from old to new]
+  - **Strategy:** [Phasing, feature flags, etc.]
+
+---
+
+## 7. Open Questions
+
+[What still needs to be resolved? Add ANYTHING relevant that you can think of]
+
+- **Q:** [Question that needs answering]
+  - **Impact:** [How this affects the design]
+
+- **Q:** [Another open question]
+  - **Impact:** [Effect on design]
+
+---
+
+## 8. References
+
+**Related Documents:**
+
+- Planning document: `/planning/[feature-name].md` (created after design approval)
+- Test manifest: `/planning/[feature-name]-tests.md` (created during planning)
+- Original discussion: [Link to note or issue]
+
+**External Resources:**
+
+- [Documentation, RFC, or external reference]
+- [Another relevant resource]
+
+---
+
+## Approval
+
+**Design Review:**
+
+- [ ] Technical feasibility verified
+- [ ] Security reviewed
+- [ ] Performance mitigations appropriate
+- [ ] Testing approach sound
+- [ ] Dependencies identified
+- [ ] Trade-offs acceptable
+- [ ] Open questions resolved or assigned
+
+**Approved by:** [Name/Role]  
+**Next step:** Create planning document using `write-plan.md` skill

@@ -1,0 +1,316 @@
+# Stage 1: Command Alignment
+
+## Overview
+
+This stage GUARANTEES that ALL commands defined in `midtempo-framework.yml` execute successfully.
+
+**Goals:** Ensure every command in the .yml file is executable (runs without command-not-found errors) AND that the .yml has the appropriate commands.
+
+**Critical:** Test failures, lint errors, or type errors don't matter - we only care that commands RUN.
+
+---
+
+## Entry Gate
+
+### Step 0: Obtain Project Configuration (ESSENTIAL)
+
+Agents do not have access to package.json, Makefile, or other project configuration files in restricted environments.
+
+**REQUIRED ACTION:**
+```
+ASK USER to paste their project configuration file:
+  - For Node.js/JavaScript projects: package.json
+  - For Python projects: pyproject.toml or setup.py
+  - For Make-based projects: Makefile
+  - For other build systems: relevant config file
+
+This is ESSENTIAL to:
+  - Align .yml commands against actual available scripts
+  - Verify command definitions match project reality
+  - Suggest corrections when .yml commands are misaligned
+  - Ensure verification is meaningful
+```
+
+Once project configuration is provided:
+```
+READ framework config (midtempo-framework.yml)
+EXTRACT all commands from `commands:` section
+EXTRACT all scripts from project config (package.json/Makefile/etc)
+
+COMPARE and categorize:
+  1. Commands in .yml that MATCH project scripts → Skip testing (guaranteed to work)
+  2. Commands in .yml that DON'T match project scripts → Require testing
+  3. Scripts in project config NOT in .yml → Recommend adding
+
+VALID → Continue to verification
+```
+
+---
+
+## Verification Process
+
+### Step 1: Categorize Commands
+
+```
+FOR EACH command in midtempo-framework.yml:
+  - Extract command name (e.g., "test", "lint", "format")
+  - Extract command category (e.g. "test", "utilities", "discover")
+  - Extract command value (e.g., "npm run test")
+
+  CHECK if command matches a script in project config:
+    - "npm run [script-name]" matches package.json scripts.[script-name]
+    - "make [target]" matches Makefile target
+    - "python -m pytest" matches if pytest is available in project
+    - etc.
+
+  IF MATCH FOUND:
+    → Add to VERIFIED list (no testing needed)
+    → Mark as ✓ Verified via project config
+
+  IF NO MATCH:
+    → Add to TESTING REQUIRED list
+    → Will need execution verification
+
+FOR EACH script in project config NOT in .yml:
+  → Add to RECOMMENDED TO ADD list
+  → Will suggest to user after verification
+```
+
+### Step 2: Execute Commands That Need Testing
+
+```
+FOR EACH command in TESTING REQUIRED list:
+  1. Execute the command
+  2. Check if command runs (don't care about pass/fail)
+  3. Record status:
+     ✓ Command executed (success OR expected failure)
+     ✗ Command not found or failed to execute
+
+IGNORE these results:
+  - Test failures (tests failing is OK, just need to run)
+  - Lint errors (linting finding issues is OK)
+  - Type errors (type checking finding errors is OK)
+  - Coverage reports
+  - Any non-zero exit codes from quality checks
+
+ONLY FAIL ON:
+  - Command not found
+  - Command doesn't exist
+  - Permission denied
+  - Syntax errors in command itself
+```
+
+### Step 3: Special Verification - Test with Specific File
+
+```
+CRITICAL REQUIREMENT: Test command must work with individual files
+
+Execute: [test command] [path-to-specific-test-file]
+
+Example:
+  npm run test tests/test_config_validation.py
+
+This MUST work - it's essential for targeted testing workflow
+
+IF this fails:
+  → FAIL Stage 1
+  → Report issue to human
+```
+
+---
+
+## Reporting Results
+
+### If All Commands Verified Successfully
+
+```
+---
+                     STAGE 1 COMPLETE: COMMAND VERIFICATION
+
+---
+
+Commands verified via project config (no testing needed):
+  ✓ test: [command] - matches package.json scripts.test
+  ✓ lint: [command] - matches package.json scripts.lint
+  [... list all that matched project config ...]
+
+Commands verified via execution testing:
+  ✓ [command-name]: [command] - executed successfully
+  [... list all that required testing ...]
+
+Special verification:
+  ✓ test [specific-file]: Confirmed individual file testing works
+
+Status: All commands in .yml are executable.
+
+---
+RECOMMENDED: Scripts in your project config not yet in midtempo-framework.yml
+
+---
+
+Consider adding these to your midtempo-framework.yml:
+  • [script-name]: [script-value]
+  • [script-name]: [script-value]
+  [... list all recommended additions ...]
+
+These scripts exist in your project config but aren't in .yml yet.
+Adding them will make them available to agents.
+
+---
+
+Next step: start a new conversation with the following prompt:
+   Setup Stage 2 - /midtempo-framework/setup.md
+   
+---
+```
+
+### If Any Commands Failed
+
+```
+---
+                     STAGE 1 FAILED: COMMAND VERIFICATION ISSUES
+
+---
+
+Commands verified via project config (skipped testing):
+  ✓ [command-name]: matches package.json scripts.[name]
+  [... list all that matched ...]
+
+Commands that failed to execute:
+  ✗ [command-name]: [error-message]
+  ✗ [command-name]: [error-message]
+
+Commands that succeeded:
+  ✓ [command-name]
+  ✓ [command-name]
+  [... list all successful commands ...]
+
+---
+REMEDIATION REQUIRED
+
+---
+
+The following commands in your midtempo-framework.yml file cannot execute:
+
+1. [command-name]: [command-value]
+   Error: [error-message]
+
+   Analysis:
+   ✗ NOT FOUND in package.json scripts
+   ✗ Execution test FAILED
+
+   Possible causes:
+   - Command doesn't exist in package.json / project config
+   - Typo in command definition
+   - Missing dependencies
+   - Incorrect command syntax
+
+   Action required:
+   - Either fix the command in your project configuration
+   - Or update the midtempo-framework.yml to match your actual commands
+   - Or remove the command from midtempo-framework.yml if not needed
+
+2. [repeat for each failed command]
+
+---
+RECOMMENDED: Scripts in your project config not yet in midtempo-framework.yml
+
+---
+
+Consider adding these to your midtempo-framework.yml:
+  • [script-name]: [script-value]
+  [... list recommended additions ...]
+
+---
+NEXT STEPS
+
+---
+
+1. Review the failed commands above
+2. Fix the issues in your repository or midtempo-framework.yml
+3. Once fixed, run again to re-verify (start a new conversation):
+   Setup Stage 1 - /midtempo-framework/setup.md
+
+---
+```
+
+---
+
+## Exit Gate
+
+```
+⛔ VERIFICATION REQUIRED
+
+Criteria:
+- ALL commands in .yml are verified as executable:
+  • Commands matching project config = auto-verified (no testing needed)
+  • Commands NOT in project config = tested and passed execution
+- Test command works with specific file: test [file-path]
+
+IF all verified:
+  → Stage 1 COMPLETE
+  → Report results including:
+    - Commands verified via project config
+    - Commands verified via execution
+    - Recommended scripts to add (if any)
+  → Proceed to Stage 2
+
+IF any command fails:
+  → Stage 1 FAILED
+  → Report issues to human with analysis:
+    - Which commands are NOT in project config
+    - Which commands failed execution
+    - Recommended fixes
+  → Wait for fixes
+  → Re-run Stage 1
+
+STATUS: Stage 1 complete when all commands verified executable.
+```
+
+---
+
+## Implementation Notes
+
+### Smart Matching Logic
+
+Commands are verified in two ways:
+
+**1. Auto-verified via project config (no testing needed):**
+- If a .yml command matches a script in package.json/Makefile
+- These are guaranteed to work (they exist in the project)
+- Skip execution testing for efficiency
+
+**2. Execution testing (for unmatched commands):**
+- If a .yml command does NOT match any project script
+- Must be tested by executing it
+- Verifies the command actually works
+
+**Recommendation system:**
+- Any script in project config NOT in .yml
+- Report to user as "recommended to add"
+- Helps ensure .yml has all useful commands
+
+### What Counts as Success
+
+- Command matches project config script (auto-verified)
+- OR: Command runs and exits (any exit code is OK for test/lint/typecheck)
+- Command produces output
+- Command completes without "command not found" error
+
+### What Counts as Failure
+
+- `command not found`
+- `No such file or directory` (for the command itself)
+- `Permission denied` (for the command itself)
+- Syntax error in the command definition
+- Command listed in .yml but doesn't exist in project
+
+### Special Cases
+
+**Test commands:** May have failing tests - that's OK
+**Lint commands:** May find lint errors - that's OK
+**Typecheck commands:** May find type errors - that's OK
+**Coverage commands:** May report low coverage - that's OK
+**Format check commands:** May find formatting issues - that's OK
+
+None of these are failures for Stage 1 verification purposes.

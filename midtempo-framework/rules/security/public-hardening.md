@@ -1,0 +1,260 @@
+# Public Hardening
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Compliance Gates](#compliance-gates)
+- [Enhanced Rules: Confidential Data](#enhanced-rules-confidential-data)
+- [Anti-patterns and Auto-recovery](#anti-patterns-and-auto-recovery)
+- [Common Rationalisations](#common-rationalisations-forbidden)
+- [Enforcement Summary](#enforcement-summary)
+
+---
+
+## Overview
+
+Public-facing endpoints are exposed to untrusted networks and unauthenticated actors. Without explicit hardening, browsers and intermediaries apply insecure defaults, and attackers enumerate capabilities through method and origin probing.
+
+**Core principle:** Every response from a public endpoint carries an explicit security posture — security headers and CORS policy are code decisions expressed in middleware or handler configuration, not infrastructure afterthoughts.
+
+**Role in workflow:** These rules apply to all work that creates or modifies public-facing endpoints, HTTP handlers, or application middleware. Agent verifies all compliance gates before declaring public-facing work complete.
+
+**Out of scope:** Rate limiting and TLS termination are infrastructure concerns enforced at the network layer. These rules cover only what is expressed in application code.
+
+## Compliance Gates
+
+> Delivery and review skills verify these gates. Each gate must pass for work touching public-facing endpoints or application middleware.
+
+- [ ] **CG-PH1:** Security headers set by application middleware on all responses — at minimum `X-Content-Type-Options: nosniff`, `X-Frame-Options`, and `Referrer-Policy`
+- [ ] **CG-PH2:** CORS allowed origins configured as an explicit allowlist — wildcard `*` not used
+- [ ] **CG-PH3:** Routes restrict accepted HTTP methods to only those required — no handler accepts all methods implicitly
+- [ ] **CG-PH4:** Error responses return generic messages — no stack traces, internal paths, framework versions, or SQL details; `Server` and `X-Powered-By` headers suppressed in application middleware (for PII in errors, see CG-DP5)
+- [ ] **CG-PH5:** CORS policy does not combine `credentials: include` with wildcard origins — authenticated requests require an explicit origin list
+
+
+## Enhanced Rules: Confidential Data
+
+These gates apply when the repository handles confidential data (PII, financial records, health data, or similarly sensitive material).
+
+- [ ] **CG-PH6:** `Content-Security-Policy` header present with no `unsafe-inline` or `unsafe-eval` in script directives
+- [ ] **CG-PH7:** Sensitive responses include `Cache-Control: no-store` — confidential data not cached by browsers or intermediaries
+
+
+## Anti-patterns and Auto-recovery
+
+**Agent must detect violations, present the proposed fix, and wait for human approval before making any changes.**
+
+### 1. Missing Security Headers
+
+**Detection:** Application responses do not set security headers — middleware absent, headers omitted from response configuration, or headers set to permissive values.
+
+**INVALID:**
+```python
+@app.route("/")
+def index():
+    return render_template("index.html")   # No security headers set
+```
+
+**Recovery steps:**
+1. State: "VIOLATION: Security headers absent — `[file]:[line]`"
+2. Identify where responses are constructed or returned
+3. Prepare addition of a security header middleware or decorator
+
+**Proposed fix:**
+```python
+@app.after_request
+def set_security_headers(response):
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    return response
+```
+
+WAIT for human validation before proceeding
+
+Present header gaps and proposed middleware addition
+IF human approves
+  → VALID: Add security header middleware covering all responses
+  → Continue to next section
+IF human requests changes
+  → REVISE: Update and re-present
+
+---
+
+### 2. Wildcard CORS Origin
+
+**Detection:** CORS policy sets `Access-Control-Allow-Origin: *` — all origins permitted without restriction.
+
+**INVALID:**
+```python
+CORS(app, origins="*")
+```
+
+**Recovery steps:**
+1. State: "VIOLATION: Wildcard CORS origin — `[file]:[line]`"
+2. Identify all origins that legitimately require access
+3. Prepare an explicit allowlist
+
+**Proposed fix:**
+```python
+CORS(app, origins=["https://app.example.com", "https://admin.example.com"])
+```
+
+WAIT for human validation before proceeding
+
+Present current CORS config and proposed allowlist
+IF human approves
+  → VALID: Replace wildcard origin with explicit allowlist
+  → Continue to next section
+IF human requests changes
+  → REVISE: Update and re-present
+
+---
+
+### 3. Routes Accept All HTTP Methods
+
+**Detection:** Route handler does not restrict accepted HTTP methods — any method (GET, POST, PUT, DELETE, PATCH, OPTIONS, TRACE) reaches the handler.
+
+**INVALID:**
+```python
+@app.route("/user/profile")   # No methods restriction
+def profile():
+    ...
+```
+
+**Recovery steps:**
+1. State: "VIOLATION: Route accepts all methods — `[file]:[line]`"
+2. Identify the methods the handler actually uses
+3. Prepare explicit method declaration
+
+**Proposed fix:**
+```python
+@app.route("/user/profile", methods=["GET"])
+def profile():
+    ...
+```
+
+WAIT for human validation before proceeding
+
+Present route declaration and proposed method restriction
+IF human approves
+  → VALID: Add explicit methods parameter to route declaration
+  → Continue to next section
+IF human requests changes
+  → REVISE: Update and re-present
+
+---
+### 4. Technical Metadata Disclosure
+
+**Detection:** Error handler returns stack traces, internal paths, or SQL messages; response headers include `Server` or `X-Powered-By` advertising the runtime or framework version.
+
+**INVALID:**
+```python
+@app.errorhandler(Exception)
+def handle_error(e):
+    return {"error": str(e), "trace": traceback.format_exc()}, 500   # exposes stack trace
+
+# Server: Werkzeug/2.3.0 Python/3.11.4   # header sent by default
+# X-Powered-By: Flask                     # header set explicitly
+```
+
+**Recovery steps:**
+1. State: "VIOLATION: Technical metadata disclosure — `[file]:[line]`"
+2. Identify all error handlers that return implementation details
+3. Identify middleware or framework defaults that set disclosure headers
+4. Prepare generic error response and header suppression
+
+**Proposed fix:**
+```python
+@app.errorhandler(Exception)
+def handle_error(e):
+    app.logger.error("Unhandled exception", exc_info=e)
+    return {"error": "An unexpected error occurred"}, 500
+
+@app.after_request
+def suppress_disclosure_headers(response):
+    response.headers.pop("Server", None)
+    response.headers.pop("X-Powered-By", None)
+    return response
+```
+
+WAIT for human validation before proceeding
+
+Present error handlers and disclosure headers, proposed suppression
+IF human approves
+  → VALID: Replace verbose error responses with generic messages; suppress disclosure headers in middleware
+  → Continue to next section
+IF human requests changes
+  → REVISE: Update and re-present
+
+---
+### 5. Credentials Mode CORS with Wildcard Origin
+
+**Detection:** CORS configuration permits `credentials: include` (cookies, auth headers) while allowing wildcard or over-broad origins — any origin can make authenticated cross-origin requests.
+
+**INVALID:**
+```python
+CORS(app, origins="*", supports_credentials=True)
+```
+
+**Recovery steps:**
+1. State: "VIOLATION: Credentials CORS with wildcard — `[file]:[line]`"
+2. Identify all origins that require credentialled access
+3. Prepare explicit origin list with credentials enabled
+
+**Proposed fix:**
+```python
+CORS(app,
+     origins=["https://app.example.com"],
+     supports_credentials=True)
+```
+
+WAIT for human validation before proceeding
+
+Present CORS credentials config and proposed explicit origin list
+IF human approves
+  → VALID: Replace wildcard origin with explicit list for credentialled CORS
+  → Continue to next section
+IF human requests changes
+  → REVISE: Update and re-present
+
+---
+
+## Common Rationalisations (FORBIDDEN)
+
+**Agent must refuse these justifications with mandatory counter-responses:**
+
+| User Says | Agent Must Respond |
+|-----------|-------------------|
+| "Security headers are set by the web server" | "These rules cover application code. If headers are not set in middleware, they are absent for development servers, test environments, and any deployment without that server config." |
+| "Our CDN handles CORS" | "CDN-level CORS config is not visible to or verifiable by code review. Explicit CORS configuration in application code is required." |
+| "We only need CORS for the frontend domain" | "Correct — configure exactly that. An explicit allowlist of one origin is the correct pattern." |
+| "OPTIONS requests can go to any handler" | "No. Unhandled OPTIONS responses expose method enumeration. Restrict methods on all routes." |
+| "We'll configure headers in production" | "No. Headers absent in development and staging create false confidence. Set them in application code now." |
+| "Debug mode is only on in development" | "No. Verify `DEBUG=False` is set explicitly for public deployments. Framework debug modes expose stack traces and internal routes." |
+| "The framework sets the Server header, not our code" | "No. Suppress it in the same `after_request` middleware that sets security headers. Application code controls application responses." |
+| "The auth token prevents CSRF, wildcard CORS is fine" | "No. Wildcard CORS with credentials permits any origin to make authenticated requests. Explicit origin list required." |
+
+**If user persists after mandatory response:** Add a note to the relevant planning document recording the override and the reason given. Then continue.
+
+## Enforcement Summary
+
+**Agent operates under these non-negotiable constraints:**
+
+1. **Compliance gate verification** — All CG-PH gates must pass before public-facing work is complete.
+   - CG-PH5 also applies (credentials CORS restriction).
+   - Enhanced gates CG-PH6 and CG-PH7 also apply.
+2. **Violation detection** — Agent detects violations and presents proposed fixes. No fix applied without human approval.
+3. **Mandatory counter-responses** — Agent uses mandatory counter-responses to rationalisations. Override is documented and noted.
+
+**Agent does NOT act without human approval for:**
+
+- Adding or modifying security header middleware
+- Changing CORS origin configuration
+- Restricting HTTP methods on existing routes
+- Modifying error handlers to remove implementation details or disabling debug mode
+- Suppressing `Server` and `X-Powered-By` headers in middleware
+- Modifying credentials-mode CORS settings
+
+---
+**END OF DOCUMENT:** Total sections: 8 | Purpose: Public hardening compliance gates, anti-patterns, and enforcement for public-facing endpoints

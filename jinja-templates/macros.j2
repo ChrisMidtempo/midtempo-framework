@@ -1,0 +1,836 @@
+{# 
+   GLOBAL MACROS FOR AGENTIC FRAMEWORK
+   
+
+   This file contains reusable macros that are automatically
+   available in all templates without needing to import.
+
+   Usage in templates:
+   {{ read_file('/path/to/file.md', 'for understanding X') }}
+
+    #}
+
+{# Macro: read_file
+
+   Purpose: Renders a single READ line for the agent. Verification is handled
+            by verify_complete_read_header() in composite macros.
+
+   Parameters:
+     - path: File path to read (required)
+     - context: Optional context string explaining why the file is being read
+     - expected_sections: Retained for API compatibility (unused)
+
+   Example:
+     {{ read_file('/midtempo-framework/rules/writing.md', 'to understand writing conventions') }}
+
+   Output:
+     READ ALL of `/midtempo-framework/rules/writing.md` → to understand writing conventions
+#}
+
+{% macro read_file(path, context="", expected_sections=none) -%}
+READ ALL of `{{ path }}`
+{%- if context %} → {{ context }}{% endif %}
+{% endmacro %}
+
+{# Macro: verify_complete_read_header
+
+   Purpose: Emits a single shared verification header for a block of file reads.
+            Use once before a list of read_file calls instead of per-file verification.
+
+   Example:
+     {{ verify_complete_read_header() }}
+     {{ read_file('/path/a.md', 'context') }}
+     {{ read_file('/path/b.md', 'context') }}
+
+   Output:
+     VERIFY-COMPLETE-READ for EVERY file below:
+       CHECK the last line says "END OF DOCUMENT"
+       IF CHECK fails → Re-read from offset until true end
+#}
+{% macro verify_complete_read_header() -%}
+VERIFY-COMPLETE-READ for EVERY file below:
+  CHECK the last line says "END OF DOCUMENT"
+  IF CHECK fails → Re-read from offset until true end
+{% endmacro %}
+
+{# Macro: completion_box
+
+   Purpose: Creates a bordered completion box with centred title
+
+   Parameters:
+     - title: Title text to display in the box (required)
+
+   Example:
+     {{ completion_box('DESIGN COMPLETE: [FEATURE-NAME]') }}
+
+   Output:
+     <hr />
+                             DESIGN COMPLETE: [FEATURE-NAME]
+     
+     <hr />
+#}
+{% macro completion_box(title) -%}
+---
+{{ title | center(79) }}
+
+---
+{%- endmacro %}
+
+{# Macro: require_rules_read
+
+   Purpose: Generates read instructions for multiple rules files with verification
+
+   Parameters:
+     - pages: List of rule file names (without .md extension) (required)
+
+   Example:
+     {{ require_rules_read(['writing', 'testing', 'tdd']) }}
+
+   Output:
+     VERIFY-COMPLETE-READ for EVERY file below:
+       CHECK the last line says "END OF DOCUMENT"
+       IF CHECK fails → Re-read from offset until true end
+
+     READ ALL of `/midtempo-framework/rules/writing.md` → before proceeding
+     READ ALL of `/midtempo-framework/rules/testing.md` → before proceeding
+#}
+{% macro require_rules_read(pages, sections) -%}
+{{ verify_complete_read_header() }}
+{% for page in pages %}
+{{ read_file('/midtempo-framework/rules/' ~ page ~ '.md', 'before proceeding', sections) }}
+{% endfor %}
+{%- endmacro %}
+
+{# Macro: require_instructions_read
+
+   Purpose: Generates read instructions for multiple instruction files with verification
+            Only includes instructions that exist in the config
+
+   Parameters:
+     - pages: List of instruction keys to check (required)
+     - instructions_dict: The instructions namespace/dict from context (required)
+     - sections: Optional dict mapping instruction keys to section counts (default: {})
+
+   Example:
+     {{ require_instructions_read(['purpose', 'architecture', 'db'], instructions, {'purpose': 8}) }}
+
+   Output:
+     VERIFY-COMPLETE-READ for EVERY file below:
+       CHECK the last line says "END OF DOCUMENT"
+       IF CHECK fails → Re-read from offset until true end
+
+     READ ALL of `/midtempo-framework/instructions/purpose.md` → before proceeding
+     READ ALL of `/midtempo-framework/instructions/architecture.md` → before proceeding
+#}
+{% macro require_instructions_read(pages, instructions_dict, sections={}) -%}
+{{ verify_complete_read_header() }}
+{% for page_key in pages %}
+{% if page_key in instructions_dict %}
+{{ read_file('/midtempo-framework/instructions/' ~ instructions_dict[page_key].page, 'before proceeding', sections.get(page_key)) }}
+{% endif %}
+{% endfor %}
+{%- endmacro %}
+
+
+{# Macro: conditional_ui_reads
+
+   Purpose: Generates read instructions for UI-specific files when hasUI capability is true
+
+   Parameters:
+     - caps: The capabilities dict from context (required)
+     - instructions_dict: The instructions namespace/dict from context (required)
+     - include_new_page: Whether to include new-page instruction (optional, default: true)
+
+   Example:
+     {{ conditional_ui_reads(capabilities, instructions) }}
+     {{ conditional_ui_reads(capabilities, instructions, include_new_page=false) }}
+
+   Output:
+     [Only when hasUI=true:]
+     IF the current task involves UI
+     READ ALL of `/midtempo-framework/instructions/frontend-design.md` → for UI component patterns
+     READ ALL of `/midtempo-framework/instructions/style-guide.md` → for styling conventions
+
+     [if include_new_page=true and new-page instruction exists:]
+     IF the current task includes a new page/screen
+     READ ALL of `/midtempo-framework/instructions/new-page.md` → for page wiring instructions
+#}
+{% macro conditional_ui_reads(caps, instructions_dict, include_new_page=true) -%}
+{% if caps.hasUI -%}
+{% if 'frontend-design' in instructions_dict -%}
+IF the current task involves UI
+{{ read_file('/midtempo-framework/instructions/' ~ instructions_dict['frontend-design'].page, 'for UI component patterns') }}
+{% endif -%}
+{% if 'style-guide' in instructions_dict -%}
+{{ read_file('/midtempo-framework/instructions/' ~ instructions_dict['style-guide'].page, 'for styling conventions') }}
+{% endif -%}
+{% if include_new_page and 'new-page' in instructions_dict %}
+
+IF the current task includes a new page/screen
+{{ read_file('/midtempo-framework/instructions/' ~ instructions_dict['new-page'].page, 'for page wiring instructions') }}
+{% endif -%}
+{% endif -%}
+{%- endmacro %}
+
+{# Macro: conditional_db_reads
+
+   Purpose: Generates read instructions for database-specific files when hasDB capability is true
+
+   Parameters:
+     - caps: The capabilities dict from context (required)
+     - instructions_dict: The instructions namespace/dict from context (required)
+
+   Example:
+     {{ conditional_db_reads(capabilities, instructions) }}
+
+   Output:
+     [Only when hasDB=true and db instruction exists:]
+     IF the current task involves databases
+     READ ALL of `/midtempo-framework/instructions/db.md` → for database patterns and rules
+#}
+{% macro conditional_db_reads(caps, instructions_dict) -%}
+{% if caps.hasDB and 'db' in instructions_dict -%}
+IF the current task involves databases
+{{ read_file('/midtempo-framework/instructions/' ~ instructions_dict['db'].page, 'for database patterns and rules') }}
+{% endif -%}
+{%- endmacro %}
+
+{# Macro: test_status_check
+
+   Purpose: Conditionally checks test status via logfile or test commands
+            Allows control over when to use logfile vs running tests directly
+
+   Parameters:
+     - check_logfile: Whether to check logfile if available (required, boolean)
+     - ctx: SmartContext instance providing access to configuration (required)
+
+   Example Usage:
+     Call macro with SmartContext (passed as 'this' in templates):
+       At start of phase: test_status_check(true, this)
+       At end of phase: test_status_check(false, this)
+
+   Output when check_logfile=true and logfile exists:
+     **Check test status log file**
+     ```bash
+     tail -5 /path/to/test.log
+     ```
+
+   Output when check_logfile=false or logfile doesn't exist:
+     **Check test status**
+     ```bash
+     npm run test:python    # Run all Python tests
+     ```
+
+   Note: Direct-run path prefers test_summary when defined, falls back to test.
+   Macro uses SmartContext to resolve test commands internally via ctx.cmd().
+#}
+{% macro test_status_check(check_logfile, ctx) -%}
+{% if check_logfile and ctx.repo.logfile is defined and ctx.repo.logfile %}
+**Check test status using the log file**
+
+```bash
+tail -5 {{ ctx.repo.logfile }}
+```
+{% else %}
+**Check test status**
+
+```bash
+{% if ctx.commands.test_summary is defined -%}
+{{ ctx.cmd('test_summary') }}
+{%- else -%}
+{{ ctx.cmd('test') }}
+{%- endif %}
+```
+{% endif %}
+{%- endmacro %}
+
+{# Macro: test_gate
+
+   Purpose: Renders test command appropriate for gate checks (entry/exit gates)
+            Prefers test_summary for quiet pass/fail output, falls back to test
+
+   Parameters:
+     - ctx: SmartContext instance providing access to configuration (required)
+
+   Example:
+     {{ test_gate(this) }}
+
+   Output when test_summary defined:
+     pytest --tb=short    # Summary — pass/fail + failures only
+
+   Output when test_summary not defined:
+     pytest    # Verbose — no summary command configured
+#}
+{% macro test_gate(ctx) -%}
+{%- if ctx.commands.test_summary is defined %}
+{{ ctx.cmd('test_summary') }}    # Summary — pass/fail + failures only
+{%- else %}
+{{ ctx.cmd('test') }}    # Verbose — no summary command configured
+{%- endif %}
+{%- endmacro %}
+
+{# Macro: test_targeted
+
+   Purpose: Renders test command with <test-file> placeholder for TDD single-file runs
+
+   Parameters:
+     - ctx: SmartContext instance providing access to configuration (required)
+     - show_comment: Whether to show the inline comment (optional, default: true)
+
+   Example:
+     {{ test_targeted(this) }}
+     {{ test_targeted(this, show_comment=false) }}
+
+   Output:
+     pytest <test-file>    # Verbose — single file for TDD loop
+     pytest <test-file>
+#}
+{% macro test_targeted(ctx, show_comment=true) -%}
+{{ ctx.cmd('test') }} <test-file>{% if show_comment %}    # Verbose — single file for TDD loop{% endif %}
+{%- endmacro %}
+
+{# Macro: test_coverage_report
+
+   Purpose: Renders test command appropriate for coverage/metrics runs
+            Prefers test_coverage for metrics output, falls back to test
+
+   Parameters:
+     - ctx: SmartContext instance providing access to configuration (required)
+
+   Example:
+     {{ test_coverage_report(this) }}
+
+   Output when test_coverage defined:
+     pytest --cov    # Coverage — metrics + pass/fail
+
+   Output when test_coverage not defined:
+     pytest    # Verbose — no coverage command configured
+#}
+{% macro test_coverage_report(ctx) -%}
+{%- if ctx.commands.test_coverage is defined %}
+{{ ctx.cmd('test_coverage') }}    # Coverage — metrics + pass/fail
+{%- else %}
+{{ ctx.cmd('test') }}    # Verbose — no coverage command configured
+{%- endif %}
+{%- endmacro %}
+
+{# Macro: command_block
+
+   Purpose: Generate formatted command display block for a category
+
+   Parameters:
+     - ctx: SmartContext instance (required)
+     - category: Command category name (required)
+     - title: Display title (optional, defaults to formatted category name)
+     - show_primary: Whether to show primary command before list (optional, default: true)
+     - show_comments: Whether to show description comments (optional, default: true)
+
+   Example:
+     {{ command_block(this, 'test') }}
+     {{ command_block(this, 'lint', title='Linting', show_primary=false) }}
+
+   Output:
+     #### Testing
+     `npm run test`    # Run all test
+     `npm run test:unit`    # Run unit tests
+#}
+{% macro command_block(ctx, category, title=none, show_primary=false, show_comments=true) -%}
+{% set display_title = title if title else category|replace('_', ' ')|title %}
+#### {{ display_title }}
+```bash
+{% if show_primary -%}
+{{ ctx.cmd(category) }}    # Run all {{ category }}
+{% endif -%}
+{% for key, cmd, desc in ctx.category(category) %}
+{{ cmd }}{% if show_comments %}    # {{ desc if desc else key|replace('_', ' ')|title }}{% endif %}
+
+{% endfor %}
+```
+{%- endmacro %}
+
+{# Macro: entry_gate_reads
+
+   Purpose: Generate complete entry gate read validation block with section count verification
+
+   Parameters:
+     - ctx: SmartContext instance (required)
+     - rules: List of rule file names without .md extension (optional, default: [])
+     - rules_sections: Dict mapping rule names to section counts (optional, default: {})
+     - instructions: List of instruction keys to check conditionally (optional, default: [])
+     - instructions_sections: Dict mapping instruction keys to section counts (optional, default: {})
+    
+   Example:
+     {{ entry_gate_reads(this,
+          rules=['writing', 'testing'],
+          rules_sections={'writing': 5, 'testing': 7},
+          instructions=['purpose', 'architecture', 'db'],
+          instructions_sections={'purpose': 8}) }}
+          
+
+   Output:
+     VERIFY-COMPLETE-READ for EVERY file below:
+       CHECK the last line says "END OF DOCUMENT"
+       IF CHECK fails → Re-read from offset until true end
+
+     READ ALL of `/midtempo-framework/rules/writing.md` → before proceeding
+     READ ALL of `/midtempo-framework/instructions/purpose.md` → before proceeding
+#}
+{% macro entry_gate_reads(ctx, rules=[], rules_sections={}, instructions=[], instructions_sections={}) -%}
+{{ verify_complete_read_header() }}
+{% for page in rules %}
+{{ read_file('/midtempo-framework/rules/' ~ page ~ '.md', 'before proceeding', rules_sections.get(page)) }}
+{% endfor %}
+{% for page_key in instructions %}
+{% if page_key in ctx['instructions'] %}
+{{ read_file('/midtempo-framework/instructions/' ~ ctx['instructions'][page_key].page, 'before proceeding', instructions_sections.get(page_key)) }}
+{% endif %}
+{% endfor %}
+{%- endmacro %}
+
+{# Macro: end_of_file
+
+   Purpose: Creates a clear end-of-file marker for verification that file was fully read
+
+   Parameters:
+     - total_sections: Optional section count for verification (default: none)
+     - file_purpose: Optional brief description of file purpose (default: none)
+
+   Example:
+     {{ end_of_file(total_sections=7, file_purpose='Agent rules and workflow') }}
+
+   Output:
+     ---
+     **END OF DOCUMENT:** Total sections: 7 | Purpose: Agent rules and workflow
+
+#}
+{% macro end_of_file(total_sections=none, file_purpose=none) -%}
+---
+**END OF DOCUMENT:**{% if total_sections %} Total sections: {{ total_sections }}{% endif %}{% if file_purpose %}{% if total_sections %} |{% endif %} Purpose: {{ file_purpose }}{% endif %}
+{%- endmacro %}
+
+{# Macro: verify_compliance_gates
+
+   Purpose: Generates conditional STOP blocks for instruction doc compliance gate verification at exit gates.
+            Exit-side counterpart to require_instructions_read.
+
+   Parameters:
+     - gates: List of tuples (instruction_key, scope_description) (required)
+     - instructions_dict: The instructions namespace/dict from context (required)
+
+   Example:
+     {{ verify_compliance_gates([('architecture', 'architecture'), ('error-handling', 'error handling')], instructions) }}
+
+   Output:
+     IF delivery scope touches architecture AND '/midtempo-framework/instructions/architecture.md "Compliance Gates"' not verified
+       → STOP. "Verify all architecture compliance gates before proceeding."
+
+     [repeated for each instruction doc present in config]
+#}
+{% macro verify_compliance_gates(gates, instructions_dict) -%}
+{% for key, scope_desc in gates %}
+{% if key in instructions_dict %}
+IF delivery scope touches {{ scope_desc }} AND '/midtempo-framework/instructions/{{ instructions_dict[key].page }} "Compliance Gates"' not verified
+  → STOP. "Verify all {{ key }} compliance gates before proceeding."
+{% endif %}
+{% endfor %}
+{%- endmacro %}
+
+{# Macro: verify_compliance_gates_ui
+
+   Purpose: Generates compliance gate STOP blocks for UI-specific instruction docs when hasUI is true
+
+   Parameters:
+     - caps: The capabilities dict from context (required)
+     - instructions_dict: The instructions namespace/dict from context (required)
+
+   Example:
+     {{ verify_compliance_gates_ui(capabilities, instructions) }}
+
+   Output:
+     [Only when hasUI=true:]
+     IF delivery scope touches UI components AND '/midtempo-framework/instructions/frontend-design.md "Compliance Gates"' not verified
+       → STOP. "Verify all frontend-design compliance gates before proceeding."
+     IF delivery scope touches styling AND '/midtempo-framework/instructions/style-guide.md "Compliance Gates"' not verified
+       → STOP. "Verify all style-guide compliance gates before proceeding."
+#}
+{% macro verify_compliance_gates_ui(caps, instructions_dict) -%}
+{% if caps.hasUI -%}
+{% if 'frontend-design' in instructions_dict %}
+IF delivery scope touches UI components AND '/midtempo-framework/instructions/{{ instructions_dict['frontend-design'].page }} "Compliance Gates"' not verified
+  → STOP. "Verify all frontend-design compliance gates before proceeding."
+{% endif -%}
+{% if 'style-guide' in instructions_dict %}
+IF delivery scope touches styling AND '/midtempo-framework/instructions/{{ instructions_dict['style-guide'].page }} "Compliance Gates"' not verified
+  → STOP. "Verify all style-guide compliance gates before proceeding."
+{% endif -%}
+{% endif -%}
+{%- endmacro %}
+
+{# Macro: verify_compliance_gates_db
+
+   Purpose: Generates compliance gate STOP block for database instruction doc when hasDB is true
+
+   Parameters:
+     - caps: The capabilities dict from context (required)
+     - instructions_dict: The instructions namespace/dict from context (required)
+
+   Example:
+     {{ verify_compliance_gates_db(capabilities, instructions) }}
+
+   Output:
+     [Only when hasDB=true and db instruction exists:]
+     IF delivery scope touches database AND '/midtempo-framework/instructions/db.md "Compliance Gates"' not verified
+       → STOP. "Verify all db compliance gates before proceeding."
+#}
+{% macro verify_compliance_gates_db(caps, instructions_dict) -%}
+{% if caps.hasDB and 'db' in instructions_dict %}
+IF delivery scope touches database AND '/midtempo-framework/instructions/{{ instructions_dict['db'].page }} "Compliance Gates"' not verified
+  → STOP. "Verify all db compliance gates before proceeding."
+{% endif -%}
+{%- endmacro %}
+
+{# Macro: verify_rules_compliance_gates
+
+   Purpose: Generates unconditional STOP blocks for rules file compliance gate verification at exit gates.
+            Exit-side counterpart for rules files. Unlike instruction compliance gates, rules are
+            organisation-level and always apply — no conditional scope check needed.
+
+   Parameters:
+     - rules: List of rule file names without .md extension (required)
+
+   Example:
+     {{ verify_rules_compliance_gates(['testing']) }}
+
+   Output:
+     IF '/midtempo-framework/rules/testing.md "Compliance Gates"' not verified
+       → STOP. "Verify all testing compliance gates before proceeding."
+
+     [repeated for each rule file in list]
+#}
+{% macro verify_rules_compliance_gates(rules) -%}
+{% for rule in rules %}
+IF '/midtempo-framework/rules/{{ rule }}.md "Compliance Gates"' not verified
+  → STOP. "Verify all {{ rule }} compliance gates before proceeding."
+{% endfor %}
+{%- endmacro %}
+
+{# Macro: testing_cg_range
+
+   Purpose: Single source for the testing compliance gate range string.
+            Update here when gates are added/removed in testing.md.j2.
+
+   Example:
+     Verify against `/midtempo-framework/rules/testing.md` "Compliance Gates" ({{ testing_cg_range() }})
+
+   Output:
+     Verify against `/midtempo-framework/rules/testing.md` "Compliance Gates" (CG-1 through CG-8)
+#}
+{% macro testing_cg_range() -%}
+CG-1 through CG-8
+{%- endmacro %}
+
+{# Macro: testing_compliance_gates_summary
+
+   Purpose: Compact summary of testing compliance gates for inline use in skills.
+            Update here when gates are added/removed/reworded in testing.md.j2.
+            Canonical definitions live in rules/testing.md.j2 — this is the compact form.
+
+   Example:
+     {{ testing_compliance_gates_summary() }}
+#}
+{% macro testing_compliance_gates_summary() -%}
+- CG-1: Real behaviour assertions — no mock existence or placeholders
+- CG-2: No test-only methods in production — utilities in repo-specific locations per architecture.md §7.3
+- CG-3: Mocks at IO/network level only — never mock business logic test depends on
+- CG-4: Mock mirrors complete real API structure — all documented fields
+- CG-5: Test isolation — self-contained, no shared state, order-independent
+- CG-6: Coverage scope — happy path, error paths, boundary conditions
+- CG-7: Shared test data uses factories or helpers — no duplicated inline construction across files
+{%- endmacro %}
+
+{# Macro: conditional_security_reads
+
+   Purpose: Generates read instructions for security-specific files based on capability flags.
+            Routes to instructions/ for explicit config, rules/security/ for auto-detected domains.
+            Auto-detects applicable security domains from capability combinations when security_dict empty.
+
+   Parameters:
+     - caps: The capabilities dict from context (required)
+     - security_dict: The security namespace/dict from context (optional, default: {})
+
+   Routing:
+     - If security_dict populated: reads from /midtempo-framework/instructions/{page} (bespoke, persistent)
+     - If security_dict empty: reads from /midtempo-framework/rules/security/{domain}.md (regenerated)
+
+   Example:
+     {{ conditional_security_reads(capabilities, security) }}
+
+   Output (auto-detected):
+     VERIFY-COMPLETE-READ for EVERY file below:
+       CHECK the last line says "END OF DOCUMENT"
+       IF CHECK fails → Re-read from offset until true end
+
+     IF the current task involves secrets management
+     READ ALL of `/midtempo-framework/rules/security/secrets-management.md` → for secrets-management rules
+
+   Output (explicit config):
+     VERIFY-COMPLETE-READ for EVERY file below:
+       [...]
+     IF the current task involves secrets management
+     READ ALL of `/midtempo-framework/instructions/secrets-management.md` → for secrets-management rules
+#}
+{% macro conditional_security_reads(caps, security_dict={}) -%}
+{{ verify_complete_read_header() }}
+{% set auto_domains = ['secrets-management'] %}
+{% if caps.hasUI or caps.hasDB %}
+  {% set _ = auto_domains.append('input-validation') %}
+{% endif %}
+{% if caps.hasAuthentication %}
+  {% set _ = auto_domains.append('authentication') %}
+{% endif %}
+{% if caps.handlesConfidentialData %}
+  {% set _ = auto_domains.append('data-protection') %}
+{% endif %}
+{% if caps.isPublicFacing %}
+  {% set _ = auto_domains.append('public-hardening') %}
+{% endif %}
+{% set final_domains = security_dict.keys() | list if security_dict else auto_domains %}
+{% set path_prefix = '/midtempo-framework/instructions/' if security_dict else '/midtempo-framework/rules/security/' %}
+{% for domain in final_domains %}
+{% set page = security_dict[domain].page if security_dict and domain in security_dict else (domain ~ '.md') %}
+{% if domain == 'secrets-management' -%}
+IF the current task involves secrets management
+{% elif domain == 'input-validation' -%}
+IF the current task involves input validation
+{% elif domain == 'authentication' -%}
+IF the current task involves authentication
+{% elif domain == 'data-protection' -%}
+IF the current task involves data protection
+{% elif domain == 'public-hardening' -%}
+IF the current task involves public-facing security
+{% endif -%}
+{{ read_file(path_prefix ~ page, 'for ' ~ domain ~ ' rules') -}}
+{{ '\n' if not loop.last }}
+{% endfor %}
+{%- endmacro %}
+
+{# Macro: verify_compliance_gates_security
+
+   Purpose: Generates compliance gate STOP blocks for security domains when applicable.
+            Routes to instructions/ for explicit config, rules/security/ for auto-detected domains.
+
+   Parameters:
+     - caps: The capabilities dict from context (required)
+     - security_dict: The security namespace/dict from context (optional, default: {})
+
+   Routing:
+     - If security_dict populated: references /midtempo-framework/instructions/{page} (bespoke, persistent)
+     - If security_dict empty: references /midtempo-framework/rules/security/{domain}.md (regenerated)
+
+   Example:
+     {{ verify_compliance_gates_security(capabilities, security) }}
+
+   Output (auto-detected):
+     IF delivery scope touches secrets management AND '/midtempo-framework/rules/security/secrets-management.md "Compliance Gates"' not verified
+       → STOP. "Verify all secrets-management compliance gates before proceeding."
+
+   Output (explicit config):
+     IF delivery scope touches secrets management AND '/midtempo-framework/instructions/secrets-management.md "Compliance Gates"' not verified
+       → STOP. "Verify all secrets-management compliance gates before proceeding."
+#}
+{% macro verify_compliance_gates_security(caps, security_dict={}) -%}
+{% set auto_domains = ['secrets-management'] %}
+{% if caps.hasUI or caps.hasDB %}
+  {% set _ = auto_domains.append('input-validation') %}
+{% endif %}
+{% if caps.hasAuthentication %}
+  {% set _ = auto_domains.append('authentication') %}
+{% endif %}
+{% if caps.handlesConfidentialData %}
+  {% set _ = auto_domains.append('data-protection') %}
+{% endif %}
+{% if caps.isPublicFacing %}
+  {% set _ = auto_domains.append('public-hardening') %}
+{% endif %}
+{% set final_domains = security_dict.keys() | list if security_dict else auto_domains %}
+{% set path_prefix = '/midtempo-framework/instructions/' if security_dict else '/midtempo-framework/rules/security/' %}
+{% for domain in final_domains %}
+{% set page = security_dict[domain].page if security_dict and domain in security_dict else (domain ~ '.md') %}
+IF delivery scope touches {{ domain | replace('-', ' ') }} AND '{{ path_prefix }}{{ page }} "Compliance Gates"' not verified
+  → STOP. "Verify all {{ domain }} compliance gates before proceeding."
+{% endfor %}
+{%- endmacro %}
+
+{# Macro: security_cg_range
+
+   Purpose: Single source for the security compliance gate range string.
+            Update here when gates are added/removed in security templates.
+
+   Example:
+     Verify against `/midtempo-framework/rules/security.md` "Compliance Gates" ({{ security_cg_range() }})
+
+   Output:
+     Verify against `/midtempo-framework/rules/security.md` "Compliance Gates" (CG-S1 – CG-S5)
+#}
+{% macro security_cg_range() -%}
+CG-S1 – CG-S5
+{%- endmacro %}
+
+{# Macro: security_compliance_gates_summary
+
+   Purpose: Compact summary of security compliance gates for inline use in skills.
+            Update here when gates are added/removed/reworded in security templates.
+            Canonical definitions live in rules/security.md.j2 — this is the compact form.
+
+   Example:
+     {{ security_compliance_gates_summary() }}
+#}
+{% macro security_compliance_gates_summary() -%}
+- CG-S1: No hardcoded secrets in code or version control
+- CG-S2: No sensitive data in logs (credentials, tokens, PII)
+- CG-S3: Secure defaults (fail closed, not open)
+- CG-S4: Input validation at all system boundaries
+- CG-S5: Error messages don't leak sensitive information
+{%- endmacro %}
+
+{# Macro: present_for_validation
+
+   Purpose: Enforces dialog pattern with imperative commands forcing agents to wait for human validation
+
+   Parameters:
+     - pre_validation: Do we need to say anything? (required)
+     - post_validation: Thing to do when valid (required)
+     - concerns: Optional agent concerns to surface before approval prompt (risks, trade-offs, conflicts)
+
+   Example:
+     {{ present_for_validation(
+          pre_validation="Count number of fingers on one hand",
+          post_validation="Append to file.name.md",
+          concerns="This conflicts with the existing counting convention."
+     ) }}
+
+   Output:
+
+     WAIT for human validation before proceeding
+
+     Count number of fingers on one hand
+
+     **Concerns:**
+     This conflicts with the existing counting convention.
+
+     IF human approves
+       → VALID: Append to file.name.md
+       → Continue to next section
+     IF human requests changes
+       → REVISE: Update and re-present
+
+#}
+{% macro present_for_validation(pre_validation=none, post_validation=none, concerns=none) -%}
+
+WAIT for human validation before proceeding
+
+{% if pre_validation -%}
+{{ pre_validation }}
+{% endif -%}
+{% if concerns -%}
+**Concerns:**
+{{ concerns }}
+
+{% endif -%}
+IF human approves
+{% if post_validation %}
+  → VALID: {{ post_validation }}
+{% endif %}
+  → Continue to next section
+IF human requests changes
+  → REVISE: Update and re-present
+
+{%- endmacro %}
+
+{# Macro: exit_gate_requirements
+
+   Purpose: Renders a CRITICAL_REQUIREMENT block enforcing mandatory output after exit gates.
+            Ensures agents produce complete, unabridged output at phase boundaries.
+
+   Parameters:
+     - reason: Context for when the output is required (optional, default: "after Exit Gate passes")
+     - extra_rules: Additional pre-verification MUST rules to append (optional, default: [])
+                     Phrased as "You MUST verify X before producing this output" to reinforce
+                     the output will happen, not contradict it.
+
+   Example:
+     {{ exit_gate_requirements() }}
+     {{ exit_gate_requirements(reason="before closing the phase") }}
+     {{ exit_gate_requirements(extra_rules=["You MUST verify all new tests fail correctly before producing this output — tests that pass or error require human approval"]) }}
+
+   Output:
+     <CRITICAL_REQUIREMENT type="MANDATORY">
+
+     - You MUST produce this output after Exit Gate passes - include every section and field
+     - You MUST NOT skip, paraphrase, or omit any section
+     - You MUST format the output for readability
+
+     </CRITICAL_REQUIREMENT>
+#}
+{% macro exit_gate_requirements(reason="after Exit Gate passes", extra_rules=[]) -%}
+<CRITICAL_REQUIREMENT type="MANDATORY">
+
+- You MUST produce this output {{ reason }} - include every section and field
+- You MUST NOT skip, paraphrase, or omit any section
+- You MUST format the output for readability
+{% for rule in extra_rules %}
+- {{ rule }}
+{% endfor %}
+</CRITICAL_REQUIREMENT>
+{%- endmacro %}
+
+{# Macro: find_design_doc
+
+   Purpose: Generates instructions for locating the most relevant design document.
+            Tries explicit path reference first, then specific slug glob, then asks human.
+            Relies on naming rule: design doc filename must identify the specific component
+            or capability, not the broad area (enforced in build.md).
+
+   Parameters:
+     - optional: Whether to continue if no doc found (default: false)
+                 false → STOP and ask human for the path
+                 true  → NOTE absence and continue without design context
+
+   Algorithm:
+     1. Check if message or supporting document contains an explicit planning/ path
+     2. Glob planning/**/*[slug]*-design.md using most specific noun phrase from request
+     3. One match → use it. Multiple → present list, ask human. Zero → ask or continue.
+
+   Example:
+     {{ find_design_doc() }}
+     {{ find_design_doc(optional=true) }}
+
+   Output:
+     FIND design document:
+     STEP 1: ...
+#}
+{% macro find_design_doc(optional=false) -%}
+FIND design document:
+
+STEP 1: Check for explicit reference
+  IF the user's message or any supporting document contains a `planning/[path]-design.md` path
+    → Use that path directly — skip remaining steps
+
+STEP 2: Derive slug and glob
+  Determine the most granular noun phrase that captures the exact subject of the request
+  (e.g. "avatar-upload" not "avatar", "pagination-offset" not "pagination")
+  Glob `planning/**/*[slug]*-design.md`
+
+STEP 3: Resolve
+  IF exactly one match → use it
+  IF multiple matches → present the list: "I found multiple matching design documents — which applies?"
+    → Wait for human to select before proceeding
+  IF zero matches
+{% if optional %}
+    → NOTE: No design document found — continuing without design context
+{% else %}
+    → STOP: "I could not locate the design document. Please provide the path."
+    → Wait for human response before proceeding
+{% endif %}
+{%- endmacro %}
+

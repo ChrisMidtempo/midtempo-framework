@@ -1,0 +1,295 @@
+# Why This Framework Exists
+
+A companion to [overview](README.md) for those who want to understand the reasoning behind the rules.
+
+---
+
+## Table of Contents
+
+- [The Problem](#the-problem)
+- [Why Test-Driven Development?](#why-test-driven-development)
+- [Why External Validation?](#why-external-validation)
+- [Why Fresh Conversations?](#why-fresh-conversations)
+- [Why So Many Documents?](#why-so-many-documents)
+- [Why Complexity Limits?](#why-complexity-limits)
+- [Why Architectural Layering?](#why-architectural-layering)
+- [Why Security Rules?](#why-security-rules)
+- [Why Bugs Need the Design Doc](#why-bugs-need-the-design-doc)
+- [Why Refine Needs a Design Doc](#why-refine-needs-a-design-doc)
+- [How the Instructions Stay Honest](#how-the-instructions-stay-honest)
+- [What the Agent Gets Wrong (and How to Spot It)](#what-the-agent-gets-wrong-and-how-to-spot-it)
+- [The Framework's Limitations](#the-frameworks-limitations)
+
+---
+
+## The Problem
+
+AI coding agents are powerful but unreliable. They produce convincing code that often looks right but isn't. They drift from instructions as conversations grow. They rationalise mistakes instead of fixing them. They'll declare a lint warning is "legacy" and ignore it. They write code before tests and then write tests that pass by definition.
+
+Left unchecked, you get code that works today and breaks tomorrow - with no one understanding why it was written that way or able to unpick it.
+
+This framework exists to 
+- constrain the agent's behaviour so its output is reviewable, testable, and traceable
+- ensure the engineer stays in-touch with their codebase
+
+---
+
+## Why Test-Driven Development?
+
+TDD isn't a preference - it's the only delivery method that gives you an external check on whether the code does what it should.
+
+The cycle works like this:
+
+1. Write a test that describes the behaviour you want
+2. Run it - it fails (because the code doesn't exist yet)
+3. Write the simplest code that makes the test pass (honouring the codebase's patterns and rules)
+4. Clean up the code while the tests stay green
+5. Document the change
+
+This matters with AI agents because:
+
+- **Tests written first describe intent.** They're a contract you approve before the agent writes a line of production code. Tests written after implementation just confirm what the agent already built - they prove nothing about whether it built the right thing.
+
+- **Failing tests are proof of progress.** If the agent writes code and the tests pass immediately, something is wrong. Either the test doesn't check what it should, or the code already existed.
+
+- **Coverage numbers catch cheating.** If coverage drops during delivery, the agent has written code that wasn't in the plan. If coverage is low at the end, tests are missing. Both are signals to stop and investigate.
+
+> Watch for test file changes during the "Green" phase. Green should only add production code. If the agent modifies tests during Green, it's probably making tests match the code instead of making code match the tests.
+
+---
+
+## Why External Validation?
+
+AI agents cannot reliably check their own work. They operate on statistical patterns, not understanding. When you ask an agent "does this code have bugs?", it gives you a plausible answer - not a correct one.
+
+The framework delegates all validation to external tools:
+
+| Tool | What it catches |
+|---|---|
+| **Unit tests** | Whether the code does what the tests specify |
+| **Linting** | Style violations, complexity, suspicious patterns |
+| **Type checking** | Null access, interface mismatches, refactoring breakage |
+| **Coverage reports** | Untested code paths, missing edge cases |
+
+These tools give binary answers. The code either passes or it doesn't. There's no room for the agent to argue "it works at runtime" or "that warning is cosmetic".
+
+### Why zero tolerance?
+
+Any pre-existing warning or error becomes an excuse. The agent will point to existing issues to justify new ones. "There are already 3 lint warnings, so this one is fine" is a real failure mode.
+
+Clean baselines remove ambiguity. Every warning is signal. Every error is the agent's responsibility.
+
+---
+
+## Why Fresh Conversations?
+
+AI agents have a context window - a fixed amount of text they can hold in memory. As a conversation grows, older instructions get pushed out or compressed. The agent's behaviour degrades:
+
+- Rules it followed perfectly at the start get ignored
+- It forgets constraints from earlier in the conversation
+- It starts making assumptions instead of checking
+
+The framework handles this by:
+
+1. **One task per conversation.** Each step in the pipeline runs in a fresh conversation with full access to the rules.
+2. **Documents carry context.** The decisions, design, plan, and test manifest persist between conversations. The agent reads them at the start of each new conversation.
+3. **Hard stop on compaction.** If the AI tool compresses or summarises earlier messages, stop immediately. The agent has lost fidelity. Start a new conversation.
+
+This is why the pipeline produces documents at each stage - they're not just deliverables, they're the agent's memory between conversations.
+
+---
+
+## Why So Many Documents?
+
+Each document answers a different question:
+
+| Document | Question | Why it matters |
+|---|---|---|
+| **Decisions** | What are we building and why? | Prevents scope drift. The agent can't add features you didn't agree to. |
+| **Design** | What does the solution look like? | Catches architectural mistakes before any code is written. |
+| **Plan** | Which files change, in what order? | Makes delivery predictable. You know exactly what the agent will touch. |
+| **Test manifest** | What does "working" look like? | You approve the definition of "done" before implementation starts. |
+
+You approve each document before the agent moves on. This isn't bureaucracy - it's the cheapest place to catch mistakes. Fixing a wrong decision in a document costs minutes. Fixing it in code costs hours.
+
+A primary reason for splitting documentation is context window fidelity. To get an accurate delivery plan, you need to know what you're delivering before you can understand how to deliver it. By breaking the documentation stage into separate deliverables we ensure each step is handled in a single context window, our instructions are comprehensive, and GenAi delivery risk is mitigated.
+
+---
+
+## Why Complexity Limits?
+
+The framework enforces hard limits on code size:
+
+- **Functions: 75 lines max**
+- **Files: 500 lines max**
+- **Cyclomatic complexity: 10 or below per function**
+
+These exist for two reasons:
+
+**For you:** Shorter functions are easier to review. You can read a 40-line function and understand it. A 200-line function requires you to hold too much state in your head, impacting your ability to manage your code.
+
+**For the agent:** AI agents read files in chunks. Long files get partially read or summarised. When the agent can't see the whole function, it makes changes based on incomplete information. Smaller files mean the agent sees everything it's editing.
+
+Linting enforces these limits mechanically. The agent can't rationalise "this function needs to be longer" - it either fits the limit or it doesn't.
+
+---
+
+## Why Architectural Layering?
+
+Agents navigate code by following imports. If anything can import anything, the agent can't predict what a change will affect. This leads to:
+
+- Circular dependencies that break builds
+- Changes in one file unexpectedly breaking another
+- The agent modifying shared code without realising other features depend on it
+
+The framework expects clear, one-way dependency layers:
+
+```
+UI:       components → layouts → pages
+Backend:  routes → services → repositories → database
+```
+
+Each layer only imports from layers below it. Lint rules should enforce this. When the agent works on a service, it knows the service can call repositories but not routes - and the linter catches it if the agent gets it wrong.
+
+---
+
+## Why Security Rules?
+
+AI agents don't have security intuition. They'll hardcode an API key if it makes the test pass. They'll log a full request object including auth tokens. They'll return a stack trace to the client because it's "helpful for debugging".
+
+The five universal security gates exist because these mistakes are common, dangerous, and easy to miss in review:
+
+1. **No hardcoded secrets** - the agent must use environment variables or secret managers
+2. **No sensitive data in logs** - credentials, tokens, and personal information stay out of log output
+3. **Secure defaults** - if something fails, it denies access rather than granting it
+4. **Input validation at boundaries** - anything from outside the system gets checked
+5. **Safe error messages** - users see helpful messages, not internal details
+
+Additional rules load based on your repo's capabilities. If you handle authentication, the auth rules apply. If you're public-facing, the hardening rules apply. This keeps the security overhead proportional to the risk.
+
+---
+
+## Why Bugs Need the Design Doc
+
+When something breaks, the instinct is to find the error and patch it. The bug skill doesn't allow that. It forces the agent to:
+
+1. Trace backward through the call chain to the root cause
+2. Reproduce the bug with a failing test
+3. Fix the bug at source - not where the error appears
+4. Add defence-in-depth if the bug is complex
+
+This matters because surface-level patches create layers of workarounds. A null check at the symptom point doesn't fix the upstream function that should never have returned null. The next developer (or agent) hits the same root cause from a different angle, and now there are two workarounds instead of one fix.
+
+The bug skill requires the agent to find and read the relevant design document before starting. This isn't busywork - the design doc tells the agent what the code is *supposed* to do. Without it, the agent fixes what it *thinks* the code should do, which may be wrong. A bug in a payment flow looks different when you know the design says "retry once, then fail" versus "retry until success".
+
+After the fix, the agent updates the design doc with what it learned. This means the next person (or agent) working on that feature has the full picture - including the bug, its root cause, and why the fix was applied where it was.
+
+For complex bugs, the skill also enforces defence-in-depth: the agent validates that the fix holds under related failure scenarios, not just the one that was reported.
+
+---
+
+## Why Refine Needs a Design Doc
+
+The refine skill handles small adjustments to delivered features - tweaks that don't warrant a full build cycle. It's deliberately limited: three files maximum, three acceptance criteria maximum - calculated so that it can complete in a single context window.
+
+The design doc requirement exists because even small changes can break assumptions. A feature was built against a specific design. The design doc records what trade-offs were made, what alternatives were rejected, and what constraints shaped the implementation. A "simple" tweak that contradicts a recorded design decision can unravel the whole feature.
+
+Without the design doc, the agent treats the code as the source of truth. But code doesn't record *why* it was written that way - only *what* it does. The agent might "improve" something that was deliberately done a specific way, or change behaviour that downstream code depends on.
+
+The refine skill reads the design doc, follows TDD for the change, then updates the docs with the refinement context. This keeps the documentation accurate and the change traceable. If the design doc doesn't exist, the skill won't proceed - that's a signal that the feature either wasn't built through the framework or the docs were lost, and either way the agent shouldn't be making production changes without full understanding.
+
+---
+
+## How the Instructions Stay Honest
+
+The skills and rules the agent follows are themselves written with a rigorous set of design patterns. This section explains why, because it affects the quality of everything the framework produces.
+
+### The core problem with instructions
+
+An instruction that works in one conversation might fail in another. AI agents don't "understand" - they pattern-match against them. Vague instructions produce inconsistent behaviour across different conversations. _"Make sure the tests pass"_ gets interpreted differently each time. _"Run `npm test` and confirm zero failures"_ does not.
+
+The framework's template rules define three properties every instruction must have:
+
+- **Unambiguous** - only one valid interpretation exists
+- **Verifiable** - you can check whether the agent followed it (yes or no)
+- **Actionable** - the agent can execute it immediately, without guessing
+
+An instruction missing any of these properties is ineffective, even if it reads well.
+
+### How instructions are structured
+
+**Decision trees instead of prose.** Where the agent needs to make a conditional choice, the instruction uses explicit branches with one action per branch. Vague prose like "you should check the scope isn't too big" becomes a concrete gate with binary outcomes - either the work fits the constraints or it doesn't, and each outcome has a single clear action. No hedge words, no room for interpretation.
+
+**Numbered sequences where order matters.** When steps must happen in order, they're numbered - not described in a paragraph. This makes skipped steps detectable: if step 3 needs step 2's output, skipping step 2 produces an obvious failure.
+
+**Measurable exit criteria.** Every phase ends with conditions that evaluate to true or false. "Looks good" is not a criterion. "Zero test failures, coverage above 90%, no lint errors" is. Without measurable criteria, the agent self-assesses completion using whatever standard it invents.
+
+**Incremental output.** Skills write each section to disk as it's approved, not at the end. If a conversation ends unexpectedly (context limit, crash, network drop), everything approved so far survives. The next conversation picks up from the files on disk.
+
+### How compliance is enforced
+
+Critical rules are grouped in marked blocks that the agent processes as a unit. Rules scattered through paragraphs get lost; rules in a labelled block stand out. Each block uses "MUST" or "MUST NOT" - not "should", "try to", or "remember to".
+
+When a skill requires the agent to read a file, there's a verification step. Without it, "read the file" is indistinguishable from "glance at the file" or "skip the file entirely". 
+
+> Some agents scan the first 100-200 lines of a document then move onto the next - there are read verifications to guard against this.
+
+When the agent needs to produce output (a summary, a report, a plan section), the skill provides an exact template showing the structure, fields, and format. The templates ensure the output is consistent, gaps impossible, and precise content markers exist for the next step to pick up.
+
+### Why this matters to you
+
+You don't write or maintain these templates yourself (unless you want to). But the rigour behind them is why the framework produces consistent results across different conversations, different days, and different features. When you see the agent following a predictable pattern - asking the same questions at the same stage, producing reports in the same format, catching the same types of issues - that's the template design working.
+
+When the agent deviates from that pattern, it's a signal that something has gone wrong with the conversation context, and starting fresh should get you back on track.
+
+---
+
+## What the Agent Gets Wrong (and How to Spot It)
+
+These are real failure modes, not hypotheticals. You will encounter them.
+
+### "This lint warning is legacy"
+
+It isn't. The agent says this when it doesn't want to fix something. Every lint issue in new code is the agent's responsibility. Make it fix them.
+
+### Writing code before tests
+
+The agent sometimes jumps ahead and writes production code before the test exists. If you see production files being created or modified before test files, stop. Delete the production code. Get back into TDD delivery.
+
+### Tests that test nothing
+
+The agent writes tests that pass but don't check meaningful behaviour. Signs: tests that only check a function was called, tests with no meaningful assertions, tests that mock everything. The testing rules should prohibit this, but they still slip through. Run the review-test skill when you're unsure - or read the code! 
+
+### Expanding scope
+
+You asked for a login form and the agent is building a user management system. This happens when the agent "helpfully" adds related features. There are checks against test coverage that should pick this up - if the test manifest doesn't describe the outcome, then coverage will be low. The LLM should raise these issues, but things will still slip through.
+
+### Claiming completion prematurely
+
+The agent says "all tests pass" but coverage is at 60%. Or it says "implementation complete" but skipped two items from the plan. Always verify claims against the actual metrics and documents. Running review-*.md on large or complex features is highly recommended.
+
+### Standard output script
+
+If the phase ends with a non-standard complete script (you'll recognise the format fairly quickly), prompt the LLM to provide the end of skill 'completed script'. This does happen when the context window is full, so it's not uncommon. The 'completed script' includes exit gates, which are worth running against the current state.
+
+> Because everything is run in a fresh window, the review skills work better than if the questions were asked in the "delivery" thread (the response to _"do the work... did you do the work?"_ will always be yes). 
+>
+> The clean-slate approach to validating output when LLM-is-the-judge is essential. 
+
+---
+
+## The Framework's Limitations
+
+LLMs are not trustworthy sources. 
+
+This framework improves AI-assisted development significantly, but it doesn't solve everything:
+
+- **It requires your attention.** You cannot leave the LLM running unattended, or blindly approve, and expect good results. Review everything, run the review-*.md skills, check the documentation, follow the conversations. Stay in touch with what you're delivering.
+
+- **It works best at moderate scale.** Features under 30 tests work well. Larger features should be broken into stages. Trying to build too much in one pass leads to context loss and compounding errors.
+
+- **It doesn't replace understanding.** You need to understand the code the agent produces. If you can't explain why a function works the way it does, you haven't reviewed it properly.
+
+- **Rules drift over long conversations.** This is why fresh conversations matter. No amount of instruction can prevent an agent from losing fidelity over a long enough conversation.
+
+The framework's value is in making the agent's work structured, reviewable, and traceable. The quality still depends on you.

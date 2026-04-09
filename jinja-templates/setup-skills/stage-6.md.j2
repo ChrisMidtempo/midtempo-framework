@@ -1,0 +1,976 @@
+# Setup Frontend Design Sub-Skill
+
+## Overview
+
+This sub-skill guides the creation of the `/midtempo-framework/instructions/frontend-design.md` file through structured dialogue and codebase analysis.
+
+**Goal:** Create frontend-design.md documenting component architecture, composition patterns, and UI organisation methodology.
+
+**Target:** 300-400 lines total, regardless of component library size. Focus on architectural patterns over component catalogues, composition rules over exhaustive listings.
+
+**Scope:** This file documents COMPONENT ARCHITECTURE and COMPOSITION PATTERNS (Design Structure, Container/Presentational, Compound Components, component organisation). {% if capabilities.hasUI %}Visual styling (colours, spacing, typography), is in a different document.{% endif %}
+
+---
+
+## The Process
+
+### Non-Negotiable Rules
+
+<CRITICAL_REQUIREMENT type="MANDATORY">
+
+**CORE PRINCIPLE: Patterns over catalogues, composition rules over exhaustive listings.**
+
+- You MUST target 300-400 lines total, regardless of component library size
+- You MUST focus on architectural patterns that help navigation, not comprehensive component documentation
+- You MUST scan the codebase for frontend indicators before asking questions
+- You MUST detect component organisation methodology (Atomic Design, feature-based, etc.)
+- You MUST identify composition patterns from existing components
+- You MUST draft sections based on evidence from code organisation
+- You MUST present each drafted section for validation before proceeding
+- You MUST write validated content to `/midtempo-framework/instructions/frontend-design.md` incrementally
+- You MUST perform alignment check before marking complete (including line count check)
+- You MUST follow the `/midtempo-framework/rules/writing.md` rules
+- You MUST use UK English spelling throughout
+- You MUST focus on WHERE components go and HOW they compose, providing clear guidance for agents
+
+</CRITICAL_REQUIREMENT>
+
+---
+
+### ENTRY GATE
+
+```
+IF not sub-skill triggered from `setup.md`
+  → STOP: This is a sub-skill and MUST NOT run independently
+  → TELL: Human to run "Setup Stage 6 - `/midtempo-framework/setup.md`"
+  → Do not proceed
+
+IF not read ALL of `/midtempo-framework/midtempo-framework.yml`
+  → Read ALL of `/midtempo-framework/midtempo-framework.yml` before proceeding
+
+IF not read ALL of {{ "architecture" | instructions }}
+  → Read ALL of {{ instructions.architecture.page }} before proceeding
+
+IF not read ALL of `/midtempo-framework/rules/writing.md`
+  → Read ALL of `/midtempo-framework/rules/writing.md` before proceeding
+
+CHECK for UI capability:
+  - Read `capabilities.hasUI` from `midtempo-framework.yml`
+  - Review architecture.md for UI layer indicators
+
+IF capabilities.hasUI is false AND architecture.md has no UI layer
+  → ASK: "No UI layer detected in configuration or architecture. Does this repository have a frontend?"
+  → IF Human confirms no frontend:
+    → OUTPUT: "Skipping Stage 6 (Frontend Design) — no UI layer"
+    → TELL: Human to run "Setup Stage 7 - `/midtempo-framework/setup.md`"
+    → STOP: Do not continue this stage
+
+  → IF human confirms frontend exists: Continue
+
+SCAN for frontend indicators:
+  - components/, pages/, views/, screens/ directories
+  - React/Vue/Angular/Svelte/SwiftUI/Jetpack Compose files
+  - Frontend framework in package.json, Podfile, build.gradle
+
+IF no frontend indicators found
+  → ASK: "No frontend files found. Is the UI implemented yet?"
+  → IF not implemented: Skip this stage, proceed to next
+  → IF implemented elsewhere: Continue with manual guidance
+
+LS check if `/midtempo-framework/instructions/frontend-design.md` exists
+IF `frontend-design.md` exists
+  → EMPTY `frontend-design.md` to create a fresh document before proceeding
+
+```
+
+---
+
+## Phase 1: Frontend Detection
+
+**Do not skip to questions.** Detect frontend approach first.
+
+### 1.1 Agent Actions (Silent)
+
+```
+SEARCH for frontend indicators:
+  - Component directories (components/, ui/, atoms/, molecules/, organisms/)
+  - Page/screen directories (pages/, screens/, views/, routes/)
+  - Feature directories (features/, modules/ with UI)
+  - Framework files (*.tsx, *.vue, *.svelte, *.swift, *.kt)
+  - Framework config (next.config.js, nuxt.config.ts, angular.json)
+
+IDENTIFY organisation methodology:
+  - Atomic Design (atoms/, molecules/, organisms/, templates/, pages/)
+  - Feature-based (features/[name]/components/)
+  - Type-based (components/buttons/, components/forms/, components/layout/)
+  - Page-based (pages/[route]/components/)
+  - Flat structure (components/ with all components)
+  - Domain-driven (domains/[name]/ui/)
+
+IDENTIFY composition patterns:
+  - Container/Presentational (containers/, components/ separation)
+  - Compound Components (related components exported together)
+  - Higher-Order Components (withAuth, withLayout patterns)
+  - Render Props (children as function patterns)
+  - Hooks-based composition (custom hooks for logic)
+  - Provider pattern (context providers wrapping components)
+
+ANALYSE component structure:
+  - File organisation (single file, folder per component, barrel exports)
+  - Naming conventions (PascalCase, kebab-case, index exports)
+  - Co-location patterns (styles, tests, types with component)
+  - Shared vs feature-specific components
+
+CHECK for patterns:
+  - State management integration (Redux, Zustand, Recoil, MobX)
+  - Data fetching patterns (SWR, React Query, Apollo)
+  - Form handling patterns (Formik, React Hook Form)
+  - Routing patterns (file-based, config-based)
+```
+
+### 1.2 Present Detection Summary
+
+**Output to human:**
+
+```
+
+Frontend Detection Summary:
+
+Framework detected:
+- [Framework]: [evidence - files, config, dependencies]
+
+Organisation methodology:
+- [Methodology]: [evidence - directory structure]
+- Location: [main component directories]
+
+Composition patterns observed:
+- [Pattern 1]: [evidence from code]
+- [Pattern 2]: [evidence from code]
+
+Component structure:
+- File organisation: [pattern observed]
+- Naming: [convention observed]
+- Co-location: [what lives with components]
+
+[If NO frontend detected:]
+No frontend indicators found. Does this repository have a UI layer?
+
+[If frontend detected:]
+Does this match your frontend setup?
+
+```
+{{ present_for_validation() }}
+
+---
+
+## 2. Phase 2 - Organisation
+
+**Draft section documenting how components are organised.**
+
+### 2.1 Agent Actions (silent)
+
+```
+FOCUS ON:
+  - Primary organisation approach (not every variation)
+  - Directory structure rules (where components go)
+  - Hierarchy levels if applicable (atoms → molecules → organisms)
+
+AVOID:
+  - Listing every component
+  - Documenting every directory
+  - Exhaustive file listings
+
+KEEP CONCISE:
+  - Document the methodology, not every instance
+  - Show representative structure
+  - Focus on rules that guide placement
+```
+
+### 2.2 Draft "1. Organisation"
+
+```
+1. Organisation
+
+1.1 Approach
+
+[Atomic Design / Feature-based / Type-based / etc.]
+
+1.2 Hierarchy
+
+[If applicable - levels and their purpose]
+
+1.3 Directory Structure
+
+[Where components live and why]
+
+1.4 Placement Rules
+
+- [Rule 1: when to create at level X]
+- [Rule 2: when to promote/demote]
+- [Rule 3: shared vs feature-specific]
+
+1.5 Evidence
+
+[Inline examples from codebase]
+```
+
+### 2.3 Present Draft
+
+**Output to human:**
+
+```
+
+Organisation Methodology (drafted from analysis):
+
+1. Organisation Methodology
+
+[Draft section with evidence]
+
+Evidence:
+- Directory structure: [what was found]
+- Hierarchy: [levels identified]
+- Pattern: [methodology observed]
+
+Does this accurately describe the organisation approach?
+
+```
+{{ present_for_validation(post_validation="Write to `/midtempo-framework/instructions/frontend-design.md` with:
+      - Title: `# [Repository Name] Frontend Design`
+      - Table of Contents section exactly as shown below (use this exact structure)
+      - Then the Database Systems Inventory section
+") }}
+
+#### 2.3.1 Table of Contents
+
+```
+## Table of Contents
+
+- [Organisation](#1-organisation)
+- [Composition Patterns](#2-composition-patterns)
+- [Component Structure](#3-component-structure)
+- [State & Data Patterns](#4-state--data-patterns)
+- [Compliance Gates](#5-compliance-gates)
+- [Quick Reference](#6-quick-reference)
+```
+
+
+### 2.4 Example (Atomic Design)
+
+```
+
+# Demo-Repo Frontend Design
+
+## Table of Contents
+
+- [Organisation](#1-organisation)
+- [Composition Patterns](#2-composition-patterns)
+- [Component Structure](#3-component-structure)
+- [State & Data Patterns](#4-state--data-patterns)
+- [Compliance Gates](#5-compliance-gates)
+- [Quick Reference](#6-quick-reference)
+
+## 1. Organisation
+
+### 1.1 Approach
+
+Atomic Design — components organised by complexity and reusability.
+
+### 1.2 Hierarchy
+
+**Atoms** — Basic building blocks (Button, Input, Icon, Text)
+- Self-contained, no dependencies on other components
+- Location: `src/components/atoms/`
+
+**Molecules** — Simple component groups (SearchBar, FormField, Card)
+- Combine 2-5 atoms into functional units
+- Location: `src/components/molecules/`
+
+**Organisms** — Complex UI sections (Header, ProductList, CheckoutForm)
+- Combine molecules and atoms into distinct sections
+- May contain business logic
+- Location: `src/components/organisms/`
+
+**Templates** — Page-level layouts (DashboardLayout, AuthLayout)
+- Define page structure without real content
+- Location: `src/components/templates/`
+
+**Pages** — Specific instances with real content
+- Connect to data sources, apply templates
+- Location: `src/pages/` or `app/`
+
+### 1.3 Directory Structure
+
+src/components/
+  atoms/
+    Button/
+    Input/
+    Icon/
+  molecules/
+    SearchBar/
+    FormField/
+  organisms/
+    Header/
+    ProductList/
+  templates/
+    DashboardLayout/
+
+### 1.4 Placement Rules
+
+- **New component?** Start at lowest possible level (atom if possible)
+- **Uses other components?** Move up one level (atom → molecule)
+- **Contains business logic?** Organism or higher
+- **Reused across features?** Lives in shared components/
+- **Feature-specific?** Lives in features/[name]/components/
+- **Promote when** component is reused in 3+ places
+
+### 1.5 Evidence
+
+- `src/components/atoms/Button/` — standalone, no component imports
+- `src/components/molecules/SearchBar/` — combines Input + Button atoms
+- `src/components/organisms/Header/` — combines Logo, Navigation, SearchBar
+```
+
+## 3. Phase 3 - Composition Patterns
+
+**Document how components compose together.**
+
+**CRITICAL:** Focus on 3-5 primary composition patterns used in the codebase, not every possible pattern.
+
+### 3.1 Agent Actions (silent) 
+
+```
+IDENTIFY primary patterns:
+  - Container/Presentational (logic vs display separation)
+  - Compound Components (Tab/TabPanel, Select/Option)
+  - Provider Pattern (context wrapping)
+  - Render Props (flexible rendering)
+  - Hooks Composition (logic extraction)
+  - Slot Pattern (named children areas)
+
+FOCUS ON:
+  - Patterns actually used in codebase (3-5 max)
+  - When to use each pattern
+  - How to implement correctly
+
+AVOID:
+  - Documenting every possible pattern
+  - Patterns not present in codebase
+  - Academic pattern descriptions
+```
+
+### 3.2 Draft "2. Composition Patterns"
+
+```
+2. Composition Patterns
+
+2.1 Primary Patterns
+
+[List 3-5 patterns used]
+
+2.2 [Pattern 1]
+
+**When to use:** [scenario]
+**Structure:** [how it works]
+**Example:** [from codebase]
+
+2.3 [Pattern 2]
+
+[Repeat for each pattern]
+
+2.4 Rules
+
+- [Composition rule 1]
+- [Composition rule 2]
+```
+
+### 3.3 Present Draft
+
+**Output to human:**
+
+```
+
+Composition Patterns (drafted from component analysis):
+
+2. Composition Patterns
+
+[Draft section with evidence]
+
+Evidence:
+- Pattern 1: Found in [files/components]
+- Pattern 2: Found in [files/components]
+- Usage: [how patterns are applied]
+
+Does this capture the composition patterns used?
+
+```
+
+{{ present_for_validation(post_validation="Write to `/midtempo-framework/instructions/frontend-design.md`") }}
+
+### 3.4 Example
+
+```
+2. Composition Patterns
+
+2.1 Primary Patterns
+
+The codebase uses three primary composition patterns:
+- Container/Presentational for data-connected components
+- Compound Components for related component groups
+- Hooks Composition for shared logic
+
+2.2 Container/Presentational
+
+**When to use:** Components that need data fetching or complex state
+
+**Structure:**
+- Container: Handles data, state, side effects
+- Presentational: Pure display, receives props
+
+**Example:**
+
+// Container - handles data
+function UserListContainer() {
+  const { data, loading } = useUsers();
+  return <UserList users={data} loading={loading} />;
+}
+
+// Presentational - pure display
+function UserList({ users, loading }: UserListProps) {
+  if (loading) return <Spinner />;
+  return <ul>{users.map(u => <UserItem key={u.id} user={u} />)}</ul>;
+}
+
+**Evidence:** `src/features/users/UserListContainer.tsx`, `src/features/users/UserList.tsx`
+
+2.3 Compound Components
+
+**When to use:** Related components that share implicit state (tabs, accordions, selects)
+
+**Structure:**
+- Parent component provides context
+- Children consume context implicitly
+- Flexible composition without prop drilling
+
+**Example:**
+
+// Usage - flexible composition
+<Tabs defaultValue="tab1">
+  <TabList>
+    <Tab value="tab1">First</Tab>
+    <Tab value="tab2">Second</Tab>
+  </TabList>
+  <TabPanel value="tab1">Content 1</TabPanel>
+  <TabPanel value="tab2">Content 2</TabPanel>
+</Tabs>
+
+// Implementation uses context internally
+
+**Evidence:** `src/components/Tabs/`, `src/components/Accordion/`
+
+2.4 Hooks Composition
+
+**When to use:** Shared logic across multiple components
+
+**Structure:**
+- Extract logic into custom hook
+- Components consume hook for behaviour
+- Keeps components focused on rendering
+
+**Example:**
+
+// Custom hook for form logic
+function useForm<T>(initialValues: T) {
+  const [values, setValues] = useState(initialValues);
+  const [errors, setErrors] = useState({});
+  // ... validation, submission logic
+  return { values, errors, handleChange, handleSubmit };
+}
+
+// Component uses hook
+function LoginForm() {
+  const { values, errors, handleChange, handleSubmit } = useForm({ email: '', password: '' });
+  return <form onSubmit={handleSubmit}>...</form>;
+}
+
+**Evidence:** `src/hooks/useForm.ts`, `src/hooks/useAuth.ts`
+
+2.5 Rules
+
+- **Data fetching?** Use Container/Presentational
+- **Related components sharing state?** Use Compound Components
+- **Reusable logic?** Extract to custom hook
+- **Never** pass more than 5 props — consider composition or context
+- **Presentational components** must be pure (no side effects)
+```
+
+**After validation:** Append to `/midtempo-framework/instructions/frontend-design.md`
+
+---
+
+## 4. Phase 4: Component Structure
+
+**Document how individual components are structured.**
+
+### 4.1 Agent Actions (silent)
+
+```
+IDENTIFY component structure patterns:
+  - File organisation (single file vs folder)
+  - What co-locates with component (styles, tests, types)
+  - Naming conventions
+  - Export patterns (named, default, barrel)
+
+FOCUS ON:
+  - Standard component structure (1 canonical example)
+  - Co-location rules
+  - Naming conventions
+
+AVOID:
+  - Every variation
+  - Component-specific structures
+```
+
+### 4.2 Draft "3. Component Structure"
+
+```
+3. Component Structure
+
+3.1 File Organisation
+
+[Single file / folder / hybrid approach]
+
+3.2 Standard Structure
+
+[Canonical component folder structure]
+
+3.3 Co-location
+
+[What lives with the component]
+
+3.4 Naming Conventions
+
+- Files: [pattern]
+- Components: [pattern]
+- Props: [pattern]
+
+3.5 Exports
+
+[How components are exported]
+```
+
+### 4.3 Present Draft
+
+**Output to human:**
+
+```
+
+Component Structure (drafted from analysis):
+
+3. Component Structure
+
+[Draft section with evidence]
+
+Evidence:
+- Folder structure: [pattern from components/]
+- Co-location: [what lives together]
+- Naming: [conventions observed]
+
+Does this capture component structure conventions?
+
+```
+
+{{ present_for_validation(post_validation="Write to `/midtempo-framework/instructions/frontend-design.md`") }}
+
+### 4.4 Example
+
+```
+3. Component Structure
+
+3.1 File Organisation
+
+Folder-per-component for all components with multiple files.
+
+3.2 Standard Structure
+
+
+Button/
+  index.ts           # Barrel export
+  Button.tsx         # Component implementation
+  Button.module.scss # Styles (if CSS Modules)
+  Button.test.tsx    # Tests
+  Button.types.ts    # TypeScript types (if complex)
+  Button.stories.tsx # Storybook stories (if using)
+
+3.3 Co-location
+
+**Always co-locate:**
+- Styles (`.module.scss` or styled-components)
+- Tests (`.test.tsx`)
+- Types (`.types.ts` if > 10 lines)
+
+**Optional co-location:**
+- Stories (`.stories.tsx`)
+- Utilities specific to component
+
+**Never co-locate:**
+- Shared utilities (use `src/utils/`)
+- API calls (use `src/services/` or hooks)
+
+3.4 Naming Conventions
+
+- **Folders:** PascalCase matching component name (`Button/`)
+- **Component files:** PascalCase (`Button.tsx`)
+- **Style files:** Match component (`Button.module.scss`)
+- **Test files:** Component name + `.test` (`Button.test.tsx`)
+- **Props interfaces:** `[Component]Props` (`ButtonProps`)
+
+3.5 Exports
+
+**Barrel exports via index.ts:**
+
+// Button/index.ts
+export { Button } from './Button';
+export type { ButtonProps } from './Button.types';
+
+
+**Import from folder, not file:**
+
+// Good
+import { Button } from '@/components/Button';
+
+// Avoid
+import { Button } from '@/components/Button/Button';
+
+```
+
+---
+
+## Phase 5: State & Data Patterns
+
+**Document how components handle state and data.**
+
+### 5.1 Agent Actions (silent) 
+
+**Analyse and draft:**
+
+```
+IDENTIFY state patterns:
+  - Local state (useState, component state)
+  - Shared state (Context, Redux, Zustand)
+  - Server state (React Query, SWR, Apollo)
+  - Form state (React Hook Form, Formik)
+
+FOCUS ON:
+  - Which tool for which scenario
+  - Where state lives in component hierarchy
+  - Data fetching patterns
+
+AVOID:
+  - Complete API documentation
+  - Every state management edge case
+```
+
+### 5.2 Draft "4. State & Data Patterns"
+
+```
+4. State & Data Patterns
+
+4.1 State Types
+
+[Local / Shared / Server / Form]
+
+4.2 When to Use What
+
+- [Scenario 1]: [tool/pattern]
+- [Scenario 2]: [tool/pattern]
+
+4.3 Data Fetching
+
+[Pattern used - React Query, SWR, Apollo, etc.]
+
+4.4 State Location Rules
+
+- [Rule 1]
+- [Rule 2]
+```
+
+### 5.2 Present Draft
+
+**Output to human:**
+
+```
+
+State & Data Patterns (drafted from analysis):
+
+4. State & Data Patterns
+
+[Draft section with evidence]
+
+Evidence:
+- State management: [tools found]
+- Data fetching: [pattern observed]
+- Location: [where state lives]
+
+Does this capture state and data patterns?
+
+```
+
+{{ present_for_validation(post_validation="Write to `/midtempo-framework/instructions/frontend-design.md`") }}
+
+### 5.3 Example
+
+```
+4. State & Data Patterns
+
+4.1 State Types
+
+- **Local state:** `useState` for component-specific UI state
+- **Shared state:** Zustand for cross-component application state
+- **Server state:** React Query for API data
+- **Form state:** React Hook Form for form handling
+
+4.2 When to Use What
+
+| Scenario | Tool | Location |
+|----------|------|----------|
+| Toggle, input value, UI state | `useState` | Component |
+| User session, preferences | Zustand store | `src/stores/` |
+| API data (read) | React Query | Custom hook |
+| API data (mutate) | React Query mutation | Custom hook |
+| Form inputs + validation | React Hook Form | Component |
+
+4.3 Data Fetching
+
+**Pattern:** Custom hooks wrapping React Query
+
+
+// src/hooks/useUsers.ts
+export function useUsers() {
+  return useQuery({
+    queryKey: ['users'],
+    queryFn: () => api.get('/users'),
+  });
+}
+
+// Usage in component
+function UserList() {
+  const { data, isLoading, error } = useUsers();
+}
+
+**Evidence:** `src/hooks/useUsers.ts`, `src/hooks/useProducts.ts`
+
+4.4 State Location Rules
+
+- **UI state** (open/closed, selected) → `useState` in component
+- **Cross-component state** (user, cart) → Zustand store
+- **API data** → React Query via custom hook
+- **Form data** → React Hook Form, never lift to global state
+- **Never** duplicate server state in global store (React Query is source of truth)
+```
+
+---
+
+
+## 6. Phase 6: Compliance Gates
+
+**Distil verifiable rules from the frontend design document.**
+
+### 6.1 Agent Actions (Silent)
+
+```
+REVIEW content sections in frontend-design.md:
+  - Organisation (§1) — hierarchy levels, placement rules
+  - Composition Patterns (§2) — how components compose together
+  - Component Structure (§3) — file organisation, co-location, naming
+  - State & Data Patterns (§4) — state types, data fetching location
+
+SELECT 5 rules that are:
+  - Verifiable by code inspection
+  - Specific to this repository (not generic advice)
+  - Focused on component rules (hierarchy placement, composition rules, state location)
+
+WRITE rules using compliance gates format:
+  - Checklist items with CG-N prefix
+  - Each gate references its source section
+  - One-line verifiable statements
+```
+
+### 6.2 Draft Compliance Gates
+
+**Output to human:**
+
+```
+Compliance Gates (distilled from frontend design document):
+
+## 5. Compliance Gates
+
+> Delivery and review skills verify these gates. Each gate must pass for code touching this domain.
+
+- [ ] **CG-1:** [Hierarchy rule — e.g., "New components placed at correct atomic design level — atom, molecule, organism"] (§1.2)
+- [ ] **CG-2:** [Composition rule — e.g., "Page components delegate to organisms; no direct HTML in pages"] (§2.3)
+- [ ] **CG-3:** [Structure rule — e.g., "Components use folder-per-component structure with co-located styles and tests"] (§3.2)
+- [ ] **CG-4:** [State rule — e.g., "Shared state lifted to nearest common ancestor, not prop-drilled beyond 2 levels"] (§4.4)
+- [ ] **CG-5:** [Naming rule — e.g., "Component folders use PascalCase matching component name; barrel exports via index.ts"] (§3.4)
+
+Target: 5 gates for frontend-design.md (component — hierarchy, composition, state location)
+
+Are these gates verifiable and correct?
+```
+
+{{ present_for_validation(post_validation="Write to `/midtempo-framework/instructions/frontend-design.md`") }}
+
+---
+## Phase 7: Alignment Check
+
+**Review all sections for coherence.**
+
+### 7.1 Check for Issues
+
+```
+READ all drafted sections from midtempo-framework/instructions/frontend-design.md
+
+CHECK:
+1. Completeness — Organisation, composition, structure, state covered?
+2. Consistency — Terminology consistent across sections?
+3. Accuracy — Patterns match actual codebase?
+4. Clarity — Can agent decide where to put new component?
+5. Conflicts — Any contradictions?
+6. Evidence — All patterns backed by code?
+7. Line count — Is document within 300-400 line target?
+```
+
+### 7.2 Present Findings
+
+**Output to human:**
+
+```
+
+Alignment Check Results:
+
+Completeness: [all aspects covered / gaps found]
+Consistency: [terminology consistent / inconsistencies found]
+Accuracy: [matches codebase / corrections needed]
+Clarity: [clear guidance / areas needing detail]
+Conflicts: [none / issues found]
+Evidence: [backed by code / unsupported patterns]
+Line count: [within target / needs condensing]
+
+[If issues found:]
+Fixes needed:
+1. [fix 1]
+2. [fix 2]
+
+Shall I apply these fixes?
+
+[If no issues:]
+Anything else to add?
+
+```
+
+{{ present_for_validation(pre_validation="**If fixes approved:** Apply and re-present") }}
+
+---
+
+## Phase 8: Finalise Document
+
+**Add file references and complete.**
+
+### 8.1 Add Final Section
+
+```
+6. Quick Reference
+
+6.1 Decision Tree
+
+**New component needed:**
+1. Reusable across features? → [shared component directory — see §1.3]
+2. Feature-specific? → [feature component directory — see §1.3]
+3. Determine hierarchy level [from §1.2]
+4. Create folder with standard structure [from §3.2]
+
+**Adding state:**
+1. [Local/UI state] → [local state tool — see §4.1]
+2. [Shared state] → [shared state tool — see §4.1]
+3. [Remote/API data] → [data fetching tool — see §4.3]
+4. [Form data] → [form handling tool — see §4.1]
+
+6.2 File References
+
+**Component directories:**
+- [main component paths]
+
+**Example components:**
+- [well-structured component example]
+- [compound component example]
+
+**Shared logic:**
+- [custom logic location]
+
+**State management:**
+- [state management location]
+
+6.3 End Marker
+
+{{ end_of_file(total_sections=6, file_purpose='Component architecture and composition patterns') }}
+
+```
+
+## 7.2 Exit Gate
+
+```
+IF frontend-design.md does not exist
+  → INVALID: STOP - Document not created
+
+IF any required section missing (Organisation, Composition, Structure, State & Data, Quick Reference, Compliance Gates)
+  → INVALID: STOP - Missing sections: [list which sections]
+
+IF Compliance Gates section missing or does not contain exactly 5 verifiable gates in CG-N format
+  → INVALID: STOP - Compliance gates incomplete
+
+IF line count > 400
+  → INVALID: STOP - Line count [N] over target range (400 lines)
+  → ASK: Human how to proceed [continue | compact ]
+
+IF document contains placeholder text ([TBD], [TODO], [DRAFT])
+  → INVALID: STOP - Document incomplete, contains placeholders
+
+IF patterns lack evidence from codebase
+  → INVALID: STOP - Patterns must reference actual code locations
+
+VALID: Output  "§7.3 Stage 6 Complete Output"
+```
+
+### 7.3 Stage 6 Complete Output
+
+{{ exit_gate_requirements(extra_rules=["You MUST verify document contains no placeholders and is within 400 lines before producing this output"]) }}
+
+```
+---
+                    FRONTEND DESIGN DOCUMENTATION COMPLETE
+
+---
+
+Documents created:
+- midtempo-framework/instructions/frontend-design.md — Component architecture and composition
+
+Sections completed:
+✅ Organisation Methodology (hierarchy, placement rules)
+✅ Composition Patterns (how components compose)
+✅ Component Structure (file organisation, co-location)
+✅ State & Data Patterns (state management, data fetching)
+✅ Compliance Gates (5 verifiable component rules)
+✅ Quick Reference (decision tree, file references)
+
+Summary:
+- Organisation: [methodology]
+- [X] composition patterns documented
+- Component structure: [pattern]
+- State management: [tools]
+
+---
+
+Start the next setup stage in a new conversation with:
+Setup Stage 7 - /midtempo-framework/setup.md
+
+---
+```

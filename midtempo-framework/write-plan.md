@@ -1,0 +1,924 @@
+# Writing Plans
+
+## 1. Overview
+
+Write comprehensive implementation plans assuming the human has zero context. Document which files to touch, exact code changes, testing strategy, and verification steps.
+
+**Goal:** Transform approved design documents into actionable implementation plans.
+
+**Core principles:** DRY. YAGNI. SOLID. TDD.
+
+**Context:** Run in a dedicated worktree.
+
+**Input:** Design document (`/planning/[feature-name]-design.md`)
+
+**Output:** Planning document (`/planning/[feature-name]-plan.md`)
+
+**Template:** `/midtempo-framework/templates/plan.md`
+
+---
+
+## Table of Contents
+
+- [Overview](#1-overview)
+  - [Entry Gate](#entry-gate)
+- [The Process](#2-the-process)
+  - [Non-Negotiable Rules](#non-negotiable-rules)
+  - [Entry Gate](#entry-gate)
+- [Step 1: Verify & Resolve](#3-step-1-verify--resolve)
+  - [Verify Entry Gate](#31-verify-entry-gate)
+  - [Resolve Open Questions](#32-resolve-open-questions)
+  - [Step 1 Exit](#33-step-1-exit)
+- [Step 2: Gather Context & Validate Design](#4-step-2-gather-context--validate-design)
+  - [Extract Context](#41-extract-context)
+  - [Validate Design Against Codebase](#42-validate-design-against-codebase)
+  - [Assumptions Check](#431b-assumptions-check)
+  - [Step 2 Exit Gates](#43-step-2-exit-gates)
+- [Step 3: Write Plan Sections](#5-step-3-write-plan-sections)
+  - [Writing Declaration Gate](#50-writing-declaration-gate)
+  - [Section Writing Protocol](#501-section-writing-protocol)
+  - [Write Test Strategy Section](#51-write-test-strategy-section)
+  - [Write Implementation Section](#52-write-implementation-section)
+  - [Write Files Section](#53-write-files-section)
+  - [Write Dependencies Section](#54-write-dependencies-section)
+- [Step 4: Alignment Check & Exit Gates](#6-step-4-alignment-check--exit-gates)
+  - [Alignment Check](#61-alignment-check)
+  - [Finalise Plan](#62-finalise-plan)
+  - [Exit Gates](#63-exit-gates)
+- [Plan Complete Output](#7-plan-complete-output)
+- [Design Document Sync](#design-document-sync)
+- [Examples](#examples)
+- [Common Rationalisations](#common-rationalisations-forbidden)
+- [Final Rule](#final-rule)
+
+---
+
+### ENTRY GATE
+
+```
+IF design document does not exist
+  → INVALID: REDIRECT to `/midtempo-framework/build.md` — No design doc means no plan
+
+IF known bug with clear symptoms
+  → INVALID: REDIRECT to `/midtempo-framework/bugs.md` — Use the bug tracing and fixing skill
+
+IF code quality improvement
+  → INVALID: REDIRECT to `/midtempo-framework/refactor.md` — Use the refactoring skill to improve code quality
+
+IF work is small refinement (≤3 files, ≤3 acceptance criteria, and tweaks existing delivered feature)
+  → INVALID: REDIRECT to `/midtempo-framework/refine.md` — Use the Refine skill to deliver small iterations 
+
+ELSE  → VALID: Continue to "§2. The Process" Entry Gate
+```
+
+---
+
+## 2. The Process
+
+### Non-Negotiable Rules
+
+<CRITICAL_REQUIREMENT type="MANDATORY">
+
+- You MUST have a design document before creating a plan.
+- You MUST validate the design against codebase reality before planning.
+- You MUST resolve all open questions before writing begins.
+- You MUST ask one question at a time, using multi-choice format when possible.
+- You MUST identify neighbouring surfaces the work will touch.
+- You MUST update the design document if planning reveals conflicts or 
+the approach changes.
+- You MUST write the plan in sections, validating each before proceeding.
+- You MUST perform a final alignment check for naming consistency and conflict resolution.
+- You MUST raise speculative features from scope (YAGNI).
+- You MUST write specific test scenarios for every in-scope behaviour.
+- You MUST use exact file paths (no placeholders).
+- You MUST document what is out of scope and why.
+- You MUST follow the template structure precisely.
+
+</CRITICAL_REQUIREMENT>
+
+### Entry Gate
+
+```
+IF no design document exists at planning/[feature-name]-design.md
+  → INVALID: STOP - Run Build skill first
+  → DO NOT proceed to planning
+  → RECOVERY:
+    1. State: "ISSUE: No design document"
+    2. Ask: "Run Build skill to create design?"
+
+IF design document lacks objective, approach, or components
+  → INVALID: STOP - Ask human what to do
+  → DO NOT proceed to planning
+
+READ supporting documents:
+VERIFY-COMPLETE-READ for EVERY file below:
+  CHECK the last line says "END OF DOCUMENT"
+  IF CHECK fails → Re-read from offset until true end
+
+READ ALL of `/midtempo-framework/instructions/purpose.md` → before proceeding
+READ ALL of `/midtempo-framework/instructions/architecture.md` → before proceeding
+
+
+VERIFY-COMPLETE-READ for EVERY file below:
+  CHECK the last line says "END OF DOCUMENT"
+  IF CHECK fails → Re-read from offset until true end
+
+IF the current task involves secrets management
+READ ALL of `/midtempo-framework/rules/security/secrets-management.md` → for secrets-management rules
+
+IF the current task involves input validation
+READ ALL of `/midtempo-framework/rules/security/input-validation.md` → for input-validation rules
+
+IF the current task involves authentication
+READ ALL of `/midtempo-framework/rules/security/authentication.md` → for authentication rules
+
+IF the current task involves data protection
+READ ALL of `/midtempo-framework/rules/security/data-protection.md` → for data-protection rules
+
+IF the current task involves public-facing security
+READ ALL of `/midtempo-framework/rules/security/public-hardening.md` → for public-hardening rules
+
+
+VALID: Proceed to "§3. Step 1: Verify & Resolve"
+```
+
+---
+
+## 3. Step 1: Verify & Resolve
+
+### 3.1 Verify Entry Gate
+
+State gate outcome before proceeding:
+
+```
+Entry Gate: Design document exists at planning/[feature-name]-design.md → VALID
+```
+
+### 3.2 Resolve Open Questions
+
+```
+IF design document "Open Questions" section contains unresolved questions
+  → INVALID: STOP - Resolve open questions first
+  → Follow "§3.2.1 Resolution Process"
+  → Repeat until all "Open Questions" are resolved
+  → RECOVERY:
+    1. State: "VIOLATION: Open questions remain unresolved"
+    2. List each unresolved question
+    3. ASK questions one at a time using multi-choice format
+    4. WAIT for each answer before proceeding
+    5. Document answers in design document
+    6. DO NOT resume planning until all questions resolved
+
+IF all open questions resolved OR "Open Questions" section empty
+  → VALID: Proceed to "§3.3 Step 1 Exit"
+```
+
+#### 3.2.1 Resolution Process
+
+1. Read the design document "Open Questions" section
+2. For each unresolved question:
+   - Ask ONE multi-choice question (2-4 options)
+   - Prefer specific options over open-ended questions
+   - Include "Other" option for custom input
+   - Wait for response before next question
+3. Follow up with clarifying questions as needed
+4. Draft answers for each resolved question
+5. PRESENT draft answers to human
+6. WAIT for human approval
+7. Append approved answers to design document
+
+### 3.3 Step 1 Exit
+
+State gate outcome before proceeding:
+
+```
+Open Questions Gate: [N] questions resolved → VALID
+- [sentence describing each question]
+```
+
+OR
+
+```
+Open Questions Gate: No open questions in design document → VALID
+```
+
+VALID: Proceed to "§4. Step 2: Gather Context & Validate Design"
+
+---
+
+## 4. Step 2: Gather Context & Validate Design
+
+### 4.1 Extract Context
+
+Read the design document. Extract:
+
+- **Objective:** What problem this solves
+- **In Scope:** Specific deliverables
+- **Out of Scope:** Explicit exclusions
+- **Neighbouring surfaces:** What this work touches
+- **Integration points:** How surfaces interact
+- **Decisions:** Decision Cards from Section 3.2 (category, choice, affects, constraint, reversibility)
+
+### 4.2 Validate Design Against Codebase
+
+**Mandatory validation steps:**
+
+1. Verify mentioned components exist or specify where they'll be created
+2. Check claimed patterns actually match codebase usage
+3. Confirm integration points are feasible
+4. Identify any design assumptions that conflict with actual code
+
+**If validation reveals issues:**
+
+1. Document findings (conflicts, omissions, infeasible approaches)
+2. Update design document before proceeding (see Design Document Sync section)
+3. Get user confirmation if changes alter design intent
+
+PRESENT extraction summary and validation outcome to human:
+
+**Context extracted:**
+- Objective, in-scope, out-of-scope, neighbouring surfaces, integration points, decisions
+
+**Validation outcome:**
+- Components verified: [list]
+- Patterns confirmed: [list]
+- Conflicts found: [list or 'none']
+
+WAIT for human validation before proceeding
+
+IF human approves → Continue to §4.3 Step 2 Exit Gates
+IF human requests changes → REVISE and re-present
+
+### 4.3 Step 2 Exit Gates
+
+#### 4.3.1 Exit Gate 0: Design Feasibility Validated
+
+```
+IF planning revealed design conflicts, missing components, or infeasible approaches
+  IF design document NOT updated to address findings
+    → INVALID: STOP - Ask human what to do
+    → DO NOT proceed
+    → RECOVERY:
+      1. State: "VIOLATION: Design validation required before planning"
+      2. EXAMINE codebase for components/files mentioned in design
+      3. CHECK if claimed patterns match actual usage
+      4. VERIFY integration points are feasible
+      5. IF conflicts found: UPDATE design document with findings
+      6. IF significant changes: CONSULT user before proceeding
+      7. DO NOT resume planning until design validated or updated
+
+IF all design assumptions validated OR design updated to address findings
+  → VALID: Continue to "§4.3.1b Assumptions Check"
+```
+
+#### 4.3.1b Assumptions Check
+
+Review the design document and list assumptions it makes about:
+
+- **Data volumes** — expected record counts, growth rate, payload sizes
+- **User behaviour** — usage patterns, concurrency, input characteristics
+- **Performance** — response time targets, throughput, resource constraints
+- **Architectural fit** — alignment with existing patterns, conventions, and direction
+
+```
+CHECK each assumption against codebase evidence:
+  - Does the codebase support or contradict this assumption?
+  - Do recent changes affect this assumption?
+  - Does this assumption conflict with architectural direction?
+
+IF assumptions conflict with codebase evidence
+  → LIST each conflicting assumption with supporting evidence
+  → PRESENT as informational concerns — not blockers
+  → WAIT for human to acknowledge before proceeding
+
+IF no conflicts found
+  → STATE "No assumption conflicts identified"
+
+→ Continue to "§4.3.2 Exit Gate 1: YAGNI Compliance"
+```
+
+#### 4.3.2 Exit Gate 1: YAGNI Compliance
+
+```
+IF scope contains "might need", "future-proof", or "just in case" items
+  → INVALID: STOP - Move speculative features to Out of Scope
+  → RECOVERY:
+    1. State: "VIOLATION: Speculative features in scope"
+    2. List violating items
+    3. PRESENT violating items to human with recommended move to Out of Scope
+    4. WAIT for human confirmation before moving
+    5. MOVE confirmed items to Out of Scope
+
+IF every In Scope item directly supports the objective
+  → VALID: Continue to "§5. Step 3: Write Plan Sections"
+```
+
+**State gate outcomes:**
+
+```
+Exit Gate 0: Design validated - all mentioned components exist OR design updated → VALID
+Exit Gate 1: No speculative features in scope → VALID
+```
+
+---
+
+## 5. Step 3: Write Plan Sections
+
+### 5.0 Writing Declaration Gate
+
+**Before writing any prose, read `/midtempo-framework/rules/writing.md` and output declaration gate.**
+
+```
+IF prose written without outputting writing gate declaration
+  → INVALID: STOP - Writing gate declaration missing
+  → RECOVERY:
+    1. State: "VIOLATION: Writing gate declaration missing"
+    2. OUTPUT declaration verbatim as defined in `/midtempo-framework/rules/writing.md`
+    3. CONTINUE with writing process
+
+IF declaration gate output
+  → VALID: Continue to write plan sections
+```
+
+### 5.0.1 Section Writing Protocol
+
+<CRITICAL_REQUIREMENT type="MANDATORY">
+
+Write ONE section of the plan at a time. Do NOT batch-write multiple sections — long-running writes cause network failures.
+
+</CRITICAL_REQUIREMENT>
+
+**Part A — Create file with header sections:**
+
+Create `planning/[feature-name]-plan.md` using `/midtempo-framework/templates/plan.md` as the document structure:
+
+1. Write the template header: `# [Feature Name] Planning Document`, design doc reference, status
+2. Write `## Progress` with `**Current focus**: Planning`
+3. Write `## 1. Objective` — reference design doc Section 1 and Section 2.1, add one-line summary from context extraction
+4. Write `## 2. Scope` — reference design doc Section 2, list in-scope and out-of-scope summaries from context extraction
+
+Stop after Scope. Remaining sections are added through the approval cycles below.
+
+**Part B — Write content sections through approval cycles. Apply these routing rules:**
+
+```
+IF current section is Test Strategy or Implementation
+  → INDIVIDUAL APPROVAL: follow "Individual Approval Cycle" below
+
+IF current section is Files
+  → BATCH APPROVAL: draft Files and Dependencies together
+  → Follow "Batch Approval Cycle" below
+```
+
+**Individual Approval Cycle** (Test Strategy, Implementation):
+
+```
+PRESENT section to human
+ASK: "Does this section look right?"
+WAIT for human's response
+
+IF human approves
+  → APPEND approved section to `/planning/[feature-name]-plan.md`
+  → USE the template heading for this section:
+    - Test Strategy → `## 3. Test Strategy: Module Distillation`
+    - Implementation → `## 4. Implementation Approach`
+  → CONTINUE to next section
+
+IF human queries or corrects
+  → UPDATE section based on feedback
+  → RE-PRESENT the updated section for approval
+  → WAIT for human's response
+  → REPEAT until approved
+  → APPEND approved section to `/planning/[feature-name]-plan.md`
+  → CONTINUE to next section
+
+IF human feedback invalidates an already-appended section
+  → STOP. Present the conflict to human.
+  → WAIT for human to decide whether to revise the earlier section.
+```
+
+**Batch Approval Cycle** (Files, Dependencies):
+
+```
+DRAFT sections: Files, Dependencies
+PRESENT both sections together to human
+ASK: "Do these supporting sections look right?"
+WAIT for human's response
+
+IF human approves
+  → APPEND both sections to `/planning/[feature-name]-plan.md`
+  → USE the template headings:
+    - Files → `## 5. Files Affected`
+    - Dependencies → `## 6. Dependencies`
+
+IF human queries or corrects
+  → UPDATE affected sections based on feedback
+  → RE-PRESENT updated sections for approval
+  → REPEAT until approved
+  → APPEND approved sections to `/planning/[feature-name]-plan.md`
+
+IF human feedback invalidates an already-appended section
+  → STOP. Present the conflict to human.
+  → WAIT for human to decide whether to revise the earlier section.
+```
+
+### 5.1 Write Test Strategy Section
+
+VERIFY-COMPLETE-READ for EVERY file below:
+  CHECK the last line says "END OF DOCUMENT"
+  IF CHECK fails → Re-read from offset until true end
+
+READ ALL of `/midtempo-framework/rules/testing.md` → before proceeding
+
+Read `/midtempo-framework/instructions/architecture.md` "§7. Testing Framework"
+Read `/midtempo-framework/instructions/architecture.md` "§7.3 Test Utilities" — extract available factories, fixtures, helpers, and mocks
+
+Read the following sections from `/planning/[feature-name]-design.md` as distillation sources:
+
+- §3.3 Architecture/Components — module inventory: path, responsibility, dependencies
+- §3.6 Error Handling — error concerns per module
+- §3.7 Security — security concerns per module
+- §3.8 Performance — performance concerns per module
+
+Produce the `/midtempo-framework/templates/plan.md` §3 distillation table — one row per module from design §3.3:
+
+| Module path | Capabilities covered | Test approach | Concerns |
+|-------------|---------------------|---------------|----------|
+| Each row: module path from §3.3 | Scope items this module implements | unit / integration / special setup | Applicable concerns from §3.6–3.8, or — if none |
+
+Then append the test execution order list (numbered, derived from the Dependencies column of §3.3).
+
+**Requirements:**
+
+- One row per module from §3.3 — no omissions
+- Each row: a phrase per cell, not a scenario
+- If §3.3 responsibility descriptions are vague, surface the vagueness in the Concerns cell
+- Order respects dependencies from §3.3 Dependencies column
+
+**Test Infrastructure** (from architecture.md §7.3):
+
+Use §7.3 utility paths to locate test factories, fixtures, helpers, and mocks in the codebase. List only those relevant to the modules in the distillation table — utility name, path, and what it provides. If no relevant utilities exist, state "No relevant test utilities found".
+
+
+### 5.2 Write Implementation Section
+
+Include:
+
+- Architecture decisions and patterns
+- Data flow between components
+- Key algorithms
+- Integration points
+- Security and performance mitigations
+
+**For UI features:**
+`/midtempo-framework/instructions/frontend-design.md` # Component architecture, composition patterns, and UI organisation
+`/midtempo-framework/instructions/new-page.md` # How to wire a new page into the UI
+`/midtempo-framework/instructions/style-guide.md` # CSS style rules and conventions
+
+**For security-sensitive features:**
+
+Address security requirements documented in design §3.7 (Security & Privacy):
+- Threat mitigation strategies
+- Authentication/authorisation boundaries
+- Input validation approach
+- Secret/credential handling
+- Data protection measures
+
+Reference applicable security domain rules from `/midtempo-framework/rules/security/`
+
+### 5.3 Write Files Section
+
+**New files:**
+
+- Absolute path
+- Purpose (one sentence)
+- Component layer
+
+**Modified files:**
+
+- Absolute path
+- Specific changes (method signatures, config keys, parameters)
+
+### 5.4 Write Dependencies Section
+
+- **Packages:** name, version, purpose, already present or needs adding
+- **Environment variables:** name, purpose, default, required/optional
+- **External services:** what needed, setup required
+- **Error handling:** If work involves API errors, domain errors, or error UI states
+  - Read `/midtempo-framework/instructions/error-handling.md` for taxonomy rules
+  - Document error codes and severity in plan
+
+```
+Step 3 complete when ALL conditions met:
+- [ ] Writing declaration gate output produced
+- [ ] Test strategy section written and approved (one row per module from §3.3)
+- [ ] Implementation section written and approved
+- [ ] Files section written and approved (all paths absolute, no placeholders)
+- [ ] Dependencies section written and approved
+- [ ] Each section appended to `/planning/[feature-name]-plan.md` after approval
+```
+
+---
+
+## 6. Step 4: Alignment Check & Exit Gates
+
+### 6.1 Alignment Check
+
+Read all validated sections and verify coherence:
+
+1. **Check for conflicts** — Decisions in one section must not contradict another
+2. **Check for omissions** — Re-read the design document and open questions in full. Extract every discrete requirement and unresolved question. For each item, confirm it appears in the plan. Flag any that do not.
+3. **Check terminology** — Same concepts must use same names throughout
+4. **Check scope consistency** — In-scope items have coverage; out-of-scope do not appear
+5. **Check neighbouring surfaces** — Integration points align with implementation approach
+6. **Check decision handoff** — Every Decision Card's "Affects" field names components that appear in the implementation section; every "Constraint" field is respected by the approach
+
+**Present findings:**
+
+```
+IF findings exist (conflicts, omissions, or inconsistencies)
+  1. Present findings with recommended fixes
+  2. WAIT for human approval of recommended fixes
+  3. Apply approved fixes to `/planning/[feature-name]-plan.md`
+  4. Present updated sections to human
+  5. WAIT for human to verify applied changes match intent
+  → VALID: Continue to "§6.2 Finalise Plan"
+
+IF no findings
+  → STATE "Alignment check passed — no issues found"
+  → VALID: Continue to "§6.2 Finalise Plan"
+```
+
+### 6.2 Finalise Plan
+
+**Part C — Append remaining template sections to `/planning/[feature-name]-plan.md`:**
+
+Append `## 7. Type Definitions` — if the feature introduces new types or significant type changes, document them. Otherwise write "N/A — no new types introduced."
+
+Append `## 8. API Contracts` — if the feature creates or modifies API endpoints, document request/response contracts. Otherwise write "N/A — no API changes."
+
+Append `## 9. UI Compliance` — reference `/midtempo-framework/instructions/frontend-design.md` and `/midtempo-framework/instructions/style-guide.md` rules.
+
+
+```
+DRAFT sections: Type Definitions, API Contracts, UI Compliance,PRESENT all sections together to human
+ASK: "Do these finalisation sections look right?"
+WAIT for human's response
+
+IF human approves
+  → APPEND all sections to `/planning/[feature-name]-plan.md`
+  → CONTINUE to "§6.3 Exit Gates"
+
+IF human queries or corrects
+  → UPDATE affected sections based on feedback
+  → RE-PRESENT updated sections for approval
+  → REPEAT until approved
+  → APPEND approved sections to `/planning/[feature-name]-plan.md`
+```
+
+### 6.3 Exit Gates
+
+Execute sequentially. **Any INVALID halts completion.**
+
+#### 6.3.1 Exit Gate Test Strategy Complete
+
+```
+IF distillation table is missing any module from design §3.3
+  → INVALID: STOP - Add a row for each missing module
+
+IF test execution order list is absent
+  → INVALID: STOP - Append the numbered execution order list (dependency order from §3.3)
+
+IF distillation table is complete (one row per module) and execution order list is present
+  → VALID
+  → STATE "Test strategy distillation table complete"
+  → CONTINUE to "§6.3.1b Exit Gate Decision Card Handoff"
+```
+
+#### 6.3.1b Exit Gate Decision Card Handoff
+
+```
+IF design document contains Decision Cards with "Plan Handoff" sections
+  IF plan does not reference each decision's "Affects" components in implementation section
+    → INVALID: STOP - Map decision handoffs to implementation approach
+  IF plan contradicts any decision's "Constraint" field
+    → INVALID: STOP - Implementation must respect decision constraints
+
+IF design document does not contain Decision Cards
+  → VALID: Skip — legacy design format
+
+IF all decision handoffs mapped and constraints respected
+  → VALID
+  → STATE "Decision handoffs validated"
+  → CONTINUE to "§6.3.2 Exit Gate Paths Exact"
+```
+
+#### 6.3.2 Exit Gate Paths Exact
+
+```
+IF file paths contain placeholders ([name], [layer], [something]) OR "path/to/file"
+  → INVALID: STOP - Replace with exact paths from codebase
+  → RECOVERY:
+    1. State: "VIOLATION: Placeholder paths"
+    2. EXAMINE codebase structure
+    3. REPLACE with exact paths automatically
+
+IF modifications lack specifics ("update config", "add method")
+  → INVALID: STOP - Specify exact changes (keys, signatures, parameters)
+
+IF all paths are absolute and modifications are specific
+  → VALID
+  → STATE "All paths are absolute and modifications are specific"
+  → CONTINUE  to "§6.3.3 Exit Gate Collection Endpoints Bounded"
+```
+
+#### 6.3.3 Exit Gate Collection Endpoints Bounded
+
+```
+
+→ VALID
+  → STATE "Endpoints checked/bounded"
+  → CONTINUE to "§6.3.4 Exit Gate Out of Scope Documented"
+```
+
+#### 6.3.4 Exit Gate Out of Scope Documented
+
+```
+IF "Explicitly Out of Scope" section is empty
+  → INVALID: STOP - List exclusions with justifications
+
+IF exclusions lack reasoning
+  → INVALID: STOP - Explain why each item is deferred
+
+IF exclusions are documented with justifications
+  → VALID
+  → STATE "All exclusions documented with justifications"
+  → CONTINUE  to "§6.3.5 Exit Gate Component Feasibility"
+```
+
+#### 6.3.5 Exit Gate Component Feasibility
+
+```
+IF design mentions a UI pattern (accordion, carousel, tabs, etc.) without mapping to implementation
+  → INVALID: STOP - Clarify: Is this a new component, existing component, or behavioural pattern?
+  → RECOVERY:
+    1. State: "VIOLATION: UI pattern '[pattern]' not mapped to implementation"
+    2. SEARCH codebase for existing component: `src/components/**/*[pattern]*`
+    3. If found: Document existing component path in plan
+    4. If not found: ASK design author: "Is '[pattern]' a new component to build, or a behavioural pattern using existing atoms?"
+    5. ADD explicit "Implementation Note" to plan clarifying approach
+    6. DO NOT proceed until mapping is documented
+
+IF design references a component that does not exist in src/components/
+  → INVALID: STOP - Document: Create new component OR specify how existing atoms compose this behaviour
+
+IF design uses ambiguous terminology (pattern name vs component name)
+  → INVALID: STOP - Resolve: Add explicit "Implementation Note" mapping pattern to code approach
+
+IF every UI pattern in design maps to either:
+  - An existing component path, OR
+  - A new component listed in "New Files", OR
+  - An explicit "Implementation Note" explaining the behavioural approach
+  → VALID
+  → STATE "UI Patterns mapped"
+  → CONTINUE to "§6.3.6 Exit Gate Template Compliance"
+```
+
+#### 6.3.6 Exit Gate Template Compliance
+
+```
+IF plan structure deviates from template (missing sections, wrong format)
+  → INVALID: STOP - Reformat to match template exactly
+
+IF all sections match template
+  → VALID
+  → STATE "Template structure followed"
+  → CONTINUE to "§6.3.6b Exit Gate Security Compliance"
+```
+
+#### 6.3.6b Exit Gate Security Compliance
+
+```
+IF delivery scope touches secrets management AND '/midtempo-framework/rules/security/secrets-management.md "Compliance Gates"' not verified
+  → STOP. "Verify all secrets-management compliance gates before proceeding."
+IF delivery scope touches input validation AND '/midtempo-framework/rules/security/input-validation.md "Compliance Gates"' not verified
+  → STOP. "Verify all input-validation compliance gates before proceeding."
+IF delivery scope touches authentication AND '/midtempo-framework/rules/security/authentication.md "Compliance Gates"' not verified
+  → STOP. "Verify all authentication compliance gates before proceeding."
+IF delivery scope touches data protection AND '/midtempo-framework/rules/security/data-protection.md "Compliance Gates"' not verified
+  → STOP. "Verify all data-protection compliance gates before proceeding."
+IF delivery scope touches public hardening AND '/midtempo-framework/rules/security/public-hardening.md "Compliance Gates"' not verified
+  → STOP. "Verify all public-hardening compliance gates before proceeding."
+
+
+IF design §3.7 identifies security threats AND plan §4 does not address mitigation strategies
+  → INVALID: STOP - Implementation approach must address security threats from design
+
+IF plan involves credential/secret handling AND approach lacks secure storage mechanism
+  → INVALID: STOP - Document secret management approach (environment variables, secret manager, etc.)
+
+→ VALID
+  → STATE "Security compliance verified"
+  → CONTINUE to "§6.3.7 Exit Gate Page Integration (when applicable)"
+```
+
+#### 6.3.7 Exit Gate Page Integration (when applicable)
+
+```
+
+IF plan includes UI
+  → VALIDATE AGAINST `/midtempo-framework/instructions/frontend-design.md` 
+  → VALIDATE AGAINST  `/midtempo-framework/instructions/style-guide.md`
+  → VALIDATE AGAINST  `/midtempo-framework/instructions/new-page.md` 
+
+  IF ANY Conflict/s
+    → STOP: do not proceed
+    → DESCRIBE conflict to human
+    → SUGGEST resolution that adheres to UI instruction and rules
+    → ASK human how to proceed
+
+IF NO Conflicts
+  → VALID: output "§7. Plan Complete Output" 
+
+
+```
+
+---
+
+## 7. Plan Complete Output
+
+<CRITICAL_REQUIREMENT type="MANDATORY">
+
+- You MUST produce this output after all exit gates pass - include every section and field
+- You MUST NOT skip, paraphrase, or omit any section
+- You MUST format the output for readability
+- You MUST verify all UI instruction conflicts are resolved before producing this output
+</CRITICAL_REQUIREMENT>
+
+```
+═══════════════════════════════════════════════════════════════════════════════
+PLAN COMPLETE: [FEATURE-NAME]
+═══════════════════════════════════════════════════════════════════════════════
+
+Plan document written to `planning/[feature-name]-plan.md`.
+
+All exit gates passed:
+- [ ] Design feasibility validated (§4.3.1)
+- [ ] YAGNI compliance (§4.3.2)
+- [ ] Test strategy complete (§6.3.1)
+- [ ] Decision card handoff (§6.3.1b)
+- [ ] Paths exact (§6.3.2)
+- [ ] Out of scope documented (§6.3.4)
+- [ ] Component feasibility (§6.3.5)
+- [ ] Template compliance (§6.3.6)
+- [ ] Security compliance (§6.3.6b)
+- [ ] Page integration (§6.3.7)
+
+## Summary
+
+| Item                | Count |
+| ------------------- | ----- |
+| In-scope behaviours | [N]   |
+| Test scenarios      | [N]   |
+| New files           | [N]   |
+| Modified files      | [N]   |
+
+## Key Implementation Decisions
+
+| Decision | Choice | Affects | Reversibility |
+|----------|--------|---------|---------------|
+| [Name]   | [What] | [Components] | [Type]   |
+
+## Design Document Updates
+
+[List any changes made to design doc, or "None required"]
+
+───────────────────────────────────────────────────────────────────────────────
+Review plan and approve. Start new conversation with:
+
+Write Tests - use /midtempo-framework/write-tests.md for /planning/[feature-name]-plan.md.
+───────────────────────────────────────────────────────────────────────────────
+```
+
+---
+
+## Design Document Sync
+
+Planning validates design assumptions against implementation reality. Update the design document when planning reveals gaps, conflicts, or infeasible approaches.
+
+**Triggers for design update:**
+
+- Component/file mentioned doesn't exist and implementation approach needs clarification
+- Pattern claimed in design doesn't match actual codebase usage
+- Integration point infeasible or more complex than design assumed
+- Scope assumptions conflict with actual code structure
+- New components needed beyond what design specified
+- Approach fundamentally blocked by technical constraints
+- Missing data or API capabilities assumed in design
+
+**Update process:**
+
+1. **Document the finding** — What conflicts, is missing, or is infeasible
+2. **Assess impact** — Classify the finding:
+
+   Minor = implementation detail that does not change scope, approach, or component boundaries
+   Significant = changes scope, approach, component boundaries, or invalidates a Decision Card
+
+IF significant
+  → Present finding and recommended update to human
+  → WAIT for human approval before updating design document
+
+IF minor
+  → Update design document with implementation note, continue planning
+
+3. **Update design document** before finalising plan
+4. **Add revision note** explaining what changed and why
+5. **Ensure consistency** — Plan and design must tell the same story
+
+Planning often uncovers implementation details that affect design. Keep documents in sync.
+
+---
+
+## Examples
+
+### Invalid Test Strategy
+
+```
+### Module: RetryLogic
+
+- Add tests for retry functionality
+- Test edge cases
+- Validate configuration
+```
+
+### Valid Test Strategy
+
+```
+### Module: RetryLogic (src/lib/retry-logic.ext)
+
+Test 1.1: Successful retry after transient failure
+
+- Setup: Operation fails twice, succeeds third time
+- Expected: Returns success value, attempts = 3
+
+Test 1.2: Exhausts max retries
+
+- Setup: Operation fails all attempts, maxRetries = 3
+- Expected: Throws original error, attempts = 3
+
+Test 1.3: Rejects invalid retry count
+
+- Input: maxRetries = 0
+- Expected: Throws TypeError "maxRetries must be positive"
+```
+
+### Invalid File Path
+
+```
+- file.ext — Retry logic
+```
+
+### Valid File Path
+
+```
+- src/lib/retry-logic.ext — Retry logic with exponential backoff
+```
+
+---
+
+## Common Rationalisations (FORBIDDEN)
+
+Refuse these requests with the mandatory response:
+
+| Request                        | Response                                                                                       |
+| ------------------------------ | ---------------------------------------------------------------------------------------------- |
+| "Skip the design doc"          | "No. Plans require design document. Run Build Skill first."                            |
+| "We might need X later"        | "No. YAGNI. X goes in Out of Scope."                                                           |
+| "Just say 'add validation'"    | "No. Specify exact validation rules."                                                          |
+| "Use placeholder paths"        | "No. I'll determine exact paths from codebase."                                                |
+| "Out of scope isn't important" | "No. Out of Scope prevents scope creep."                                                       |
+| "Make the plan generic"        | "No. Plans are specific to one feature."                                                       |
+| "Skip atomic design"           | "No. All UI components specify atomic layer."                                                  |
+| "Assume the component exists"  | "No. I'll verify against codebase and document the implementation approach."                   |
+| "The design explains the UI"   | "No. UI patterns must map to code: existing component, new component, or behavioural pattern." |
+| "Skip open questions"          | "No. Open questions must be resolved before planning begins."                                  |
+| "Resolve questions later"      | "No. Full understanding required before writing plan."                                         |
+| "Write the whole plan at once" | "No. I'll write in sections with validation at each step."                                     |
+| "Skip design validation"       | "No. I must validate design assumptions against codebase before planning."                     |
+| "Trust the design is correct"  | "No. Planning validates design feasibility. Design doc updated if conflicts found."            |
+
+If user persists:  Add a note to the relevant planning document recording the override and the reason given. Then continue.
+
+---
+
+## Final Rule
+
+```
+Plan complete → design exists, entry gate passes, all exit gates pass, checklist complete
+Otherwise → plan incomplete → do not proceed
+```
+
+No exceptions without human partner's permission.
+
+---
+**END OF DOCUMENT:** Total sections: 11 | Purpose: Write implementation plans from approved design documents

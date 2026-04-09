@@ -1,0 +1,981 @@
+# Build E2E Tests
+
+## Overview
+
+Build end-to-end tests for delivered features. E2E tests verify user-visible behaviour from the outside in.
+
+**Goal:** Create a comprehensive E2E test suite that validates the feature works from the user's perspective.
+
+**NOT for:**
+
+- New feature delivery → use `/midtempo-framework/build.md`
+- Unit test manifests → use `/midtempo-framework/write-tests.md`
+- Known bugs → use `/midtempo-framework/bugs.md`
+- Code quality → use `/midtempo-framework/refactor.md`
+
+**Outputs:**
+
+- `planning/[feature-name]-e2e-tests.md` — E2E test manifest (Stage 1)
+- E2E test files in the e2e test directory (Stage 2, new conversation)
+
+**Input:** Delivered feature with approved design document (`planning/[feature-name]-design.md`)
+
+**Context:** E2E tests are acceptance verification, NOT design tools. Features must have unit tests first (TDD). E2E confirms the system works as a whole after delivery.
+
+**Conversation boundary:** This skill spans two conversations (Stages). Stage 1 (Steps 1–4) produces the approved manifest. Stage 2 (Steps 5–6) builds the tests from the manifest in a fresh conversation.
+
+---
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Non-Negotiable Rules](#non-negotiable-rules)
+- [Entry Gate](#entry-gate)
+- [Step 1: Context Gathering](#step-1-context-gathering)
+  - [Agent Actions (Silent)](#11-agent-actions-silent)
+  - [Present Feature Summary](#12-present-feature-summary)
+  - [Exit Gate — Context Gathering](#13-exit-gate--context-gathering)
+- [Step 2: E2E Readiness Audit](#step-2-e2e-readiness-audit)
+  - [Selector Strategy](#21-selector-strategy)
+  - [Readiness Scan](#22-readiness-scan)
+  - [Present Readiness Report](#23-present-readiness-report)
+  - [Exit Gate — E2E Readiness](#24-exit-gate--e2e-readiness)
+- [Step 3: E2E Scenario Creation](#step-3-e2e-scenario-creation)
+  - [Process](#31-process)
+  - [Scenario Structure](#32-scenario-structure)
+  - [Complexity Ratings](#33-complexity-ratings)
+  - [Coverage Requirements](#34-coverage-requirements)
+  - [Present Draft Manifest](#35-present-draft-manifest)
+  - [Exit Gate — Scenario Creation](#36-exit-gate--scenario-creation)
+- [Step 4: Validation & Manifest Complete](#step-4-validation--manifest-complete)
+  - [Traceability Check](#41-traceability-check)
+  - [Duplication Check](#42-duplication-check)
+  - [Four Gates Pre-Check](#43-four-gates-pre-check)
+  - [Exit Gate — Validation](#44-exit-gate--validation)
+  - [Manifest Complete Output](#45-manifest-complete-output)
+- [Step 5: Build E2E Tests](#step-5-build-e2e-tests)
+  - [Step 5 Entry Gate](#51-step-5-entry-gate)
+  - [Commands](#52-commands)
+  - [Execution Loop](#53-execution-loop)
+  - [Four Gates Enforcement](#54-four-gates-enforcement)
+  - [Exit Gate — Build](#55-exit-gate--build)
+- [Step 6: Final Verification](#step-6-final-verification)
+  - [Run E2E Suite](#61-run-e2e-suite)
+  - [Agent Checklist](#62-agent-checklist)
+  - [Exit Gate — Verification](#63-exit-gate--verification)
+- [Build E2E Complete Output](#build-e2e-complete-output)
+- [Anti-Patterns](#anti-patterns)
+- [Common Rationalisations (FORBIDDEN)](#common-rationalisations-forbidden)
+- [Violation Detection & Recovery](#violation-detection--recovery)
+- [What NOT to Do](#what-not-to-do)
+
+---
+
+## Non-Negotiable Rules
+
+<CRITICAL_REQUIREMENT type="MANDATORY">
+
+- You MUST locate the design document — single source of truth for the feature
+- You MUST read `/midtempo-framework/rules/e2e.md`, `/midtempo-framework/rules/testing.md`, and `/midtempo-framework/rules/writing.md` before proceeding
+- You MUST audit element selector availability before writing any E2E tests
+- You MUST use the most stable selector available for each element (see §2.1 Selector Strategy)
+- You MUST flag fragile selectors in the readiness report for human awareness
+- You MUST apply all Four Gates (Element Selection, Test Isolation, Determinism, Scope Appropriateness) to every test
+- You MUST obtain human approval of the E2E manifest before writing test code
+- You MUST save all work to `planning/[feature-name]-e2e-tests.md` before ending Stage 1
+- You MUST start a new conversation for Stage 2 to protect the context window
+- You MUST NOT write E2E tests as a substitute for unit tests
+- You MUST use UK English spelling throughout
+
+</CRITICAL_REQUIREMENT>
+
+---
+
+### ENTRY GATE
+
+```
+{% if commands.test_e2e is not defined -%}
+IF E2E test commands not configured
+  → INVALID: STOP — Add test_e2e to midtempo-framework.yml commands before using this skill.
+
+{% endif -%}
+IF design document does not exist at planning/[feature-name]-design.md
+  → INVALID: STOP — Feature must be delivered before writing E2E tests. Run build skill first.
+
+Check unit tests are green:
+{{ test_gate(this) }}
+
+IF unit tests are not passing
+  → INVALID: STOP — Fix unit tests before writing E2E tests.
+
+{% set rules_pages = ['writing', 'testing', 'e2e'] %}
+{% for page in rules_pages %}
+IF not read ALL of `/midtempo-framework/rules/{{ page }}.md`
+  → INVALID: STOP - Read ALL of `/midtempo-framework/rules/{{ page }}.md` before proceeding
+{% endfor %}
+
+{% set instruction_pages = ['purpose', 'architecture'] %}
+{% for page_key in instruction_pages %}
+{% if page_key in instructions %}
+IF not read ALL of {{ page_key | instructions }}
+  → INVALID: STOP - Read ALL of `/midtempo-framework/instructions/{{ instructions[page_key].page }}` before proceeding
+{% endif %}
+{% endfor %}
+
+{{ conditional_ui_reads(capabilities, instructions, include_new_page=false) }}
+{{ conditional_db_reads(capabilities, instructions) }}
+{{ conditional_security_reads(capabilities, security if security is defined else {}) }}
+
+IF human describes building E2E tests for a delivered feature
+  → VALID: Continue to Step 1
+```
+
+---
+
+## Step 1: Context Gathering
+
+**Goal:** Understand the delivered feature and identify user-facing flows to test.
+
+### 1.1 Agent Actions (Silent)
+
+{{ find_design_doc() }}
+
+```
+READ design document:
+  - Extract feature scope and acceptance criteria
+  - Extract user flows and interaction points
+  - Note out-of-scope items (must NOT have E2E tests)
+
+SCAN delivered code:
+  - Identify pages, routes, and API endpoints
+  - Check for existing E2E test infrastructure (config, helpers, fixtures)
+{% if capabilities.hasUI %}  - Identify interactive elements in delivered components
+  - Catalogue existing selector attributes (data-testid, id, aria-*, name)
+{% endif %}{% if capabilities.hasDB %}  - Identify database entities involved in user flows
+  - Check for existing test data seeding utilities
+{% endif %}
+
+CHECK for related planning docs:
+  - planning/[feature-name]-plan.md
+  - planning/[feature-name]-tests.md (unit test manifest)
+```
+
+### 1.2 Present Feature Summary
+
+**Output to human:**
+
+```
+Feature Summary (from design document):
+
+**Feature:** [Feature name]
+**Design doc:** planning/[feature-name]-design.md
+
+**Acceptance Criteria:**
+
+| ID   | Criterion                          | Design Section |
+|------|------------------------------------|----------------|
+| AC1  | [acceptance criterion]             | §X             |
+| AC2  | [acceptance criterion]             | §X             |
+
+**User Flows Identified:**
+
+1. [Flow name] — [brief description of user journey]
+2. [Flow name] — [brief description of user journey]
+
+**Out of Scope (no E2E tests):**
+- [out of scope item]
+
+**Existing E2E infrastructure:**
+- [Config/helpers/fixtures found, or "None — will need setup"]
+
+Does this capture the feature correctly?
+```
+
+**Wait for human validation**
+
+**If corrections needed:** Update summary and re-present
+
+### 1.3 Exit Gate — Context Gathering
+
+```
+IF feature summary not validated by human
+  → STOP. Wait for validation.
+
+IF no user flows identified
+  → STOP. Ask human to clarify which flows need E2E coverage.
+
+VALID: Continue to Step 2
+```
+
+---
+
+## Step 2: E2E Readiness Audit
+
+**Goal:** Assess element selector availability and determine the selector strategy for each interactive element.
+
+### 2.1 Selector Strategy
+
+Use the most stable selector available for each element. **Do not demand codebase refactoring** — work with what exists.
+
+**Preference order (most to least stable):**
+
+| Priority | Selector Type | Example | Stability |
+|----------|--------------|---------|-----------|
+| 1 | `data-testid` | `[data-testid="upload-button"]` | Most stable — dedicated test attribute |
+| 2 | `id` attribute | `#upload-form` | Stable — but may have non-test purposes |
+| 3 | `aria-*` / `name` | `[aria-label="Upload"]`, `[name="title"]` | Stable — semantic, unlikely to change |
+| 4 | Structural | `.upload-form > button:first-child` | Fragile — breaks on DOM restructuring |
+
+{% if capabilities.hasUI -%}
+**data-testid is preferred** but not required. If the codebase already uses `data-testid` attributes, follow the existing conventions. If it does not, use the best available stable selector.
+{% endif %}
+
+**Fragile selectors** (Priority 4) should be flagged in the readiness report but are NOT blocking. The human decides whether to improve them.
+
+### 2.2 Readiness Scan
+
+{% if capabilities.hasUI -%}
+```
+FOR each user flow identified in Step 1:
+  SCAN components involved in the flow:
+    - Identify interactive elements (buttons, inputs, forms, links, selects)
+    - For each element, find the best available selector:
+      1. Check for data-testid attribute
+      2. Check for id attribute
+      3. Check for aria-* or name attributes
+      4. Fall back to structural selector (flag as fragile)
+    - Record selector type and stability rating
+```
+{% else -%}
+```
+SCAN delivered feature:
+  - Identify API endpoints to test
+  - Identify integration points between services
+  - Check for deterministic test setup patterns
+  - Verify test data seeding utilities exist
+```
+{% endif -%}
+
+### 2.3 Present Readiness Report
+
+**Output to human:**
+
+{% if capabilities.hasUI -%}
+```
+E2E Readiness Report
+
+| Element         | Component File              | Best Selector              | Strategy    | Stability |
+|-----------------|-----------------------------|----------------------------|-------------|-----------|
+| Upload button   | src/components/Upload.tsx   | data-testid="upload-btn"   | data-testid | Stable    |
+| Title input     | src/components/Form.tsx     | id="title"                 | id          | Stable    |
+| Save button     | src/components/Form.tsx     | name="save"                | name        | Stable    |
+| Delete link     | src/components/Actions.tsx  | .actions > a:last-child    | structural  | Fragile   |
+
+Summary:
+  Stable selectors: [N] elements (data-testid, id, aria-*, name)
+  Fragile selectors: [N] elements (structural — flagged below)
+
+Fragile selectors (will work but may break on DOM changes):
+  - Delete link in Actions.tsx — no stable attribute available
+    Recommendation: Consider adding data-testid="delete-link" if feasible
+
+Proceed with these selectors, or would you like to improve any before continuing?
+```
+{% else -%}
+```
+E2E Readiness Report
+
+This repo has no UI. E2E tests will focus on API and integration flows.
+
+| Endpoint/Flow   | Method | Path           | Status    |
+|-----------------|--------|----------------|-----------|
+| [flow name]     | POST   | /api/resource  | READY     |
+| [flow name]     | GET    | /api/resource  | READY     |
+
+Test infrastructure:
+  - [Available helpers/fixtures, or "None — will create"]
+
+Proceed with E2E scenario creation?
+```
+{% endif -%}
+
+**Wait for human decision**
+
+{% if capabilities.hasUI -%}
+**Human may:**
+- **Approve** — proceed with current selectors as-is
+- **Improve selectors** — add `data-testid` or other stable attributes to specific elements before continuing
+- **Exclude flows** — remove flows with only fragile selectors from E2E scope
+
+**After human decision:** Record the agreed selector strategy in the manifest. Continue to Step 3.
+{% endif %}
+
+### 2.4 Exit Gate — E2E Readiness
+
+```
+IF readiness report not presented
+  → STOP. Complete readiness scan.
+
+IF human has not approved selector strategy
+  → STOP. Wait for human decision.
+
+VALID: Continue to Step 3
+```
+
+---
+
+## Step 3: E2E Scenario Creation
+
+**Goal:** Create E2E test scenarios with design references for every user flow.
+
+### 3.1 Process
+
+For each user flow identified in Step 1:
+
+1. **Identify test file** — Where E2E tests for this flow belong
+2. **Create scenarios** — Happy path, error conditions, key interactions
+3. **Link to design** — Each scenario references acceptance criteria
+4. **Apply coverage requirements** — Verify against §3.4
+5. **Assign complexity** — Rate each scenario (§3.3)
+6. **Record selectors** — Use the agreed selector strategy from Step 2
+
+### 3.2 Scenario Structure
+
+Each E2E test scenario MUST include:
+
+```markdown
+#### E2E [N.M]: [User-facing description in plain English]
+
+**Design Reference:** AC[X] — [Acceptance criterion from design doc]
+
+**Complexity:** [Low | Medium | High] — [one-line justification]
+
+**User Flow:** [Which user journey this tests]
+
+**GIVEN:**
+- [Database state / seeded data]
+{% if capabilities.hasAuthentication %}- [Authentication state: logged in as role X]
+{% endif %}- [Page or route to navigate to]
+
+**WHEN:**
+{% if capabilities.hasUI %}- [User action with selector: clicks `[data-testid="action-button"]` or `#action-button`]
+{% else %}- [API call or system action]
+{% endif %}- [Another user action]
+
+**THEN:**
+- [Visible outcome / response the user sees]
+- [Navigation outcome]
+- [Data persistence outcome]
+{% if capabilities.hasUI %}
+**Selectors used:**
+- `selector` — `component/file/path` — [stability: stable/fragile]
+{% endif %}
+```
+
+### 3.3 Complexity Ratings
+
+Assign one rating per scenario:
+
+| Rating | Criteria |
+|--------|----------|
+| Low | Single page, straightforward happy path, minimal setup |
+| Medium | Multi-step flow, database seeding required, or authentication needed |
+| High | Cross-page navigation, complex state, async operations, or multiple user roles |
+
+The human reviews and amends ratings before approval. Include a one-line justification with each rating.
+
+### 3.4 Coverage Requirements
+
+For each user flow, ensure:
+
+- [ ] At least one happy path scenario
+- [ ] Error conditions tested (invalid input, network failure, permission denied)
+- [ ] Key user interactions covered (not exhaustive — that's unit tests' job)
+- [ ] No scenarios for out-of-scope flows
+{% if capabilities.hasUI %}
+- [ ] Each scenario records the selectors it will use and their stability
+{% endif %}
+{% if capabilities.hasDB %}
+- [ ] Database state management specified (seed data, cleanup)
+{% endif %}
+{% if (security is defined and security) or capabilities.hasAuthentication or capabilities.handlesConfidentialData or capabilities.isPublicFacing %}
+- [ ] Security scenarios included where applicable:
+{% if capabilities.hasAuthentication %}
+  - Auth boundaries tested (unauthorised access, session handling)
+{% endif %}
+{% if capabilities.isPublicFacing %}
+  - Public-facing hardening verified (rate limiting, security headers)
+{% endif %}
+{% endif -%}
+
+### 3.5 Present Draft Manifest
+
+Present each user flow's scenarios for validation before proceeding to the next.
+
+**Output to human:**
+
+```
+User Flow: [flow name]
+Test file: e2e/tests/[area]/[flow-name].spec.ts
+
+[Test scenarios for this flow]
+
+Coverage for this flow:
+
+| Scenario | Criterion | Complexity | Description           |
+|----------|-----------|------------|-----------------------|
+| E2E 1.1  | AC1       | Low        | [brief description]   |
+| E2E 1.2  | AC1       | Medium     | [brief description]   |
+| E2E 1.3  | AC2       | High       | [brief description]   |
+
+Review complexity ratings. Amend if needed.
+Does this coverage look correct for [flow name]?
+```
+
+{{ present_for_validation(
+     pre_validation="Count scenarios per flow and total across all flows",
+     post_validation="Append to planning/[feature-name]-e2e-tests.md"
+) }}
+
+**Repeat for each user flow before proceeding to exit gate.**
+
+### 3.6 Exit Gate — Scenario Creation
+
+```
+IF any flow's scenarios not validated
+  → STOP. Wait for validation.
+
+IF any acceptance criterion has zero E2E scenarios
+  → STOP. Add missing scenarios or confirm with human that criterion is covered by unit tests only.
+
+IF manifest not written to planning/[feature-name]-e2e-tests.md
+  → STOP. Write manifest before proceeding.
+
+VALID: Continue to Step 4
+```
+
+---
+
+## Step 4: Validation & Manifest Complete
+
+**Goal:** Verify traceability, detect duplicates, pre-check Four Gates. Save manifest. End conversation.
+
+### 4.1 Traceability Check
+
+Build coverage matrix:
+
+```
+Coverage Matrix:
+
+| Criterion | Scenarios      | Complexity        | Status    |
+|-----------|----------------|-------------------|-----------|
+| AC1       | E2E 1.1, 1.2   | 1 Low, 1 Medium   | Covered   |
+| AC2       | E2E 2.1        | 1 High            | Covered   |
+| AC3       | —              | —                 | MISSING   |
+
+Complexity summary: [N] Low, [N] Medium, [N] High
+
+Orphan scenarios (no acceptance criterion reference):
+- E2E 4.1 — No matching criterion in design doc
+```
+
+**If issues found:**
+
+1. List missing coverage
+2. List orphan scenarios
+3. Propose fixes
+4. Apply fixes
+5. Re-present coverage matrix
+6. Loop until clean
+
+### 4.2 Duplication Check
+
+Detect overlaps with unit tests and between E2E scenarios:
+
+- E2E scenarios testing the same flow with different wording
+- E2E scenarios that duplicate unit test coverage (scope violation)
+- Scenarios with identical setup and assertions
+
+```
+Duplication check:
+
+1. E2E 1.2 and E2E 3.1 — Both test [behaviour] with [same flow]
+   Recommendation: [merge / keep both / remove one]
+
+2. E2E 2.3 — Duplicates unit test T2.1 (tests internal logic, not user flow)
+   Recommendation: Remove — this belongs in unit tests, not E2E
+```
+
+**Present to human for decision.** Do not auto-resolve duplicates.
+
+### 4.3 Four Gates Pre-Check
+
+Verify every scenario design passes all Four Gates from `/midtempo-framework/rules/e2e.md`:
+
+```
+Four Gates Pre-Check:
+
+| Scenario  | G1 Selection | G2 Isolation | G3 Determinism | G4 Scope |
+|-----------|-------------|-------------|----------------|----------|
+| E2E 1.1   | VALID       | VALID       | VALID          | VALID    |
+| E2E 1.2   | VALID       | VALID       | VALID          | VALID    |
+| E2E 2.1   | INVALID     | VALID       | VALID          | VALID    |
+```
+
+- **Gate 1 (Element Selection):** All scenarios use stable selectors — fragile selectors flagged with human-approved fallback
+- **Gate 2 (Test Isolation):** Each scenario is self-contained with own setup/teardown
+- **Gate 3 (Determinism):** No dependency on real time or uncontrolled external services
+- **Gate 4 (Scope Appropriateness):** Tests user-visible flows, not internal logic
+
+**Any INVALID gate = fix before completing manifest**
+
+### 4.4 Exit Gate — Validation
+
+```
+IF coverage matrix shows missing criteria
+  → STOP. Fix coverage gaps.
+
+IF orphan scenarios exist without justification
+  → STOP. Resolve orphans.
+
+IF duplicates flagged but not resolved by human
+  → STOP. Wait for human decision.
+
+IF Four Gates pre-check has any INVALID
+  → STOP. Fix gate violations in manifest.
+
+VALID: Append validation results to planning/[feature-name]-e2e-tests.md. Continue to §4.5.
+```
+
+### 4.5 Manifest Complete Output
+
+**PREREQUISITE:** Step 4 validation passed.
+
+{{ exit_gate_requirements("after validation passes", extra_rules=["You MUST verify Step 4 validation has passed before producing this output"]) }}
+
+```
+═══════════════════════════════════════════════════════════════════════════════
+                  E2E MANIFEST COMPLETE: [FEATURE-NAME]
+═══════════════════════════════════════════════════════════════════════════════
+
+Document created:
+- `planning/[feature-name]-e2e-tests.md`
+
+Coverage:
+- [N] acceptance criteria from design document
+- [M] E2E scenarios across [X] user flows
+
+Complexity:
+- Low: [N] scenarios
+- Medium: [N] scenarios
+- High: [N] scenarios
+
+Selector Strategy:
+- Stable: [N] elements
+- Fragile: [N] elements (human-approved)
+
+Validation:
+- Traceability: all criteria mapped ✓
+- Duplicates: [none / N resolved] ✓
+- Four Gates pre-check: all VALID ✓
+
+───────────────────────────────────────────────────────────────────────────────
+Review manifest. Start new conversation with:
+
+Build E2E Stage 2 — use /midtempo-framework/build-e2e.md with
+/planning/[feature-name]-e2e-tests.md. Run Stage 2.
+───────────────────────────────────────────────────────────────────────────────
+```
+
+**STOP HERE.** Do not proceed to Stage 2 in the same conversation.
+
+---
+
+## Step 5: Build E2E Tests
+
+**Goal:** Write actual E2E test code from the approved manifest.
+
+**Context:** This is Stage 2 — runs in a NEW conversation to protect the context window. The manifest from Stage 1 is the single input.
+
+### 5.1 Step 5 Entry Gate
+
+```
+IF E2E manifest does not exist at planning/[feature-name]-e2e-tests.md
+  → INVALID: STOP — Run Stage 1 first.
+
+IF E2E manifest validation section is missing or incomplete
+  → INVALID: STOP — Manifest must be validated before building tests.
+
+{% set rules_pages = ['testing', 'e2e'] %}
+{% for page in rules_pages %}
+IF not read ALL of `/midtempo-framework/rules/{{ page }}.md`
+  → INVALID: STOP - Read ALL of `/midtempo-framework/rules/{{ page }}.md` before proceeding
+{% endfor %}
+
+READ planning/[feature-name]-e2e-tests.md:
+  - Extract selector strategy
+  - Extract all approved scenarios
+  - Note complexity ratings
+
+VALID: Continue to §5.2
+```
+
+{% if commands.test_e2e is defined %}
+### 5.2 Commands
+
+```bash
+{{ this.cmd('test_e2e') }}              # Run all E2E tests
+{% if commands.test_e2e_ui is defined %}{{ this.cmd('test_e2e_ui') }}           # Interactive UI mode
+{% endif %}{% if commands.test_e2e_headed is defined %}{{ this.cmd('test_e2e_headed') }}       # Watch tests in browser
+{% endif %}{% if commands.test_e2e_codegen is defined %}{{ this.cmd('test_e2e_codegen') }}      # Record and generate tests
+{% endif %}```
+{% endif %}
+
+### 5.3 Execution Loop
+
+For each user flow in the approved manifest:
+
+```
+1. CREATE test file at the path specified in the manifest
+
+2. WRITE test code following /midtempo-framework/rules/e2e.md:
+   - Import test framework
+   - Group tests with describe block for the flow
+{% if capabilities.hasDB %}   - Set up database cleanup/seeding in beforeEach
+{% endif %}   - Arrange/Act/Assert within each test
+   - Use the selector strategy agreed in the manifest
+   - Prefer stable selectors; use fragile selectors only when approved
+
+3. APPLY Four Gates to written code (§5.4)
+
+4. RUN E2E test:
+{% if commands.test_e2e is defined %}   {{ this.cmd('test_e2e') }}
+{% endif %}
+5. IF test fails:
+   - Investigate cause
+   - IF implementation bug → STOP. Report to human: "E2E test reveals implementation issue: [description]"
+   - IF test issue → Fix test and re-run
+   - IF selector broken → Try next-best selector from strategy, flag in progress report
+
+6. PRESENT progress after each flow:
+   "Flow: [name]
+    Tests: [N] written, [N] passing
+    Four Gates: all VALID
+
+    Continue to next flow?"
+
+7. WAIT for human confirmation before next flow
+```
+
+### 5.4 Four Gates Enforcement
+
+Apply to every test as it is written. **Violations are blocking.**
+
+**Gate 1 — Element Selection:**
+```
+IF using text content as primary selector (getByText, innerText matching)
+  → VIOLATION: Use stable selector from the agreed strategy
+  → Preference: data-testid > id > aria-*/name > structural
+IF using deeply nested CSS path without human approval
+  → WARNING: Flag as fragile, confirm with human
+```
+
+**Gate 2 — Test Isolation:**
+```
+IF test depends on state from previous tests
+  → VIOLATION: Each test must set up its own state
+IF test leaves state without cleanup
+  → VIOLATION: Add cleanup in afterEach or use truncation
+```
+
+**Gate 3 — Determinism:**
+```
+IF test uses manual timeouts (waitForTimeout, setTimeout)
+  → VIOLATION: Use framework auto-wait or explicit condition waits
+IF test depends on external services without mocking
+  → VIOLATION: Mock external dependencies or use test doubles
+```
+
+**Gate 4 — Scope Appropriateness:**
+```
+IF testing internal logic without user interaction
+  → VIOLATION: Use unit test instead
+IF testing single component in isolation
+  → VIOLATION: Use component test instead
+```
+
+**Agent must detect violations and execute recovery automatically without asking permission.**
+
+### 5.5 Exit Gate — Build
+
+```
+IF any flow's tests not written
+  → STOP. Complete remaining flows.
+
+IF any test fails
+  → STOP. Fix or report to human.
+
+IF Four Gates violations exist in any written test
+  → STOP. Fix violations.
+
+VALID: Continue to Step 6
+```
+
+---
+
+## Step 6: Final Verification
+
+**Goal:** Verify the complete E2E suite passes and meets all standards.
+
+### 6.1 Run E2E Suite
+
+{% if commands.test_e2e is defined %}
+```bash
+{{ this.cmd('test_e2e') }}
+```
+{% endif %}
+
+Also run unit tests to confirm no regression:
+
+{{ test_gate(this) }}
+
+### 6.2 Agent Checklist
+
+Complete this checklist before declaring E2E tests ready:
+
+- [ ] All element queries use stable selectors from the agreed strategy
+{% if capabilities.hasUI %}
+  - [ ] Fragile selectors flagged and human-approved
+{% endif %}
+{% if capabilities.hasDB %}
+- [ ] Database state controlled
+  - [ ] Tests do not depend on state from other tests
+  - [ ] Cleanup runs between tests or in teardown
+{% endif %}
+- [ ] Tests are deterministic
+  - [ ] No manual timeout calls
+  - [ ] External services mocked or controlled
+  - [ ] Time-dependent logic uses fixed values
+- [ ] Scope is appropriate
+  - [ ] Tests verify user-visible flows
+  - [ ] Internal logic tested in unit tests
+- [ ] Tests follow naming conventions
+  - [ ] Test names describe user behaviour
+- [ ] Unit tests still passing (no regression)
+
+**Agent must paste completed checklist when declaring E2E tests ready.**
+
+### 6.3 Exit Gate — Verification
+
+```
+IF E2E suite has failures
+  → STOP. Fix failing tests.
+
+IF unit tests have regressions
+  → STOP. Fix regressions before proceeding.
+
+IF agent checklist incomplete
+  → STOP. Complete all checklist items.
+
+VALID: Continue to Build E2E Complete Output
+```
+
+---
+
+## Build E2E Complete Output
+
+**PREREQUISITE:** Step 6 verification passed.
+
+**PROHIBITED:** Producing this output when verification has unresolved issues.
+
+{{ exit_gate_requirements("after verification passes", extra_rules=["You MUST verify all verification issues are resolved before producing this output"]) }}
+
+```
+═══════════════════════════════════════════════════════════════════════════════
+                    BUILD E2E COMPLETE: [FEATURE-NAME]
+═══════════════════════════════════════════════════════════════════════════════
+
+Design document: `planning/[feature-name]-design.md`
+E2E manifest: `planning/[feature-name]-e2e-tests.md`
+
+Coverage:
+- [N] acceptance criteria from design document
+- [M] E2E scenarios across [X] user flows
+
+Complexity:
+- Low: [N] scenarios
+- Medium: [N] scenarios
+- High: [N] scenarios
+
+Selectors:
+- Stable: [N] elements
+- Fragile: [N] elements (human-approved)
+
+Test Files Created:
+- `e2e/tests/path/to/flow-1.spec.ts`
+- `e2e/tests/path/to/flow-2.spec.ts`
+
+E2E Suite: [N] tests passing ✓
+Unit Tests: no regression ✓
+
+Agent Checklist: [paste completed checklist from §6.2]
+
+───────────────────────────────────────────────────────────────────────────────
+Review E2E tests. When ready:
+
+review e2e — use /midtempo-framework/review-e2e.md
+───────────────────────────────────────────────────────────────────────────────
+```
+
+---
+
+## Anti-Patterns
+
+### Anti-Pattern 1: Text Content as Primary Selector
+
+**INVALID — Agent must refuse to write:**
+
+```
+test('uploads track', async ({ page }) => {
+  await page.getByText('Upload').click();
+  await page.getByRole('button', { name: 'Save' }).click();
+});
+```
+
+**Recovery:** Use stable selector from the agreed strategy. Prefer `data-testid` > `id` > `aria-*`/`name` > structural.
+
+### Anti-Pattern 2: Manual Timeouts
+
+**INVALID — Agent must refuse to write:**
+
+```
+await page.waitForTimeout(2000);
+```
+
+**Recovery:** Replace with explicit condition wait (element visible, network response, URL change).
+
+### Anti-Pattern 3: Shared State
+
+**INVALID — Agent must refuse to write:**
+
+```
+let sharedId;
+test('creates item', async () => { sharedId = ...; });
+test('edits item', async () => { /* uses sharedId */ });
+```
+
+**Recovery:** Each test seeds its own data. Move setup into test or beforeEach.
+
+### Anti-Pattern 4: Testing Implementation
+
+**INVALID — Agent must refuse to write:**
+
+```
+test('calls API', async ({ page }) => {
+  const apiCalls = [];
+  await page.route('/api/*', route => { apiCalls.push(route); route.fulfill({}); });
+  await page.getByTestId('submit-button').click();
+  expect(apiCalls.length).toBe(1);  // Tests implementation, not behaviour
+});
+```
+
+**Recovery:** Test user-visible outcome (success message, navigation, data displayed) instead.
+
+### Anti-Pattern 5: E2E as Unit Test Substitute
+
+**INVALID:**
+
+```
+// Writing E2E test for internal validation logic
+test('validates email format', async ({ page }) => {
+  await page.getByTestId('email-input').fill('bad');
+  // This should be a unit test
+});
+```
+
+**Recovery:** Write unit test for validation logic. E2E tests verify the complete form submission flow.
+
+---
+
+## Common Rationalisations (FORBIDDEN)
+
+**Agent must refuse these justifications with mandatory counter-responses:**
+
+| User Says | Agent Must Respond |
+|-----------|--------------------|
+| "E2E covers it, skip unit tests" | "No. E2E verifies integration. Unit tests drive design. Writing unit tests first." |
+| "Just add a small wait to fix flakiness" | "No. Waits hide timing bugs. Finding root cause." |
+| "Tests pass in sequence, that's fine" | "No. Tests must pass independently. Adding proper setup." |
+| "Testing the API call proves it works" | "No. Test user-visible outcome, not implementation." |
+| "We don't need E2E for this" | "If the feature has user-facing flows, it needs E2E verification." |
+| "Skip the manifest, just write tests" | "No. The manifest ensures traceability to acceptance criteria. Plan first, build second." |
+| "Use getByText, the text won't change" | "Text is content, not contract. Use stable selectors from the agreed strategy." |
+
+**If user persists:** Add a note to the relevant planning document recording the override and the reason given. Then continue.
+
+---
+
+## Violation Detection & Recovery
+
+**Agent must detect violations and execute recovery automatically without asking permission.**
+
+### Violation: Gate Failure in Written Test
+
+**Detection:** Any of the Four Gates fails on written test code
+
+**Recovery:**
+
+```
+1. STOP at this test
+2. State: "VIOLATION DETECTED: Gate [N] failure — [description]"
+3. REWRITE test to comply with gate
+4. RE-RUN to verify fix
+5. DO NOT ask permission — execute recovery automatically
+```
+
+### Violation: Missing Manifest Reference
+
+**Detection:** E2E test written without corresponding manifest scenario
+
+**Recovery:**
+
+```
+1. STOP at this test
+2. State: "VIOLATION: Test has no manifest scenario"
+3. IDENTIFY which acceptance criterion this tests
+4. ADD scenario to manifest
+5. CONTINUE with test
+```
+
+### Violation: Scope Creep
+
+**Detection:** E2E test covers behaviour not in the design document
+
+**Recovery:**
+
+```
+1. STOP at this test
+2. State: "VIOLATION: Test covers out-of-scope behaviour"
+3. REMOVE test
+4. IF behaviour is important → ASK human to update design scope
+```
+
+---
+
+## What NOT to Do
+
+- Do not write E2E tests before the feature is delivered
+- Do not skip the readiness audit
+- Do not write tests without manifest approval
+- Do not use text content as primary element selector
+- Do not share state between tests
+- Do not use manual timeouts
+- Do not test internal logic — use unit tests for that
+- Do not auto-resolve duplicate scenarios without human decision
+- Do not substitute E2E tests for unit tests
+- Do not proceed with failing tests without investigation
+- Do not run "Stage 2" in the same conversation as "Stage 1"
+
+---
+
+{{ end_of_file(total_sections=12, file_purpose='Build E2E tests for delivered features') }}

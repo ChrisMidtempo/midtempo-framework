@@ -1,0 +1,321 @@
+# Midtempo Coding Framework
+
+A framework for building production-quality code with AI coding agents.
+
+> LLM output is not trustworthy. This framework is centred around the belief that the engineer needs to be actively involved to build trust in the delivery. Here, the agent acts more as pair-programmer than autonomous code-generator.
+>
+> Wider [framework concepts](GUIDE.md) are described here.
+
+---
+
+## Table of Contents
+
+- [How It Works](#how-it-works)
+- [Repo Setup](#repo-setup)
+- [Main Workflow](#main-workflow)
+- [Other Skills](#other-skills)
+- [Configuration](#configuration)
+- [Updating Framework](#updating-framework)
+- [Rules the Agent Follows](#rules-the-agent-follows)
+- [Key Files](#key-files)
+- [Sizing Your Work](#sizing-your-work)
+- [Common Pitfalls](#common-pitfalls)
+- [Next Steps](#next-steps)
+
+---
+
+## How It Works
+
+The agent follows fixed workflows, with each step running in a **fresh conversation**. The main workflow is token and time intensive, but this is balanced by fewer re-writes, deeper understanding, and better code. 
+
+```
+BUILD → DESIGN → PLAN → TESTS → DELIVER (Red → Green → Refactor → Docs)
+```
+
+You approve progress in bite-sized chunks and discuss the approach as the delivery is defined. Each step produces documentation that the next stage consumes, providing the necessary context to successfully complete. This bite-sized approach keeps the agent on track and gives you control throughout the process.
+
+Once complete, the main workflow's DESIGN docs provide full context for refinement and bug fixes.
+
+```
+BUGS → DESIGN docs → TRACE TO SOURCE → FIX (Red → Green → Refactor → Docs)
+```
+
+```
+REFINE → DESIGN docs → DEFINE SCOPE → DELIVER (Red → Green → Refactor → Docs)
+```
+
+
+### Why fresh conversations?
+
+Agents lose accuracy as conversations grow. When the context window fills, rules drift and mistakes creep in. Starting fresh for each step avoids this - the delivery documents and test state carry the context.
+
+**If the conversation hits a compact/summary trigger: stop, start a new conversation, provide previous prompt, and tell the agent to continue from where you left off.**
+
+### You Commit
+
+The framework includes no Git interaction skills. You commit, not the LLM. It's your name on the code, you are responsible. Each phase will provide commit reminders with proposed commit messages, but it's your decision when code is ready to push. 
+
+---
+
+## Repo Setup
+
+Move `{{ repo.agentFile }}.md` to your repo root. Leave everything else in `/midtempo-framework/`.
+
+Then run setup:
+```
+Setup Stage 1 using `/midtempo-framework/setup.md`
+```
+
+[Full install instructions](INSTALL.md).
+
+> I purposely haven't integrated this with VSCode, Claude Code, or any other solution. There are no slash-commands, dependencies to install, or code to run. The framework is purely markdown (text) documents that act together as complex prompts. There should be no security risks or red flags with this framework. Either call the skills by path or file name (as provided), or integrate with your environment as you see fit.
+
+---
+
+## Main Workflow
+
+### Step 1: Build
+
+You describe what you want. The agent asks questions, reads your codebase, and produces a **decisions document** - what to build and why.
+
+> Run /midtempo-framework/build.md to [acceptance criteria, or description of feature, or link to a recommendation doc]
+
+**Output:** `planning/[feature]-decisions.md`
+
+### Step 2: Design
+
+The agent converts your approved decisions into a **design document** - what the solution looks like technically. This becomes the feature's single source of truth.
+
+**Output:** `planning/[feature]-design.md`
+
+### Step 3: Plan
+
+The design becomes a **delivery plan** - which files to change, in what order, with what dependencies.
+
+**Output:** `planning/[feature]-plan.md`
+
+### Step 4: Write Tests
+
+The agent creates a **test manifest** - every test scenario in Given/When/Then format. You review these before any code is written.
+
+**Output:** `planning/[feature]-tests.md`
+
+### Step 5: Deliver
+
+The agent implements the plan using strict Test-Driven Development:
+
+1. **Red** - Write failing tests (from the manifest)
+2. **Green** - Write the simplest code to pass each test
+3. **Refactor** - Clean up while tests stay green
+4. **Docs** - Update documentation to match the new code
+
+Each of these run in a separate conversation.
+
+`Phase 2 — use midtempo-framework/deliver.md with planning/[feature]-plan.md. Run Phase 2`
+
+Prompts to move to the next phase should be provided by the agent at the end of the current phase.
+
+> Warning: the fuller the context window, the less likely this is to happen. 
+>
+> If you don't get the standard output format, prompt the agent for the 'skill complete script'. The associated exit gates _should_ check that the skill has done everything it should - but never assume. LLMs lie.
+
+### The planning/ folder
+
+All pipeline artefacts live in `planning/`. Design docs (`*-design.md`) are your source of truth and should be committed. Everything else - decisions, plans, test manifests - are working documents that can be discarded post delivery.
+
+Two planning subfolders hold outputs from non-pipeline skills:
+
+- **`planning/investigations/`** - Investigation reports and recommendation documents from `investigate.md`
+- **`planning/reviews/`** - Review reports and recommendation documents from `review-tests.md`, `review-code.md`, and `review-architecture.md` skills.
+
+Everything but the *-design.md docs should be gitignored. If you want to keep other agent artifacts, commit manually.
+
+---
+
+## Other Skills
+
+Not everything goes through Build, Bugs, or Refine. Other skills handle specific tasks:
+
+| Skill | Purpose |
+|---|---|
+| `investigate.md` | Codebase delivery research - no code changes, but clear understanding of what to deliver with actionable tasks for the framework to pick-up |
+| `refactor.md` | Improves structure without changing behaviour - tests must be green first. Part of the Build workflow, but can be run independently |
+| `review-tests.md` | Checks test quality and coverage, reports file-by-file, with inline fixes or saved docs that can be actioned later. Can be run on a test manifest, or after TDD red state, or post-delivery review |
+| `review-code.md` | Checks feature delivery quality. Issues categorised, referenced, and described with clear resolution paths. Can be run after TDD refactor, or as a stand-alone skill |
+| `review-architecture.md` | Checks boundaries and coupling. Tries to identify broader issues and solutions |
+
+---
+
+## Configuration
+
+### `midtempo-framework.yml`
+
+This file controls what the framework knows about your repo. Key sections:
+
+**Capabilities** - toggle features on or off:
+```yaml
+capabilities:
+  hasUI: true                   # Enables UI-specific rules
+  hasDB: true                   # Enables database rules
+  hasTypecheck: true            # Lang has type checking
+  hasAuthentication: true       # Triggers security rules
+  handlesConfidentialData: true # Triggers security rules
+  isPublicFacing: true          # Triggers security rules
+```
+
+**Commands** - define exactly how tools run:
+```yaml
+commands:
+  test:
+    command: npm test
+    description: Run all tests
+  lint:
+    command: npm run lint
+    description: Run linting
+```
+
+The agent injects these commands into your repo's framework to run exactly as written.
+
+**Test, lint, and typecheck are compulsory**
+
+**Command categories** — group commands for display in the generated docs:
+
+| Category | Purpose |
+|---|---|
+| `test` | Test runners — shown in all delivery phases |
+| `lint` | Lint tools — shown in delivery and refine exit gates |
+| `typecheck` | Type checkers — shown when `hasTypecheck: true` |
+| `format` | Formatters — shown in delivery exit gate |
+| `docs` | Doc generators — shown in the Docs phase |
+| `utilities` | Project-wide checks — shown in investigations and reviews |
+| `discovery` | APIs or scripts that the agent can run to support codebase understanding |
+
+**Reserved command keys** — specific names the framework recognises to change behaviour:
+
+| Key | Required | Behaviour when present |
+|---|---|---|
+| `test` | Yes | Primary test command — also used for targeted TDD runs (`test <file>`) |
+| `lint` | Yes | Primary lint command |
+| `typecheck` | Yes | Primary type check command |
+| `test_unit` | No | Replaces `test` at Red/Green exit gates — runs unit tests only, skipping integration |
+| `test_integration` | No | Enables integration test classification logic at Red/Green exit gates |
+| `test_summary` | No | Replaces `test` at entry/exit gate checks — quieter pass/fail output |
+| `test_coverage` | No | Replaces `test` at the Refactor phase coverage check |
+| `format` | No | Triggers a format run at the Green exit gate (impacts file-length checks during Refactor phase) |
+| `test_e2e` | No | Triggers E2E failure check at Green exit gate when UI changes are present |
+
+**Instructions** - repo-specific documentation the agent reads during delivery:
+```yaml
+instructions:
+  architecture:
+    page: 'architecture.md'
+    description: 'How the codebase is structured'
+```
+
+These files live in `/midtempo-framework/instructions/` and are created during setup. Keep them up to date - the more accurate they are, the better the agent's output.
+
+## Updating Framework
+
+**Website**: 
+
+- upload the `midtempo-framework.yml`
+- edit/ensure it's up-to-date 
+- generate 
+- unpack the zip into your repo
+- move `{{ repo.agentFile }}.md` to your repo root. 
+- make sure that the `midtempo-framework/instructions/` folder is untouched
+
+**CLI**: 
+- put latest `midtempo-framework.yml`into `agents/{repo.name}` folder
+- run `npm run generate {repo.name}`
+- copy contents of `agents/{repo.name}` to repo
+- move `{{ repo.agentFile }}.md` to your repo root. 
+- make sure that the `midtempo-framework/instructions/` folder is untouched
+
+---
+
+## Rules the Agent Follows
+
+The agent enforces these automatically. You don't need to memorise them, but knowing they exist helps you understand its behaviour.
+
+### Non-negotiable
+
+- **No production code without a failing test first** - the agent writes tests, watches them fail, then writes code to make them pass
+- **Bugs trace to root cause** - no surface-level patches
+- **Refactoring only when tests are green** - no restructuring while things are broken
+- **No placeholders** - everything is implemented fully or not at all
+
+### Quality gates
+
+- Test coverage: 90%
+- File length: 500 lines max
+- Function length: 75 lines max
+- Linting: zero errors or warnings
+- Type checking: zero errors
+
+### Security
+
+Five universal rules apply to all work:
+
+1. No hardcoded secrets in code or version control
+2. No sensitive data in logs
+3. Secure defaults (fail closed, not open)
+4. Input validation at system boundaries
+5. Error messages don't leak sensitive information
+
+Additional security rules load automatically based on your repo's capabilities (authentication, database access, public-facing services, etc.). These are kept in `midtempo-framework/rules/security/`. If these don't match your needs, copy them into `midtempo-framework/instructions/` and adjust accordingly, then uncomment the security overrides in the .yml and re-generate the framework docs.
+
+---
+
+## Key Files
+
+```
+/
+├── {{ repo.agentFile }}.md         # Agent rules (must be in repo root)
+├── midtempo-framework/
+│   ├── midtempo-framework.yml      # Your repo's configuration
+│   ├── instructions/               # Immutable repo grounding docs (created by `setup.md`)
+│   ├── rules/                      # Coding standards the agent enforces
+│   └── templates/                  # Document templates for each pipeline step
+└── planning/                       # Only *-design.md committed; rest gitignored
+    ├── [feature]-decisions.md      # What to build and why
+    ├── [feature]-design.md         # Technical design (source of truth)
+    ├── [feature]-plan.md           # Step-by-step delivery plan
+    ├── [feature]-tests.md          # Test scenarios (Given/When/Then)
+    ├── investigations/             # Investigation reports and recommendations
+    ├── reviews/                    # Review reports and recommendations
+    └── archive/                    # Old design docs (subfolders ftw!)
+```
+
+---
+
+## Sizing Your Work
+
+Keep features to **30 unit tests or fewer** per build. Use `investigate.md` to break larger work into smaller pieces.
+
+Oversized features blow through context windows and need constant intervention. Breaking things into sensible chunks means better results and less time fixing the agent's drift.
+
+---
+
+## Common Pitfalls
+
+**The agent claims lint warnings are "legacy" and skips them**
+They're not. Stop, and make it fix them.
+
+**The agent modifies test files during the Green phase**
+This is suspicious - Green should only add production code. Question any test changes.
+
+**The conversation compacts or summarises**
+HARD STOP. Start a new conversation. Provide the previous prompt and tell the agent to pick up from where it left off. The planning documents carry the context and make re-starting simple.
+
+**The agent makes code changes without running a skill**
+Stop. All code changes should go through a framework skill (build, bug, refactor, refine). Not just for the rigour, but to keep the documentation aligned with the code. 
+
+The LLM will follow instructions, so it's easy to override any process. If you're working on non-production code and want to skip TDD, then tell it to skip. I don't advise overrides for prod code, but if you do then the framework rules are to find the relevant design doc and note the override before complying.
+
+---
+
+## Next Steps
+
+- **Install:** See [install](INSTALL.md) for setup instructions
+- **Understand the reasoning:** Read [concepts](GUIDE.md) for why each rule exists and what the framework is designed to prevent

@@ -1,0 +1,318 @@
+# Deliver - RED State
+
+## Overview
+
+**Goal:** Create meaningful unit tests for EVERY item in our test manifest, adhering to the repository's rules and instructions.
+
+**Inputs:** 
+ - Approved delivery plan (`planning/[feature-name]-plan.md`)
+ - Approved test manifest (`planning/[feature-name]-tests.md`)
+
+**Outputs:**
+ - Test files that match the manifest
+ - Sufficient scaffolding so that the tests run
+ - Test structure that adheres to our testing and repo rules
+
+**Workflow integration:** 
+ - This skill is ONLY run as a `deliver.md` sub-skill
+ - It is NEVER run as a stand-alone skill
+
+<CRITICAL_REQUIREMENT type="MANDATORY">
+
+- You MUST create a test for EVERY scenario in the test manifest — no scenario omitted
+- You MUST NOT write production code that implements the desired behaviour — scaffolding only
+- You MUST NOT use placeholder assertions (`expect(true).toBe(false)` or similar literals) — assert on expected behaviour
+- You MUST verify each test fails (not errors) with failure reason "behaviour not implemented"
+- You MUST use targeted test runs only — never run full suite in this step
+- You MUST NOT self-approve this step when any test passes or errors instead of failing
+
+</CRITICAL_REQUIREMENT>
+
+---
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Goal](#1-goal)
+- [Entry Gate](#2-entry-gate)
+- [Checklist](#3-checklist)
+- [Exit Gate](#4-exit-gate)
+- [Complete Script](#5-complete-script)
+
+---
+
+## 1. Goal
+
+All scenarios from the approved test manifest exist as tests and are failing for the correct reasons.
+
+### 2. Entry Gate
+
+```
+
+VERIFY-COMPLETE-READ for EVERY file below:
+  CHECK the last line says "END OF DOCUMENT"
+  IF CHECK fails → Re-read from offset until true end
+
+READ ALL of `/planning/[feature-name]-tests.md` → to understand scope of work
+READ ALL of `/planning/[feature-name]-plan.md` → to understand delivery scope
+
+VERIFY-COMPLETE-READ for EVERY file below:
+  CHECK the last line says "END OF DOCUMENT"
+  IF CHECK fails → Re-read from offset until true end
+
+READ ALL of `/midtempo-framework/instructions/architecture.md` → before proceeding
+READ ALL of `/midtempo-framework/instructions/error-handling.md` → before proceeding
+
+
+IF "delivery scope" involves UI
+ READ ALL of `/midtempo-framework/instructions/frontend-design.md` → before proceeding
+ READ ALL of `/midtempo-framework/instructions/style-guide.md` → before proceeding
+IF "delivery scope" includes adding a new page/screen
+  READ ALL of `/midtempo-framework/instructions/new-page.md` → before proceeding
+
+VALID: Continue to "§3. Process"
+```
+
+## 3. Process
+
+- [ ] Iteratively create all test files listed in `[feature-name]-tests.md`
+- [ ] For each scenario:
+  - [ ] Add a clearly named test case in the correct test file
+  - [ ] Ensure the test describes behaviour in plain English
+  - [ ] Sufficient scaffolding exists in `src/` to compile (empty classes, interfaces, functions)
+  - [ ] NO production code implements the desired behaviour
+  - [ ] Avoid asserting on mocks or test-only behaviour
+- [ ] Run each new test file and **verify RED**:
+  - [ ] Test fails (not errors)
+  - [ ] Failure reason matches "behaviour not implemented yet"
+  - [ ] No placeholder assertions (`expect(true).toBe(false)` or similar literals)
+  - [ ] If integration test errors with connection/service errors → record as "deferred — services unavailable" and continue
+  - [ ] If integration test errors for non-service reasons (import, syntax, type) → fix the error
+
+  VALID: Test calls production code and fails because behaviour is not implemented.
+  INVALID: Test uses a literal assertion (`assert False`, `expect(true).toBe(false)`) — fails for the wrong reason and proves nothing about behaviour.
+
+  - [ ] If test passes immediately → STOP. ASK Human: present why it passes (e.g. regression, coverage gap, or framework-provided behaviour), potential solutions (keep, fix, other), and recommendation. Wait for human decision.
+- [ ] Verify scaffolding contains no placeholder comments implying incomplete work:
+  - [ ] No `// Additional ... as defined in ...`
+  - [ ] No `// TODO: add remaining ...`
+  - [ ] No `// See ... for full definition`
+  - [ ] Every interface/type is complete or explicitly empty
+
+**Commands (use targeted runs only — never run full suite in this step):**
+
+```bash
+npm run test:python <test-file>   # Run specific test file
+npm run test:python:unit                # Run unit tests only to verify RED state
+npm run typecheck:python                  # Verify scaffolding compiles
+```
+**Test type classification:** Targeted runs use the base test command for all files. Classify errors by file location: unit test files → errors block (fix before continuing); integration test files → connection/service errors are deferrals.
+**Must type check** Scaffolding (empty functions, interfaces, types) must compile for tests to fail correctly rather than error. Catch type issues early before implementation begins.
+
+## 4. Exit Gate
+
+**PROHIBITED: Self-approving deliver-red when any test passes or errors instead of failing.**
+
+Entry required green, any failing test is our failing test.
+
+COUNT §3-passing tests — tests that passed immediately during §3 and were handled (fixed per human instruction or approved as known-pass). Record this count for reconciliation below.
+
+**Run once before human review:**
+
+```bash
+npm run test:python:unit                     # Unit tests — must all fail
+npm run test:python:integration              # Integration tests — must fail or defer
+npm run typecheck:python                  # Scaffolding must compile
+```
+
+**Verify expected failures:**
+
+```
+IF any scenario in test manifest lacks a corresponding test
+  → STOP. "Missing tests for: [list scenarios]"
+
+FOR EACH new test that passes immediately
+  → STOP. "Test passes without implementation - invalid test: [test name]"
+  → ASK Human: present why this test is passing (e.g. regression, coverage gap, or framework-provided behaviour), potential solutions (keep, fix, other), and recommendation based on this repo's rules, instructions, and patterns.
+  IF human confirms "keep"
+    → UPDATE `[feature-name]-tests.md`: note test as known-pass with reason
+    → Move to next passing test
+  IF human says test must be fixed
+    → Fix the test to fail for the correct reason
+    → Move to next passing test
+When all passing tests reviewed → continue exit gate
+
+IF any new unit test errors instead of fails
+  → STOP. "Test errors, not fails - fix compilation: [test name]"
+IF any new integration test errors with connection/service errors
+  → Record as "deferred — services unavailable" with test name and error
+  → Continue — integration tests with unavailable services are not blockers
+IF any new integration test errors for non-service reasons (import, syntax, type)
+  → STOP. "Integration test errors, not fails - fix compilation: [test name]"
+
+IF any test uses placeholder assertion - e.g. `expect(true).toBe(false)` or similar
+  → STOP. "Placeholder assertion - test fails for wrong reason. Rewrite to assert on expected behaviour."
+
+IF scaffolding contains comments implying incomplete implementation
+  → STOP. "Placeholder comment found. Complete the definition or remove it. No '// Additional columns...', '// TODO: add remaining...', '// See X for full definition'."
+
+IF `npm run typecheck:python` has errors
+  → STOP. "Scaffolding has type errors. Fix before proceeding."
+IF log does not show expected number of failures
+  → STOP. "Expected [N] failing tests, log shows different count."
+  → Every new test must fail. Count must match test manifest.
+IF integration tests were deferred
+  → Verify each deferred test has a service-dependency reason (not a code error)
+  → Deferred tests do not count toward failure total — adjust expected count accordingly
+
+VERIFY: §3-passing count + §4-passing count = total tests that passed immediately across §3 and §4
+  IF mismatch → STOP. "Count mismatch: §3-handled ([n]) + §4-handled ([n]) ≠ [total] initially-passing tests. Resolve before proceeding."
+
+IF scaffolding structure does not follow '/midtempo-framework/instructions/architecture.md "Compliance Gates"'
+  → STOP. "Verify architecture compliance gates for structural rules (file placement, naming) before proceeding."
+IF UI scaffolding does not follow '/midtempo-framework/instructions/frontend-design.md "Compliance Gates"'
+  → STOP. "Verify frontend-design compliance gates for structural rules (component placement) before proceeding."
+
+IF delivery scope touches secrets management AND '/midtempo-framework/rules/security/secrets-management.md "Compliance Gates"' not verified
+  → STOP. "Verify all secrets-management compliance gates before proceeding."
+IF delivery scope touches input validation AND '/midtempo-framework/rules/security/input-validation.md "Compliance Gates"' not verified
+  → STOP. "Verify all input-validation compliance gates before proceeding."
+IF delivery scope touches authentication AND '/midtempo-framework/rules/security/authentication.md "Compliance Gates"' not verified
+  → STOP. "Verify all authentication compliance gates before proceeding."
+IF delivery scope touches data protection AND '/midtempo-framework/rules/security/data-protection.md "Compliance Gates"' not verified
+  → STOP. "Verify all data-protection compliance gates before proceeding."
+IF delivery scope touches public hardening AND '/midtempo-framework/rules/security/public-hardening.md "Compliance Gates"' not verified
+  → STOP. "Verify all public-hardening compliance gates before proceeding."
+
+IF '/midtempo-framework/rules/testing.md "Compliance Gates"' not verified
+  → STOP. "Verify all testing compliance gates before proceeding."
+
+Criteria for VALID (ALL required):
+- Every scenario has a corresponding test
+- Every new unit test fails (not errors) OR is a human-approved known-pass
+- Every new integration test fails OR is deferred (services unavailable) OR is a human-approved known-pass
+- Deferred integration tests listed with service-dependency reason
+- New test count matches manifest count (deferred tests excluded from failure count)
+- No test contains `expect(true).toBe(false)` (or similar)
+- Every failure reason is "behaviour not implemented"
+- Known-pass tests noted in `[feature-name]-tests.md` with reason
+- Scaffolding compiles (type checks pass = 0 errors)
+- Log confirms expected failure + known-pass + deferred count
+- Structural compliance gates verified (file placement, naming conventions)
+- Documents updated
+
+If criteria fail → fix the tests. Deliver-red MUST not complete with passing or erroring tests without human approval.
+
+---
+
+VALID: Show "§5. Complete Script"
+```
+
+**Update test manifest status:**
+
+```
+COUNT total tests from `planning/[feature-name]-tests.md` manifest
+COUNT failing tests from test run output
+COUNT known-pass tests from human-approval interactions in §3 and §4 — do not derive from test output
+COUNT deferred tests (services unavailable) from test run output
+
+IF failing + known-pass + deferred ≠ manifest total
+  → STOP. "Count mismatch: [failing] + [known-pass] + [deferred] ≠ [manifest total]. Resolve before updating status."
+```
+
+WAIT for human validation before proceeding
+
+Known-pass count: [N]
+Names:
+- [test name] (approved in §3 or §4)
+IF human approves
+  → VALID: Open `planning/[feature-name]-tests.md` and update status
+  → Continue to next section
+IF human requests changes
+  → REVISE: Update and re-present
+
+```
+IF deferred > 0 AND known-pass > 0
+  → SET Status to: Red ([total] tests, [failing] failing, [known-pass] passing with approval, [deferred] deferred)
+ELIF deferred > 0
+  → SET Status to: Red ([total] tests, [failing] failing, [deferred] deferred)
+ELIF known-pass > 0
+  → SET Status to: Red ([total] tests, [failing] failing, [known-pass] passing with approval)
+ELSE
+  → SET Status to: Red ([total] tests, [failing] failing)
+
+SAVE the file
+```
+
+### 5. Complete Script
+
+<CRITICAL_REQUIREMENT type="MANDATORY">
+
+- You MUST produce this output after Exit Gate passes - include every section and field
+- You MUST NOT skip, paraphrase, or omit any section
+- You MUST format the output for readability
+- You MUST verify all new tests fail correctly before producing this output — tests that pass or error require human approval
+</CRITICAL_REQUIREMENT>
+
+**PREREQUISITE:**
+1. Exit Gate must pass (all new tests fail correctly or are human-approved known-passes, typecheck clean, counts match).
+2. Each known-pass entry must correspond to a human decision from §3 or §4 — entries without a recorded decision are not valid known-passes.
+
+Before presenting your output, verify:
+1. Every file path in the output references a real file (not invented)
+2. Test count matches the number of tests in the manifest
+3. Every listed failure message comes from actual test output (not fabricated)
+4. No section contains placeholder text ("[TODO]", "[TBD]", "...")
+5. Known-pass entries (if any) have a human-approved reason recorded
+6. Commit message describes test coverage, not implementation
+
+IF any check fails → Fix before presenting. Do not present output with known violations.
+
+---
+                           RED STATE COMPLETE
+
+---
+
+Test files created:
+- `tests/path/to/file.test.ts` ([N] tests)
+- `tests/path/to/other.test.tsx` ([N] tests)
+
+[N] tests failing correctly. [M] known-pass (human-approved). [D] deferred (services unavailable). Type checks passed.
+Complexity: [N] Low, [N] Medium, [N] High
+
+Known-pass tests (if any):
+- [test name]: [reason] — approved in [§3/§4]
+Deferred integration tests (if any):
+- [test name]: [service dependency] — "deferred — services unavailable"
+Sample failures:
+1. "[failure message]"
+2. "[failure message]"
+3. "[failure message]"
+
+Commit
+
+test: [feature name]
+[2 lines describing (1) primary test coverage, (2) secondary focus or edge cases]
+
+---
+Review tests and commit.
+
+[IF Any Complexity High > 0 OR Number-of-tests > 15]
+
+  Complex tests should be reviewed before Phase 2. Start a new conversation with:
+  Review tests - use midtempo-framework/review-tests.md with planning/[feature]-tests.md
+  
+  Then: Phase 2 — use midtempo-framework/deliver.md with planning/[feature]-plan.md
+
+[ELSE if Any Complexity High == 0 AND Number of tests < 16]
+
+  Start a new conversation with:
+  Phase 2 — use midtempo-framework/deliver.md with planning/[feature]-plan.md
+  
+  (Optional) Review tests - use midtempo-framework/review-tests.md with planning/[feature]-tests.md
+
+---
+---
+**END OF DOCUMENT:** Total sections: 5 | Purpose: Run TDD Phase 1 (RED State) — create valid failing tests
+
+---

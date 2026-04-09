@@ -1,0 +1,201 @@
+# [Feature Name] Test Specification
+
+**Planning doc**: `/planning/[feature-name]-plan.md`  
+**Status**:  Draft
+
+---
+
+
+## Alignment Checklist
+
+Before completing document, verify:
+
+- [ ] **Symmetric coverage**: If the implementation validates N required fields, there are N validation tests (one per field)
+- [ ] **Algorithm alignment**: Every validation branch in Section 4 (Implementation Approach) has a corresponding test
+- [ ] **Error path coverage**: Each distinct error condition (KeyError, ValueError, FileNotFoundError, etc.) has at least one test
+- [ ] **Required field parity**: If schema requires fields [X, Y, Z], validation tests exist for missing X, missing Y, and missing Z
+
+
+---
+
+## Coverage Target
+
+This iteration targets the following modules from the planning document:
+
+- `path/to/module.ts` - [Brief description]
+- `path/to/another.ts` - [Brief description]
+- `components/ComponentName.tsx` - [Brief description]
+
+---
+
+> **CRITICAL** You MUST use the `/midtempo-framework/rules/testing.md` skill when structuring tests for this document.
+
+## Test Scenarios
+
+Progress: Not Started
+
+### Module: `path/to/module.ts`
+
+**Test file**: `tests/path/to/module.test.ts`
+
+#### Test 1.1: [Descriptive test name in plain English]
+
+**Plan Reference:** B[X] — [Behaviour description from inventory]
+
+**Concern:** [Risk from plan §3 Concerns column this test addresses, or "—" if pure happy-path]
+
+**Requires:** [none | database | network | filesystem | external API] — classify by dependency, not runtime
+
+**Complexity:** [Low | Medium | High] — [one-line justification]
+
+**Description**: [What behaviour is being tested]
+
+**GIVEN**:
+
+- [Precondition or test fixture needed]
+- [Mock/stub configuration]
+
+**WHEN**:
+
+- [Parameter or action]
+- [Another parameter if applicable]
+
+**THEN**:
+
+- [Expected return value or state change]
+- [Side effect that should occur]
+
+**Test Utilities:**
+
+- [none | `factory/fixture/helper/stub: path/to/utility [new | existing]`]
+
+**Edge Cases**:
+
+- [What happens with null/undefined?]
+- [What happens with empty values?]
+- [What happens at boundary conditions?]
+
+---
+
+#### Test 1.2: [Another test scenario]
+
+[Repeat structure from Test 1.1]
+
+---
+
+### Module: `path/to/another-module.ts`
+
+**Test file**: `tests/path/to/another-module.test.ts`
+
+#### Test 2.1: [Descriptive test name]
+
+[Repeat structure from Test 1.1]
+
+---
+
+### Component: `ComponentName.tsx`
+
+**Test file**: `tests/components/path/ComponentName.test.tsx`
+
+#### Test 3.1: [Rendering behaviour]
+
+**Description**: [What UI behaviour is being tested]
+
+**GIVEN**:
+
+- [Props to pass]
+- [Context providers needed]
+- [Mock functions]
+
+**User Interaction** (if applicable):
+
+- [Click this button]
+- [Type this text]
+- [Select this option]
+
+**Expected Rendering**:
+
+- [Element should be visible with text X]
+- [Callback should be called with Y]
+- [State should update to Z]
+
+---
+
+## Integration Test Scenarios (Service-Dependent)
+
+[Scenarios where `**Requires:**` is not `none` — tests needing database, network, filesystem, or external API access, grouped by dependency type]
+
+### Integration 1: [Description of integrated behaviour]
+
+**Modules involved**:
+
+- `module-a.ts`
+- `module-b.ts`
+
+**Test description**: [End-to-end scenario]
+
+**Setup**: [How to wire modules together for test]
+
+**Sequence**:
+
+1. [Action on module A]
+2. [Expected interaction with module B]
+3. [Final state verification]
+
+---
+
+## Error/Exception Scenarios
+
+[Tests specifically for error handling]
+
+### Error 1: [Error condition]
+
+**Trigger**: [What causes this error]
+
+**Expected Behaviour**:
+
+- [Error type thrown or returned]
+- [Error message format]
+- [Side effects - logging, cleanup, etc.]
+- [State remains consistent]
+
+---
+
+## Notes for Implementation
+
+### Factories (reuse from codebase)
+
+- [Factory name at full path — what it creates, or "None discovered"]
+
+### Fixtures (reuse from codebase)
+
+- [Fixture name at full path — what it provides, or "None discovered"]
+
+### Helpers (reuse from codebase)
+
+- [Helper name at full path — what it does, or "None discovered"]
+
+### New Utilities to Create
+
+- [Utility to build — purpose and location]
+
+### Other Notes
+
+- [Mock data sources, setup requirements, known challenges]
+
+---
+
+## Usage Instructions
+
+1. **Read**: Review the testing rules in `/midtempo-framework/rules/testing.md`.
+2. **Understand**: Read the delivery plan in `/planning/[feature-name]-plan.md`.
+3. **Create**: Fill out this template precisely, using the delivery plan as our source of truth. You MUST adhere to the "Phase 1" process described in the plan.
+4. **Agent Review**: Ensure all required test scenarios exist, and each is unambiguous.
+5. **Testing Alignment**: Re-check that all new tests pass the testing rules in `/midtempo-framework/rules/testing.md`
+6. **Human Review**: Submit documentation for review by a human reviewer.
+
+**Critical**: This document must be approved by a human before ANY test code is written.
+
+---
+
+END OF DOCUMENT

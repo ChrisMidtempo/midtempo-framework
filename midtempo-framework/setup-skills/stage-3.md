@@ -1,0 +1,1370 @@
+# Setup Architecture Sub-Skill
+
+## Overview
+
+This sub-skill guides the human to create the `/midtempo-framework/instructions/architecture.md` file through structured dialogue and codebase analysis.
+
+**Goal:** Create  current architecture.md, documenting repository structure, design patterns, and architectural conventions.
+
+**Target:** 400-500 lines total, regardless of repository size. Focus on patterns over catalogues, boundaries over exhaustive listings, navigation over documentation.
+
+---
+
+## The Process
+
+### Non-Negotiable Rules
+
+<CRITICAL_REQUIREMENT type="MANDATORY">
+
+**CORE PRINCIPLE: Patterns over catalogues, boundaries over exhaustive listings.**
+
+- You MUST target 400-500 lines total, regardless of repository size
+- You MUST focus on architectural patterns that help navigation, not comprehensive documentation
+- You MUST scan the codebase structure before asking questions
+- You MUST draft sections based on evidence from code organisation
+- You MUST present each drafted section for validation before proceeding
+- You MUST write validated content to `/midtempo-framework/instructions/architecture.md` incrementally
+- You MUST perform alignment check before marking complete 
+- You MUST follow the `/midtempo-framework/rules/writing.md` rules
+- You MUST use UK English spelling throughout
+- You MUST provide evidence-based recommendations only
+- You MUST inline evidence (no separate Evidence subsections)
+- You MUST not include line numbers in file links (code changes, lines will change)
+
+</CRITICAL_REQUIREMENT>
+
+---
+
+## Phase 1: Context Gathering
+
+### 1.1 ENTRY GATE 
+
+```
+IF not sub-skill triggered from `setup.md`
+  → STOP: This is a sub-skill and MUST NOT run independently
+  → TELL: Human to run "Setup Stage 3 - `/midtempo-framework/setup.md`"
+  → Do not proceed 
+
+IF not read ALL of `/midtempo-framework/rules/writing.md`
+  → INVALID: Read ALL of `/midtempo-framework/rules/writing.md` before proceeding
+
+IF not read ALL of `/midtempo-framework/instructions/purpose.md`
+  → INVALID: Read ALL of `/midtempo-framework/instructions/purpose.md` before proceeding
+
+LS check if `/midtempo-framework/instructions/architecture.md` exists
+IF `architecture.md` exists
+  → EMPTY `architecture.md` to create a fresh architecture document before proceeding
+```
+
+**Do not skip to questions.** Gather architectural context silently first.
+
+### 1.2 Agent Actions (Silent)
+
+```
+SCAN repository structure:
+  - Read directory tree (src/, lib/, app/, services/, modules/, components/)
+  - Identify entry points (main.*, index.*, __init__.py, cmd/*)
+  - Check configuration (config/, settings/, .env.example)
+  - Scan for architectural indicators (controllers/, models/, views/, adapters/, domain/)
+  - Look for middleware (middleware/, interceptors/, filters/)
+  - Check for API definitions (routes/, api/, endpoints/)
+  - Identify data layer (repositories/, dao/, orm/, database/)
+  - Look for business logic (services/, domain/, core/, business/)
+  - Check for UI layer (views/, templates/, components/, pages/)
+  - Scan for shared code (utils/, lib/, common/, shared/)
+  - Check for tests structure (tests/, __tests__/, spec/)
+
+ANALYSE imports and dependencies:
+  - Read main files to understand module dependencies
+  - Identify import patterns (relative vs absolute)
+  - Check for dependency injection patterns
+  - Look for factory patterns, builders, or constructors
+  - Identify circular dependency risks
+
+IDENTIFY patterns from code:
+  - RESTful API structure (routes mapped to controllers)
+  - MVC pattern (models, views, controllers separate)
+  - Layered architecture (presentation, business, data layers)
+  - Hexagonal/ports-adapters (clear boundaries, interfaces)
+  - Microservices (separate services with own boundaries)
+  - Modular monolith (modules with clear boundaries)
+  - Event-driven (event handlers, publishers, subscribers)
+  - Repository pattern (data access abstraction)
+  - Service layer pattern (business logic encapsulation)
+
+CHECK for architectural constraints:
+  - Naming conventions (file names, class names, function names)
+  - Directory structure rules (where types of files live)
+  - Dependency direction rules (what can import what)
+  - Testing organisation (unit, integration, e2e structure)
+```
+
+### 1.3 Present Context Summary with Draft
+
+**Output to human:**
+
+```
+
+Context Summary:
+
+Based on repository analysis:
+
+Repository structure:
+- Entry points: [list main files found]
+- Directory organisation: [top-level structure]
+- Layers identified: [presentation/business/data or equivalent]
+
+Evidence:
+- [directory/file 1]: [what it reveals about architecture]
+- [directory/file 2]: [what it reveals about patterns]
+- [import patterns]: [what they reveal about dependencies]
+
+Draft Architectural Approach:
+"[Repository name] follows a [identified pattern] architecture with [X] main layers/modules."
+
+Patterns observed:
+- [pattern 1]: [evidence from code structure]
+- [pattern 2]: [evidence from imports/organisation]
+
+Does this match your understanding? Please correct anything wrong.
+
+```
+
+WAIT for human validation before proceeding
+
+IF human approves
+  → Continue to next section
+IF human requests changes
+  → REVISE: Update and re-present
+
+---
+
+## Phase 2: Architectural Approach
+
+**Draft section based on context gathered in Phase 1.**
+
+### 2.1 Draft "1. Architectural Approach"
+
+**Based on context analysis, draft the Architectural Approach section:**
+
+```
+1. Architectural Approach
+
+1.1 Overview
+
+[Repository name] follows a [pattern identified from structure] architecture.
+
+1.2 Key Characteristics
+
+- [characteristic 1 from analysis]
+- [characteristic 2 from analysis]
+- [characteristic 3 from analysis]
+
+1.3 Architectural Style
+
+[layered/hexagonal/microservices/modular monolith]
+
+1.4 Primary Goals
+
+[inferred from structure - e.g., "Separation of concerns", "Testability", "Modularity"]
+```
+
+### 2.2 Present Draft
+
+**Output to human:**
+
+```
+Architectural Approach (drafted from codebase analysis):
+
+1. Architectural Approach
+
+[Draft the section here with evidence]
+
+Evidence used:
+- Directory structure shows: [pattern observed]
+- Entry points reveal: [how system is organised]
+- Import patterns indicate: [dependency flow]
+- File naming suggests: [conventions in use]
+
+Does this accurately describe the architectural approach? Please correct any misunderstandings.
+
+```
+
+WAIT for human validation before proceeding
+
+IF human approves
+  → Continue to next section
+IF human requests changes
+  → REVISE: Update and re-present
+
+### 2.3 Example (Web Application)
+
+```
+# [Repository Name] Architecture
+
+## Table of Contents
+
+- [Architectural Approach](#1-architectural-approach)
+  - [Overview](#11-overview)
+  - [Key Characteristics](#12-key-characteristics)
+  - [Architectural Style](#13-architectural-style)
+  - [Primary Goals](#14-primary-goals)
+- [Module Structure](#2-module-structure)
+- [Design Patterns](#3-design-patterns)
+- [Code Organisation](#4-code-organisation)
+- [Constraints and Conventions](#5-constraints-and-conventions)
+- [Communication Patterns](#6-communication-patterns)
+- [Testing Framework](#7-testing-framework)
+- [Compliance Gates](#8-compliance-gates)
+- [Examples](#9-examples)
+- [File References](#10-file-references)
+
+---
+
+## 1. Architectural Approach
+
+### 1.1 Overview
+
+This repository follows a layered MVC architecture with clear separation between presentation, business logic, and data access.
+
+### 1.2 Key Characteristics
+
+- Controllers handle HTTP requests and responses
+- Services contain business logic
+- Repositories abstract data access
+- Models define data structures
+
+### 1.3 Architectural Style
+
+Layered architecture with dependency injection
+
+### 1.4 Primary Goals
+
+Testability, maintainability, separation of concerns
+
+### 1.5 Evidence
+
+- src/controllers/: HTTP request handlers
+- src/services/: Business logic layer
+- src/repositories/: Data access layer
+- src/models/: Data structures
+- Dependency injection container in src/di/container.ts
+```
+
+**Wait for validation**
+
+**If corrections needed:** Update and re-present
+
+**After validation:** Write to `/midtempo-framework/instructions/architecture.md` with:
+- Title: `# [Repository Name] Architecture`
+- Table of Contents section (as shown above, section names should match the phases being created)
+- Then the Architectural Approach section
+
+---
+
+## Phase 3: Module Structure
+
+**Draft module/layer boundaries based on directory structure and imports.**
+
+**CRITICAL:** Focus on 3-7 core layers/areas, not exhaustive module listings. For large repos, describe layer responsibilities and boundaries, not every module.
+
+### 3.1 Agent actions (silent)
+
+```
+IDENTIFY 3-7 core layers/areas from:
+  - Top-level directories (group related modules)
+  - Package structure (major architectural divisions)
+  - Import boundaries (what depends on what)
+  - README architecture descriptions
+
+DETERMINE layer responsibilities from:
+  - What each layer does (high-level purpose)
+  - Import patterns (dependency direction)
+  - Boundary enforcement (what can/cannot cross layers)
+
+FOCUS ON:
+  - Boundaries between layers (what imports what)
+  - Public interfaces (how layers communicate)
+  - Architectural significance (not every module)
+
+AVOID:
+  - Exhaustive file listings
+  - Every module in detail (focus on representative examples)
+  - Nested subsections (use bullet-point format)
+```
+
+### 3.2 Present Draft
+
+**Output to human:**
+
+```
+Module Structure (drafted from analysis):
+
+2. Module Structure
+
+2.1 Overview
+
+The system organises into [N] distinct layers/areas with clear boundaries.
+
+2.2 [Layer 1 Name]
+
+Location: [directory/package]
+Responsibility: [high-level purpose - what it does]
+Dependencies: [what it depends on]
+Key components: [representative examples, not exhaustive list]
+
+2.3 [Layer 2 Name]
+
+[Repeat for 3-7 core layers only]
+
+2.N Dependency Flow
+
+[Describe the overall dependency direction - e.g., "Utilities → Validation → Generation → Orchestration"]
+
+Evidence: [Inline 2-3 key examples showing layer boundaries]
+
+Does this capture the core structure? Any layers missing or incorrectly described?
+
+```
+WAIT for human validation before proceeding
+
+IF human approves
+  → VALID: Append to `/midtempo-framework/instructions/architecture.md`
+  → Continue to next section
+IF human requests changes
+  → REVISE: Update and re-present
+
+### 3.3 Example (Layered Application)
+
+```
+2. Module Structure
+
+2.1 Overview
+
+The application is organised into four distinct layers with clear separation of concerns.
+
+2.2 Presentation Layer
+
+2.2.1 Location
+
+src/controllers/, src/routes/
+
+2.2.2 Responsibility
+
+Handle HTTP requests, validate input, return responses
+
+2.2.3 Dependencies
+
+Services layer, models
+
+2.2.4 Public Interface
+
+Express route handlers
+
+2.3 Business Logic Layer
+
+2.3.1 Location
+
+src/services/
+
+2.3.2 Responsibility
+
+Implement business rules, coordinate operations
+
+2.3.3 Dependencies
+
+Repositories, domain models, external services
+
+2.3.4 Public Interface
+
+Service classes with business methods
+
+2.4 Data Access Layer
+
+2.4.1 Location
+
+src/repositories/
+
+2.4.2 Responsibility
+
+Abstract database operations, handle queries
+
+2.4.3 Dependencies
+
+Database client, models
+
+2.4.4 Public Interface
+
+Repository interfaces
+
+2.5 Domain Models
+
+2.5.1 Location
+
+src/models/
+
+2.5.2 Responsibility
+
+Define data structures, validation rules
+
+2.5.3 Dependencies
+
+None (pure data structures)
+
+2.5.4 Public Interface
+
+Model classes and types
+
+2.6 Evidence
+
+- src/controllers/ imports from src/services/ (presentation → business)
+- src/services/ imports from src/repositories/ (business → data)
+- src/repositories/ imports from src/models/ (data → domain)
+- Clear unidirectional dependency flow
+```
+
+---
+
+## Phase 4: Design Patterns
+
+**Identify design patterns in use from code analysis.**
+
+**CRITICAL:** Limit to 4 most architecturally significant patterns. Skip common patterns or general good good-practice. Focus on patterns that define the architecture and help agents navigate.
+
+### 4.1 Agent actions (silent)
+
+```
+IDENTIFY 4 architecturally significant patterns:
+  - Patterns that define system structure (e.g., layered architecture, hexagonal)
+  - Patterns enforcing boundaries (e.g., repository, service layer)
+  - Patterns for core workflows (e.g., validation chain, event-driven)
+  - Patterns for scalability (e.g., worker pool, namespace isolation)
+
+FOCUS ON:
+  - Architectural significance (not just "good practice")
+  - Patterns that affect where code goes
+  - Patterns that define module relationships
+
+AVOID:
+  - Generic patterns (e.g., "we use dependency injection")
+  - Common practices that don't define architecture
+  - Patterns present but not architecturally critical
+
+INLINE EVIDENCE:
+  - Embed evidence in pattern description
+  - Use representative examples, not exhaustive lists
+  - No separate Evidence subsections
+```
+
+### 4.2 Present Draft
+
+**Output to human:**
+
+```
+Design Patterns (drafted from code analysis):
+
+3. Design Patterns
+
+3.1 Overview
+
+The codebase employs [N] key patterns to [architectural goal].
+
+3.2 [Pattern 1 - architecturally significant]
+
+**Usage:** [Where used with inline evidence - e.g., "scripts/validate_*.py use three-layer validation"]
+**Purpose:** [Why architecturally significant]
+**Impact:** [How it affects where code goes or how modules interact]
+Example: [One concrete example]
+
+3.3 [Pattern 2]
+
+[Repeat for 3-5 patterns maximum]
+
+Are these the architecturally significant patterns? Any critical patterns missing?
+
+```
+
+WAIT for human validation before proceeding
+
+IF human approves
+  → VALID: Append to `/midtempo-framework/instructions/architecture.md`
+  → Continue to next section
+IF human requests changes
+  → REVISE: Update and re-present
+
+### 4.3 Example
+
+```
+3. Design Patterns
+
+3.1 Overview
+
+The codebase employs several design patterns to maintain clean architecture and testability.
+
+3.2 Repository Pattern
+
+3.2.1 Usage
+
+src/repositories/ - all data access goes through repositories
+
+3.2.2 Purpose
+
+Abstract database operations, enable testing with mocks
+
+3.2.3 Example
+
+UserRepository.findById() hides SQL/ORM details from services
+
+3.3 Dependency Injection
+
+3.3.1 Usage
+
+Throughout codebase - constructor injection everywhere
+
+3.3.2 Purpose
+
+Loose coupling, testability, flexibility
+
+3.3.3 Example
+
+UserService constructor receives IUserRepository, IEmailService
+
+3.4 Service Layer Pattern
+
+3.4.1 Usage
+
+src/services/ - business logic encapsulation
+
+3.4.2 Purpose
+
+Separate business rules from HTTP concerns
+
+3.4.3 Example
+
+UserService.registerUser() coordinates repository, validation, email
+
+3.5 Middleware Pattern
+
+3.5.1 Usage
+
+src/middleware/ - authentication, logging, error handling
+
+3.5.2 Purpose
+
+Cross-cutting concerns applied uniformly
+
+3.5.3 Example
+
+authMiddleware.verify() runs before protected routes
+
+3.6 Evidence
+
+- All repositories implement I*Repository interfaces (src/repositories/)
+- Services use constructor injection (src/services/)
+- Middleware chain in src/app.ts
+- Clear separation between controllers (HTTP) and services (business)
+```
+
+---
+
+## Phase 5: Code Organisation
+
+**Draft code organisation principles from observed conventions.**
+
+**CRITICAL:** Focus on conventions and rules, not exhaustive file listings. Use bullet-points for readability.
+
+### 5.1 Agent Actions (silent)
+
+```
+IDENTIFY key conventions from:
+  - File naming patterns (e.g., "Controllers use [Entity]Controller.ts format")
+  - Directory structure rules (e.g., "Tests mirror source structure")
+  - Code type placement (e.g., "Business logic in services/, data access in repositories/")
+
+FOCUS ON:
+  - Rules that help navigate (where to put new code)
+  - Naming patterns that reveal intent
+  - Directory structure overview
+
+AVOID:
+  - Exhaustive file type listings
+  - Nested subsections (4.2.1, 4.2.2, 4.2.3)
+  - Repeating information from Module Structure
+
+KEEP CONCISE:
+  - Combine related conventions
+  - Use bullet-points for readability
+  - Inline examples, don't list separately
+```
+
+### 5.2 Present Draft
+
+**Output to human:**
+
+```
+Code Organisation (drafted from conventions observed):
+
+4. Code Organisation
+
+4.1 Overview
+
+The codebase follows consistent conventions for file placement and naming.
+
+4.2 Key Conventions
+
+**File Naming:**
+- [Convention 1 with inline example]
+- [Convention 2 with inline example]
+
+**Directory Structure:**
+- [Rule 1: where X goes]
+- [Rule 2: where Y goes]
+
+**Testing:**
+- [How tests are organised relative to source]
+
+4.3 Directory Layout
+
+[High-level directory tree showing structure]
+
+Does this capture the organisation conventions? Any rules missing or incorrect?
+
+```
+
+WAIT for human validation before proceeding
+
+IF human approves
+  → VALID: Append to `/midtempo-framework/instructions/architecture.md`
+  → Continue to next section
+IF human requests changes
+  → REVISE: Update and re-present
+
+### 5.3 Example
+
+```
+4. Code Organisation
+
+4.1 Overview
+
+The codebase follows strict file organisation rules with consistent naming conventions.
+
+4.2 Controllers
+
+4.2.1 Location
+
+src/controllers/
+
+4.2.2 Naming Convention
+
+[Entity]Controller.ts (UserController.ts, OrderController.ts)
+
+4.2.3 Example
+
+src/controllers/UserController.ts handles user-related HTTP endpoints
+
+4.3 Services
+
+4.3.1 Location
+
+src/services/
+
+4.3.2 Naming Convention
+
+[Entity]Service.ts (UserService.ts, OrderService.ts)
+
+4.3.3 Example
+
+src/services/UserService.ts contains user business logic
+
+4.4 Repositories
+
+4.4.1 Location
+
+src/repositories/
+
+4.4.2 Naming Convention
+
+[Entity]Repository.ts with matching I[Entity]Repository.ts interface
+
+4.4.3 Example
+
+src/repositories/UserRepository.ts, src/repositories/IUserRepository.ts
+
+4.5 Models
+
+4.5.1 Location
+
+src/models/
+
+4.5.2 Naming Convention
+
+[Entity].ts (User.ts, Order.ts)
+
+4.5.3 Example
+
+src/models/User.ts defines User data structure
+
+4.6 Tests
+
+4.6.1 Location
+
+tests/ mirroring src/ structure
+
+4.6.2 Naming Convention
+
+[SourceFile].test.ts
+
+4.6.3 Example
+
+tests/services/UserService.test.ts tests src/services/UserService.ts
+
+4.7 Directory Structure
+
+src/
+  controllers/    # HTTP request handlers
+  services/       # Business logic
+  repositories/   # Data access
+  models/         # Data structures
+  middleware/     # Cross-cutting concerns
+  config/         # Configuration
+  types/          # TypeScript type definitions
+test```
+
+4.8 Evidence
+
+- All controllers in src/controllers/ follow [Entity]Controller.ts pattern
+- All services in src/services/ follow [Entity]Service.ts pattern
+- Test files mirror source structure (tests/services/UserService.test.ts)
+- Consistent naming across all modules
+```
+
+---
+
+## Phase 6: Constraints and Conventions
+
+**Draft architectural constraints that must be followed.**
+
+### 6.1 Agent Actions (silent)
+
+```
+IDENTIFY constraints from:
+  - Dependency directions (what can import what)
+  - Module boundaries (what stays internal)
+  - Coupling rules (no circular dependencies)
+  - Layer rules (presentation can't import data directly)
+
+IDENTIFY conventions from:
+  - How errors are handled
+  - How configuration is accessed
+  - How logging is done
+  - How validation is performed
+  - How tests are structured
+```
+
+### 6.2 Present Draft
+
+**Output to human:**
+
+```
+Constraints and Conventions (drafted from analysis):
+
+5. Architectural Constraints
+
+5.1 Overview
+
+Architectural constraints and conventions that must be followed.
+
+5.2 Dependency Rules
+
+- [Rule 1 - from import analysis]
+- [Rule 2 - from layer boundaries]
+- [Rule 3 - from observed patterns]
+
+5.3 Boundary Rules
+
+- [Rule 1 - what stays internal]
+- [Rule 2 - what can be exposed]
+
+5.4 Error Handling
+
+[observed pattern]
+
+5.5 Configuration
+
+[how it's accessed]
+
+5.6 Logging
+
+[how it's done]
+
+5.7 Validation
+
+[where it happens]
+
+5.8 Evidence
+
+- [Constraint 1]: Observed in [files/imports]
+- [Constraint 2]: Enforced by [structure/pattern]
+- [Convention 1]: Consistent across [modules]
+
+Are these the constraints that must be followed? Anything missing?
+
+```
+
+WAIT for human validation before proceeding
+
+IF human approves
+  → VALID: Append to `/midtempo-framework/instructions/architecture.md`
+  → Continue to next section
+IF human requests changes
+  → REVISE: Update and re-present
+
+
+### 6.3 Example
+
+```
+5. Architectural Constraints
+
+5.1 Overview
+
+The codebase enforces strict architectural constraints to maintain clean separation and testability.
+
+5.2 Dependency Rules
+
+- Controllers depend on services (never on repositories directly)
+- Services depend on repositories (clear separation)
+- Repositories depend only on models and database client
+- No circular dependencies between modules
+- Shared code in src/utils/ has no business logic
+
+5.3 Boundary Rules
+
+- Each module exports only public interfaces
+- Internal implementation files stay private
+- Database details never leak outside repositories
+- HTTP concerns never leak into services
+
+5.4 Error Handling
+
+Services throw typed errors, controllers catch and format for HTTP
+
+5.5 Configuration
+
+Access through src/config/index.ts, never direct process.env access
+
+5.6 Logging
+
+Use logger from src/utils/logger.ts, never console.log
+
+5.7 Validation
+
+Input validation in controllers, business rule validation in services
+
+5.8 Testing
+
+Each layer tested independently with mocked dependencies
+
+5.9 Evidence
+
+- No controller directly imports repositories (checked all import statements)
+- All services use constructor injection (enables testing with mocks)
+- Error handling follows pattern: service throws → controller catches → HTTP response
+- All configuration accessed through config module (no scattered process.env)
+```
+
+---
+
+## Phase 7: Communication Patterns
+
+**Draft communication patterns based on code analysis.**
+
+### 7.1 Agent Actions (silent)
+
+```
+IDENTIFY communication patterns from:
+  - How modules interact (direct method calls, events, messages)
+  - API contracts (REST endpoints, GraphQL schemas, gRPC services)
+  - Event flows (event emitters, handlers, pub/sub)
+  - Data flows (request/response cycles, data pipelines)
+  - Inter-module communication (function calls, dependency injection)
+  - External communication (HTTP APIs, message queues, webhooks)
+
+FIND evidence from:
+  - API route definitions
+  - Event emitter/listener code
+  - Service call patterns
+  - Message queue configurations
+  - HTTP client usage
+  - WebSocket implementations
+```
+
+### 7.2 Present Draft
+
+**Output to human:**
+
+```
+Communication Patterns (drafted from analysis):
+
+6. Communication Patterns
+
+6.1 Overview
+
+**Communication mechanisms in use:**
+
+6.2 [Pattern 1 - e.g., HTTP API Flow]
+
+6.2.1 Description
+
+[how it works - from code]
+
+6.2.2 Flow
+
+[step-by-step flow - from analysis]
+
+6.2.3 Example
+
+[concrete example from codebase]
+
+6.3 [Pattern 2 - e.g., Inter-Module Communication]
+
+[Repeat structure for each communication pattern]
+
+6.N Evidence
+
+- [file/directory]: Shows [communication pattern]
+- [route definitions]: Reveal [API structure]
+- [event handlers]: Indicate [event flow]
+
+Are these the main communication patterns? Any patterns missing or incorrectly described?
+
+```
+
+WAIT for human validation before proceeding
+
+IF human approves
+  → VALID: Append to `/midtempo-framework/instructions/architecture.md`
+  → Continue to next section
+IF human requests changes
+  → REVISE: Update and re-present
+
+### 7.3 Example
+
+```
+6. Communication Patterns
+
+6.1 Overview
+
+The application uses synchronous method calls for internal communication and REST APIs for external communication.
+
+6.2 HTTP Request Flow
+
+6.2.1 Description
+
+External clients communicate with the application via REST API
+
+6.2.2 Flow
+
+1. Request arrives at route (src/routes/)
+2. Controller receives request, validates input
+3. Controller calls service method (injected dependency)
+4. Service executes business logic, calls repositories
+5. Repository queries database
+6. Response flows back up the layers
+7. Controller formats and returns HTTP response
+
+6.2.3 Example
+
+POST /api/users → UserController.create() → UserService.register() → UserRepository.save()
+
+6.3 Inter-Module Communication
+
+6.3.1 Description
+
+Modules communicate through dependency injection and interface contracts
+
+6.3.2 Flow
+
+- Controllers call services through injected interfaces
+- Services call repositories through injected interfaces
+- No direct database access outside repositories
+- Loose coupling via interfaces enables testing
+
+6.3.3 Example
+
+UserController depends on IUserService, UserService depends on IUserRepository
+
+6.4 Event-Based Communication
+
+6.4.1 Description
+
+Cross-cutting concerns handled via event emitters
+
+6.4.2 Flow
+
+1. Service emits event after important action
+2. Event listeners registered at startup
+3. Listeners handle logging, notifications, analytics
+4. Decoupled from main business flow
+
+6.4.3 Example
+
+UserService emits 'user.registered' → AuditLogger, EmailService, AnalyticsService listen
+
+6.5 Evidence
+
+- src/routes/: REST API endpoint definitions
+- src/di/container.ts: Dependency injection wiring
+- src/events/: Event emitter and listener registrations
+- Controllers never import repositories directly (enforces layering)
+```
+
+---
+
+## Phase 8: Testing Framework
+
+Document testing infrastructure specific to this repository.
+
+### 8.1 Agent Actions (silent)
+
+```
+IDENTIFY testing infrastructure:
+  - Test framework (pytest, jest, vitest, go test, cargo test)
+  - Test types organisation (unit/, integration/, e2e/)
+  - Test file patterns (*.test.ts, *_test.py, test_*.py)
+  - Test utilities location (test-utils/, helpers/, factories/)
+
+IDENTIFY test patterns:
+  - Factory patterns (test data generation)
+  - Helper modules (shared assertions, setup)
+  - Mock/stub patterns (where mocks live, what gets mocked)
+  - Fixture patterns (pytest fixtures, jest setup files)
+
+FOCUS ON:
+  - Where tests go (directory structure)
+  - Test utilities location and purpose
+  
+AVOID:
+  - TDD workflow (covered in rules/tdd.md)
+  - Testing rules (covered in rules/testing.md)
+  - Testing commands (covered elsewhere in depth)
+  - Specific test scenarios
+
+```
+
+### 8.2 Present Draft
+
+**Output to human:**
+
+```
+7. Testing Framework
+
+7.1 Test Framework
+
+[pytest/jest/vitest/go test/etc.]
+
+7.2 Test Organisation
+
+**Unit tests:** [location, pattern, what they test]
+**Integration tests:** [location, pattern, scope]
+**E2E tests:** [location, pattern, tools]
+
+7.3 Test Utilities
+
+**Factories:** [location, purpose]
+**Helpers:** [location, purpose]
+**Fixtures:** [location, purpose]
+**Mocks:** [where mocks live, patterns]
+
+
+Evidence:
+- Test framework: [detected from dependencies/config]
+- Test directories: [unit/integration/e2e locations]
+- Test utilities: [factories/helpers found]
+
+Does this capture the testing infrastructure?
+
+```
+
+WAIT for human validation before proceeding
+
+IF human approves
+  → VALID: Append to `/midtempo-framework/instructions/architecture.md`
+  → Continue to next section
+IF human requests changes
+  → REVISE: Update and re-present
+
+### 8.3 Example (Python + pytest)
+
+```
+7. Testing Framework
+
+7.1 Test Framework
+
+pytest with coverage reporting
+
+7.2 Test Organisation
+
+**Unit tests:** tests/unit/ - Test individual functions/classes in isolation
+**Integration tests:** tests/integration/ - Test module interactions with real dependencies
+**E2E tests:** Not applicable (library, no end-to-end flows)
+
+Test files mirror source structure: tests/unit/scripts/test_generate_docs.py tests scripts/generate_docs.py
+
+7.3 Test Utilities
+
+**Factories:** tests/factories/ - Generate test configurations and expected outputs
+**Fixtures:** tests/fixtures/ - Static test data (YAML configs, expected markdown)
+**Helpers:** tests/helpers/ - Shared assertions and setup functions
+```
+
+### 8.4 Example (TypeScript + Jest)
+```
+7. Testing Framework
+
+7.1 Test Framework
+
+Jest with ts-jest for TypeScript support
+
+7.2 Test Organisation
+
+**Unit tests:** src/**/*.test.ts co-located with source
+**Integration tests:** tests/integration/ - API endpoint tests with test database
+**E2E tests:** tests/e2e/ - Playwright browser tests
+
+7.3 Test Utilities
+
+**Factories:** tests/factories/ - Generate test entities (createUser, createOrder)
+**Helpers:** tests/helpers/ - Database setup, request helpers
+**Fixtures:** tests/fixtures/ - Seed data for integration tests
+**Mocks:** src/**/__mocks__/ - Module mocks co-located with source
+```
+
+WAIT for human validation before proceeding
+
+IF human approves
+  → VALID: Append to `/midtempo-framework/instructions/architecture.md`
+  → Continue to next section
+IF human requests changes
+  → REVISE: Update and re-present
+
+---
+
+## Phase 9: Compliance Gates
+
+**Distil verifiable rules from the architecture document.**
+
+### 9.1 Agent Actions (Silent)
+
+```
+REVIEW content sections in architecture.md:
+  - Module boundaries (§2) — dependency direction between layers
+  - Design patterns (§3) — patterns that define where code goes
+  - Constraints and conventions (§5) — rules that must be followed
+  - Communication patterns (§6) — how modules interact
+
+SELECT 5 rules that are:
+  - Verifiable by code inspection
+  - Specific to this repository (not generic advice)
+  - Focused on structural rules (layering, module boundaries, dependency direction)
+
+WRITE rules using compliance gates format:
+  - Checklist items with CG-N prefix
+  - Each gate references its source section
+  - One-line verifiable statements
+```
+
+### 9.2 Draft Compliance Gates
+
+**Output to human:**
+
+```
+Compliance Gates (distilled from architecture document):
+
+## 8. Compliance Gates
+
+> Delivery and review skills verify these gates. Each gate must pass for code touching this domain.
+
+- [ ] **CG-1:** [Layering rule — e.g., "UI layer never imports from data layer directly"] (§5.2)
+- [ ] **CG-2:** [Module boundary — e.g., "Each module owns its own data — no cross-module direct access"] (§5.3)
+- [ ] **CG-3:** [Dependency direction — e.g., "Outer layers depend on inner layers — never the reverse"] (§5.2)
+- [ ] **CG-4:** [Convention — e.g., "All public APIs validated at the boundary before processing"] (§5.3)
+- [ ] **CG-5:** [Side-effect isolation — e.g., "Side effects (I/O, network, DB) confined to infrastructure layer — never in domain logic"] (§5.4)
+
+Are these gates verifiable and correct?
+
+```
+WAIT for human validation before proceeding
+
+IF human approves
+  → VALID: Append to `/midtempo-framework/instructions/architecture.md`
+  → Continue to next section
+IF human requests changes
+  → REVISE: Update and re-present
+
+
+## Phase 9: Alignment Check
+
+**Review all drafted sections for coherence and completeness.**
+
+### 9.1 Check for Issues
+
+```
+READ all drafted sections from midtempo-framework/instructions/architecture.md
+
+CHECK:
+1. Conflicts — Does one section contradict another?
+2. Omissions — Is anything from analysis not captured?
+3. Terminology — Are concepts named consistently?
+4. Completeness — Do all sections have content?
+5. Clarity — Is the architecture clear to someone unfamiliar with the repo?
+6. Evidence alignment — Do stated patterns match actual code?
+7. Actionability — Can agent use this to make architectural decisions?
+8. Line count — Is document less than 500 lines? If over, identify and suggest areas for condensing.
+```
+DO NOT: Add new sections - make a note and use in Phase 10 - "Coverage Recommendations"
+
+NOTE: A "File Reference" section is not a gap - it is added in Phase 10
+
+**SCALING GUIDANCE:**
+- Small repos (< 20 modules): Can detail individual modules
+- Medium repos (20-50 modules): Focus on layer boundaries, representative examples
+- Large repos (50+ modules): MUST use bullet-points, group modules by layer, avoid exhaustive listings
+
+### 9.2 Present Findings
+
+**Output to human:**
+
+```
+Alignment Check Results:
+
+Reviewing all sections for coherence...
+
+Conflicts: [none / list any found with suggested fixes]
+Omissions: [none / list anything discussed but missing]
+Terminology: [consistent / list inconsistencies with corrections]
+Completeness: [all sections complete / list gaps]
+Clarity: [clear / areas needing clarification]
+Evidence: [patterns match code / discrepancies found]
+Actionability: [sufficient for agents / areas needing detail]
+
+[If other issues found:]
+Recommended fixes:
+1. [specific fix for issue 1]
+2. [specific fix for issue 2]
+
+Shall I apply these fixes?
+
+[If no issues found:]
+Anything else to add to the architecture documentation?
+```
+
+WAIT for human validation before proceeding
+
+IF human approves
+  → VALID: Append to `/midtempo-framework/instructions/architecture.md`
+  → Continue to next section
+IF human requests changes
+  → REVISE: Update and re-present
+
+---
+
+
+---
+
+## Phase 10: Finalise Document
+
+**After alignment verified, add final sections and complete.**
+
+### 10.1 Add Final Sections
+
+```
+ADD `## 9. Examples` section (keep concise - 2-3 examples):
+  - Common scenarios showing architecture in action
+  - Where to add new features (focus on architectural decision points, not exhaustive steps)
+  - References to key files demonstrating patterns
+
+ADD `## 10. File References` section (5-10 key landmarks only):
+  - Key architectural files (entry points for understanding)
+  - Core configuration files
+  - Representative examples (not comprehensive listing)
+  - Navigation landmarks ("Start here to understand X")
+
+AVOID:
+  - Comprehensive file listings by category
+  - Exhaustive documentation of every file type
+  - Subdividing into 8.1, 8.2, 8.3, etc.
+
+APPEND end marker to file:
+
+---
+**END OF DOCUMENT:** Total sections: 10 | Purpose: Repository architecture and design patterns
+
+---
+
+```
+
+## 10.3 Exit Gate
+
+```
+Criteria:
+IF midtempo-framework/instructions/architecture.md exists
+IF All sections have content (no TODOs or placeholders)
+IF Alignment check passed
+IF No conflicts or omissions
+IF UK English spelling used
+IF Evidence-based documentation complete
+IF Evidence inlined (no separate Evidence subsections)
+IF Focus on patterns/boundaries, not exhaustive listings
+IF Compliance Gates section exists with 3-7 verifiable gates in CG-N format
+
+VALID: Output "§10.2 Architecture Complete Output"
+```
+
+### 10.2 Architecture Complete Output
+
+<CRITICAL_REQUIREMENT type="MANDATORY">
+
+- You MUST produce this output after Exit Gate passes - include every section and field
+- You MUST NOT skip, paraphrase, or omit any section
+- You MUST format the output for readability
+- You MUST verify evidence is inlined and Compliance Gates section exists in CG-N format before producing this output
+</CRITICAL_REQUIREMENT>
+
+```
+---
+                    ARCHITECTURE DOCUMENTATION COMPLETE
+
+---
+
+Documents created:
+- midtempo-framework/instructions/architecture.md — Final consolidated document
+
+Sections completed:
+✅ Architectural Approach
+✅ Module Structure
+✅ Design Patterns
+✅ Code Organisation
+✅ Architectural Constraints
+✅ Communication Patterns
+✅ Compliance Gates
+✅ Examples (added)
+✅ File References (auto-generated from context)
+
+Alignment check: [passed/issues resolved]
+
+Summary:
+- [X] sections drafted from repository analysis
+- [Y] patterns identified
+- [Z] constraints documented
+- [N] validations performed
+
+Coverage Recommendations:
+[- list of sections that could be added to improve understanding]
+
+---
+
+Start the next setup stage in a new conversation with:
+Setup Stage 4 - /midtempo-framework/setup.md
+
+---
+```

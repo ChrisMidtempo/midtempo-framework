@@ -1,0 +1,635 @@
+# Distilling Ideas Into A Structured Design Document
+
+## 1. Overview
+
+Transform ideas into a decision document through structured dialogue.
+
+**Output:**
+- `planning/[feature-name]-decisions.md` — Incremental decisions captured at start of build
+
+**Template:**
+- `/midtempo-framework/templates/decisions.md` — For capturing decisions
+
+**Context:** Run in a dedicated worktree.
+
+---
+
+## Table of Contents
+
+- [Overview](#1-overview)
+- [Non-Negotiable Rules](#non-negotiable-rules)
+- [Required Formats](#required-formats)
+- [Entry Gate](#entry-gate)
+- [Step 1 - Gather Context](#1-step-1---gather-context)
+- [Step 2 - Define Problem](#2-step-2---define-problem-dialogue)
+- [Step 3 - Explore Approaches](#3-step-3---explore-approaches)
+- [Step 4 - Present the Design](#4-step-4---present-the-design)
+- [Step 5 - Alignment Check](#5-step-5---alignment-check)
+- [Step 6 - Build Complete](#6-step-6---build-complete)
+- [What NOT to Do](#what-not-to-do)
+
+---
+
+## Non-Negotiable Rules
+
+<CRITICAL_REQUIREMENT type="MANDATORY">
+
+- You MUST provide explicit recommendations with reasoning — never present options without a recommendation and reasoning (including scope questions and acceptance criteria)
+- You MUST validate approach against project standards
+- You MUST propose 2-3 approaches before settling on one
+- You MUST ask one question at a time — never multiple questions per message
+- You MUST present content in sections of 200-300 words, validating each before proceeding
+- You MUST re-present updated context after each answer — show the evolving understanding with changes highlighted
+- You MUST apply YAGNI ruthlessly — remove unnecessary features from all designs
+- You MUST use UK English spelling throughout
+- You MUST write to `planning/[feature-name]-decisions.md` incrementally — at each write checkpoint, not at the end
+- You MUST name the feature after the specific component or capability, not the broad area — `crossfade-calculation-fades-ducking` ✓, `fades` ✗ — naming drives findability in bugs.md and investigate.md
+
+</CRITICAL_REQUIREMENT>
+
+---
+
+## Required Formats
+
+Use these exact formats where specified. Do not substitute or approximate.
+
+### Impact Assessment Table
+
+Use in §3.2 when evaluating approaches:
+
+| Criterion                                       | Approach A | Approach B | Approach C |
+| ----------------------------------------------- | ---------- | ---------- | ---------- |
+| Complexity (files/abstractions)                 |            |            |            |
+| Breaking changes (none/migration/breaking)      |            |            |            |
+| Pattern alignment (follows/extends/deviates)    |            |            |            |
+| Reversibility (feature-flag/rollback/permanent) |            |            |            |
+| New dependencies (none/internal/external)       |            |            |            |
+**Criteria definitions:**
+
+- **Complexity** — Files touched and new abstractions introduced
+- **Breaking changes** — Changes to existing contracts or APIs
+- **Pattern alignment** — Follows, extends, or deviates from codebase patterns
+- **Reversibility** — Undone via feature flag, simple rollback, or permanent
+- **New dependencies** — Adds internal modules or external packages
+### Per-Approach Analysis
+
+State for each approach (required alongside the Impact Assessment Table):
+
+- One thing it does **better** than alternatives
+- One thing it does **worse**
+- One key **assumption** it makes
+
+### Decision Card
+
+Use in §4.1 for each key decision:
+
+```
+**Decision Card:**
+
+| Field | Value |
+|-------|-------|
+| **Category** | [e.g., Data Model, API Design, UI Pattern] |
+| **Choice** | [Selected approach — one sentence] |
+| **Rationale** | [One paragraph: why this choice over alternatives] |
+| **Rejected alternatives** | [Runner-up and reason for rejection] |
+| **Plan Hand-off** | Affects: [modules/files]. Constraint: [what implementers must respect]. Reversibility: [feature-flag / rollback / permanent] |
+```
+
+### Skill Complete Script
+
+Use in §6.1 after alignment check passes:
+
+```
+---
+                   DECISIONS COMPLETE: [FEATURE-NAME]
+                   
+---
+
+Document created:
+- `planning/[feature-name]-decisions.md` — Validated decisions
+
+Gate — Decisions Captured: ✅
+- [ ] Problem & Goals section captured
+- [ ] Solution & Decisions section captured
+- [ ] Architecture & Data section captured
+- [ ] User Experience section captured
+- [ ] Constraints section captured
+
+Gate — Decisions Alignment: ✅
+- [ ] No conflicts between sections
+- [ ] No omissions from Build discussion
+- [ ] Terminology consistent throughout
+- [ ] Scope boundaries clear
+
+---
+Review decisions document. Start new conversation with:
+
+Write Design - use `/midtempo-framework/write-design.md` with `/planning/[feature-name]-decisions.md`.
+
+---
+```
+
+---
+
+
+### ENTRY GATE
+
+```
+IF human request is a known bug with clear symptoms
+  → INVALID: REDIRECT to `/midtempo-framework/bugs.md`
+
+IF human request is refactoring existing code
+  → INVALID: REDIRECT to `/midtempo-framework/refactor.md`
+
+VERIFY-COMPLETE-READ for EVERY file below:
+  CHECK the last line says "END OF DOCUMENT"
+  IF CHECK fails → Re-read from offset until true end
+
+READ ALL of `/midtempo-framework/rules/writing.md` → before proceeding
+READ ALL of `/midtempo-framework/instructions/purpose.md` → before proceeding
+READ ALL of `/midtempo-framework/instructions/architecture.md` → before proceeding
+READ ALL of `/midtempo-framework/instructions/frontend-design.md` → before proceeding
+READ ALL of `/midtempo-framework/instructions/db.md` → before proceeding
+
+
+
+READ ALL of `/midtempo-framework/templates/decisions.md` → template to use
+
+IF human describes a new feature delivery
+  → VALID: Continue to Step 1
+```
+
+
+## 1. Step 1 - Gather Context
+### 1.1 Agent Actions (Silent)
+
+```
+SCAN codebase:
+  - Review areas mentioned by human
+  - Check for related planning docs in `planning/*-design.md` or `planning/archive/*`
+  - Search through relevant code structures
+
+```
+
+Present gathered context summary to human:
+- Related planning docs: [list found or "none found"]
+- Relevant code areas: [modules, files, patterns identified]
+- Key observations: [anything notable from the scan]
+
+WAIT for human validation before proceeding
+
+IF human approves
+  → Continue to next section
+IF human requests changes
+  → REVISE: Update and re-present
+
+### 1.2 Exit Gate
+
+```
+IF ALL context gathered:
+  - [ ] Areas mentioned by human reviewed
+  - [ ] Related planning docs checked (`planning/*-design.md`, `planning/archive/*`)
+  - [ ] Relevant code structures searched
+  - [ ] Context summary presented and approved by human
+  → VALID: Continue to "§2. Step 2 - Define Problem"
+```
+
+## 2. Step 2 - Define Problem (dialogue)
+
+Ask one question at a time. Always prefer multiple choice.
+
+### 2.1 Understand the Request
+
+```
+IF supporting document provided (investigation recommendation or external spec):
+  1. READ the supporting document completely
+  2. Present the document's proposal:
+
+     "The [investigation/spec] proposes:
+
+     Feature: [agent's summary of the proposed feature]
+     Rationale: [why this feature, from the document]
+     Scope: [files and acceptance criteria from the doc]
+     Scan alignment: [confirmed by Step 1 scan / diverges — [describe gap]]
+
+     Does this match what you want to build?"
+
+  IF human confirms → GOTO "§2.1.1 Scope & Criteria"
+  IF human corrects → Update understanding and re-present
+
+IF no supporting document:
+  SCAN the user's opening prompt for feature description
+
+  IF opening prompt is vague or partial:
+    Ask ONE focused question based on what is missing:
+      IF feature unclear: "What specific behaviour should the user see when this is done?"
+      IF scope unclear: "Which part of the application does this affect?"
+      IF constraints unclear: "Are there existing patterns or code this should integrate with?"
+    Wait for answer
+
+  Do NOT ask the user to repeat themselves.
+  Agent performs codebase analysis (silent):
+    - Locate existing code, patterns, and modules related to the request
+    - Identify architectural constraints and integration points
+    - Surface existing utilities or patterns the feature builds on
+
+  Present reflection:
+
+    "Based on what you described and what I found in the codebase:
+
+    Feature: [agent's technical framing of the request]
+    Existing patterns: [related code, modules, or utilities already in the codebase]
+    Constraints: [architectural boundaries, integration points, dependencies]
+
+    Is this an accurate read of what you want to build?"
+
+  IF human confirms → GOTO "§2.1.1 Scope & Criteria"
+  IF human corrects → Revise understanding and re-present
+```
+
+#### 2.1.1 Scope & Criteria
+
+**Required questions (ask one at a time, wait for response):**
+
+For each question, draft your best answer from the codebase scan and feature understanding, then ask the human to validate. Do NOT ask open-ended questions that require the human to draft from scratch.
+
+1. For acceptance criteria: draft measurable criteria based on what the feature must do (derived from your codebase analysis and the human's description). Present your draft and ask: "Are these the right acceptance criteria? Anything to add or change?"
+2. For out of scope: draft what's explicitly out of scope based on adjacent functionality you found in the codebase that could be confused with this work. Present your draft and ask: "Does this out-of-scope list look right?"
+3. For constraints: present what you found from the codebase scan (dependencies, existing patterns, API limitations). Ask: "Do these constraints look right?"
+
+WAIT for human validation before proceeding
+
+Present Understanding Summary to human
+IF human approves
+  → VALID: Write Understanding Summary to `planning/[feature-name]-decisions.md`
+  → Continue to next section
+IF human requests changes
+  → REVISE: Update and re-present
+
+```
+Understanding Summary
+
+**Problem:** [1-2 sentence problem statement]
+
+**Acceptance Criteria:**
+
+- [ ] [Measurable criterion]
+- [ ] [Measurable criterion]
+
+**Out of Scope:** [list with reasons]
+
+**Constraints:** [technical dependencies, existing patterns, API limitations]
+```
+
+### 2.2 Size Check
+
+After scope and acceptance criteria are defined, verify the work fits within build size limits:
+
+```
+ASSESS against these thresholds (silent):
+  - 16+ files affected
+  - 3+ modules or domains spanned
+  - 31+ estimated unit tests
+  - 2+ new architectural patterns
+  - 11+ acceptance criteria
+
+IF any threshold breached:
+  1. Present size assessment to human:
+     - Which thresholds are breached and by how much
+     - Recommendation: decompose via `/midtempo-framework/investigate.md`
+
+  IF human agrees → Present handoff prompt for a new conversation:
+    "Investigate: [feature name]
+     Use `/midtempo-framework/investigate.md`
+
+     Context from build:
+     - Problem: [from Understanding Summary]
+     - Acceptance criteria: [list]
+     - Constraints: [list]
+     - Size check: [which thresholds breached and by how much]
+
+     Goal: Decompose this into smaller pieces of work."
+
+  IF human overrides → Record rationale in `planning/[feature-name]-decisions.md` → Continue to §2.3 Gate
+
+IF no threshold breached → Continue to §2.3 Gate
+```
+
+### 2.3 Gate — Define Problem
+
+```
+IF context summary not presented to user
+  → STOP. Present context summary.
+
+IF problem statement not written and validated
+  → STOP. Write and validate problem statement.
+
+IF acceptance criteria not listed (measurable, testable)
+  → STOP. Define acceptance criteria.
+
+IF acceptance criteria were not drafted by the agent before human validation
+  → STOP. Re-run §2.1.1 Q1 with agent-drafted criteria.
+
+IF out of scope not documented with reasons
+  → STOP. Document out of scope.
+
+IF technical constraints not listed (dependencies, patterns, API limits)
+  → STOP. List constraints.
+
+IF size check not passed (and no human override)
+  → STOP. Run size check.
+
+IF Understanding Summary not written to decisions.md
+  → STOP. Write to decisions.md now.
+
+IF feature name is not specific enough to identify this component without reading the file
+  → STOP. Rename to the specific component or capability.
+
+VALID: Continue to "§2.4 Risk & Trade-off Check"
+```
+
+### 2.4 Risk & Trade-off Check
+
+Before exploring approaches, challenge assumptions and delivery risks. The goal is validated — challenge how it gets built, not whether it should.
+
+**From your codebase analysis (Step 1) and scoping (Step 2), present to human:**
+
+```
+Risk & Trade-off Check:
+
+**Assumptions to validate:**
+- [Assumptions about existing code, data shape, or integration points found during codebase scan]
+- [Dependencies on behaviour that is undocumented or untested]
+
+**Delivery risks:**
+- [Code areas in scope that lack test coverage or have unclear ownership]
+- [Patterns this work establishes as precedent — nothing similar exists in the codebase]
+- [Coupling to modules under active change — check planning/ for overlapping work]
+
+**Simpler path:**
+- [Existing utility, pattern, or configuration that achieves part of the goal without new code]
+```
+
+IF nothing concrete found for a category → state "Searched [areas checked] — none identified" — do not fabricate risks.
+
+WAIT for human validation before proceeding
+
+Present Risk & Trade-off Check to human
+IF human approves
+  → VALID: Continue to §3. Step 3 - Explore Approaches
+  → Continue to next section
+IF human requests changes
+  → REVISE: Update and re-present
+
+## 3. Step 3 - Explore Approaches
+
+### 3.1 Diverge — Generate Without Judging
+
+List 2-3 approaches as one-line descriptions. **Do not evaluate yet.**
+
+Force distinct categories by varying at least one of:
+
+- Architectural pattern (event-driven vs polling, push vs pull)
+- Data model (denormalised vs normalised, embedded vs referenced)
+- UX paradigm (modal vs inline, wizard vs single-page)
+- Integration point (client vs server, sync vs async)
+
+**Example format:**
+
+```
+Approach A: Server-side filtering with cached results
+Approach B: Client-side filtering with full dataset fetch
+Approach C: Hybrid with server pagination, client sort
+```
+
+If you cannot articulate 2-3 genuinely different approaches, ask the user: "I see only one viable path here — [describe it]. Should I explore alternatives, or proceed with single-approach analysis?"
+
+WAIT for human validation before proceeding
+
+Present approach list to human
+IF human approves
+  → VALID: Write approach list to `planning/[feature-name]-decisions.md`
+  → Continue to next section
+IF human requests changes
+  → REVISE: Update and re-present
+
+### 3.2 Evaluate — Assess Each Fairly
+
+Use the **Impact Assessment Table** format (see §Required Formats). Use the **Per-Approach Analysis** format for each approach.
+
+### 3.3 Recommend — Now Pick
+
+**Present Recommendation**:
+
+State the best-practice recommendation with reasoning. Validate against project standards:
+
+- Does it follow `/midtempo-framework/instructions/frontend-design.md` rules?
+- Does it align with `/midtempo-framework/instructions/architecture.md` design principles?
+- Does it respect existing patterns in the codebase?
+- Does it follow `/midtempo-framework/instructions/error-handling.md` patterns?
+**Required:** Explain why the runner-up was not chosen.
+
+**Required:** State the reversibility classification from the impact assessment table (feature flag, simple rollback, or permanent). This carries forward to the Decision Card.
+
+**For complex features** (touches 3+ modules, changes data model, or has multiple valid UX paths):
+
+**Required:** (Devil's advocate check) State the strongest argument against your recommendation. If you cannot articulate one, return to 2a and explore further.
+
+---
+
+**Present the complete evaluation to human:**
+- Show the impact assessment table
+- Show the better/worse/assumption analysis
+- Show your recommendation with reasoning
+- Show runner-up rejection
+- Show devil's advocate check
+
+**Ask:** "Does this evaluation look right?"
+
+WAIT for human validation before proceeding
+
+Present complete evaluation (impact table, per-approach analysis, recommendation, runner-up rejection, devil's advocate check)
+IF human approves
+  → VALID: Write complete evaluation to `planning/[feature-name]-decisions.md`
+  → Continue to next section
+IF human requests changes
+  → REVISE: Update and re-present
+
+
+### 3.4 Gate — Explore Approaches
+
+```
+IF fewer than 2 approaches listed before evaluation
+  → STOP. List approaches first.
+
+IF impact assessment table not completed (exact format from §Required Formats)
+  → STOP. Complete impact assessment table.
+
+IF any approach missing better/worse/assumption analysis
+  → STOP. Complete per-approach analysis.
+
+IF no explicit recommendation with reasoning
+  → STOP. State recommendation.
+
+IF runner-up rejection not explained
+  → STOP. Explain why runner-up was not chosen.
+
+IF recommendation not validated against project standards
+  → STOP. Validate against standards.
+
+IF devil's advocate check not completed (complex features only)
+  → STOP. State strongest argument against recommendation.
+
+IF evaluation not presented to human and approved
+  → STOP. Present and wait for approval.
+
+IF evaluation not written to decisions.md
+  → STOP. Write to decisions.md now.
+
+VALID: Continue to "§4. Step 4 - Present the Design"
+```
+
+## 4. Step 4 - Present the Design
+
+### 4.1 Sequential Presentation Steps
+Present each section separately and in full. Wait for validation before proceeding to the next.
+
+**Section order:**
+
+1. **Problem & Goals** — What's broken? What does success look like?
+2. **Solution & Decisions** — High-level approach and key trade-offs
+   - For each key decision, use the **Decision Card** format (see §Required Formats)
+3. **Architecture & Data** — Components, data model, integration points
+4. **User Experience** — UI changes, error states, edge cases (UI features only)
+5. **Constraints** — Dependencies, security, performance mitigations
+
+**For each section:**
+
+- Write the section content in full (200-300 words)
+- State your recommendation with reasoning
+
+WAIT for human validation before proceeding
+
+Present each section separately — ask 'Does this section look right?' before proceeding
+IF human approves
+  → VALID: Append validated section to `planning/[feature-name]-decisions.md`
+  → Continue to next section
+IF human requests changes
+  → REVISE: Update and re-present
+
+
+### 4.2 Exit Gate — Design Captured
+
+```
+IF any of the Sections are not validated by human
+  → STOP. Present remaining sections for validation.
+
+IF any human questions unanswered
+  → STOP. Answer and re-present section.
+
+IF any validated section not yet written to decisions.md
+  → STOP. Write to decisions.md now — do not batch at end.
+
+VALID: Continue to "§5. Step 5 - Alignment Check"
+```
+
+
+## 5. Step 5 - Alignment Check
+
+### 5.1 Verify Coherence
+
+**Read the complete decisions file and verify coherence:**
+
+1. **Check for conflicts** — Decisions in one section must not contradict another
+2. **Check for omissions** — Re-read the Decisions document in full. Extract every discrete agreed requirement into a numbered list. Present the list to human. For each requirement, confirm it appears in the decisions file. Flag any that do not.
+3. **Check terminology** — Same concepts must use same names throughout
+4. **Check scope consistency** — In-scope items have coverage; out-of-scope do not appear
+
+### 5.2 Present findings
+
+```
+IF issues found
+  → Present:
+    - Conflicts between sections
+    - Omissions from Build discussion
+    - Recommended fixes for each issue
+
+IF no issues found
+  → State "No issues found — decisions document is coherent."
+```
+
+WAIT for human validation before proceeding
+
+Present alignment check findings to human
+IF human approves
+  → VALID: Continue to §6. Step 6 - Build Complete
+  → Continue to next section
+IF human requests changes
+  → REVISE: Update and re-present
+
+### 5.3 Exit Gate — Alignment Check
+
+```
+IF decisions file not re-read completely
+  → STOP. Re-read decisions file.
+
+IF conflicts found between sections
+  → STOP. Resolve conflicts.
+
+IF omissions found from Build discussion
+  → STOP. Add missing items.
+
+IF terminology inconsistent
+  → STOP. Standardise terminology.
+
+IF scope boundaries not respected (in-scope missing coverage, or out-of-scope items present)
+  → STOP. Fix scope violations.
+
+IF unresolved issues remain (and human has not approved as-is)
+  → STOP. Resolve or get human approval.
+
+VALID: Continue to "§6. Step 6 - Build Complete"
+```
+
+
+## 6. Step 6 - Build Complete
+
+### 6.1 Skill Complete Script
+
+<CRITICAL_REQUIREMENT type="MANDATORY">
+
+- You MUST produce this output after alignment check passes - include every section and field
+- You MUST NOT skip, paraphrase, or omit any section
+- You MUST format the output for readability
+- You MUST verify alignment check has zero unresolved issues before producing this output
+- You MUST verify every file path references a real file (not invented)
+- You MUST verify all sections from Step 4 appear in the decisions document
+- You MUST verify the decisions document contains no placeholder text ("[TODO]", "[TBD]", "...")
+- You MUST verify terminology matches between the completion output and the decisions document
+</CRITICAL_REQUIREMENT>
+
+```
+COPY the "Skill Complete Script" from §Required Formats
+FILL IN [FEATURE-NAME] and check all gate items
+PRESENT to human
+```
+
+---
+
+## What NOT to do
+
+- ❌ Jump to approaches before understanding is complete
+- ❌ Skip context gathering (codebase, docs)
+- ❌ Present options without a recommendation
+- ❌ Skip validation against project standards
+- ❌ Ask multiple questions in one message
+- ❌ Proceed without validating each section
+- ❌ Leave UI component levels unspecified
+- ❌ Use UI pattern names without mapping to implementation
+- ❌ Add features beyond stated requirements (YAGNI)
+- ❌ Batch all writes to decisions.md at the end — write at each checkpoint
+
+---
+
+---
+**END OF DOCUMENT:** Total sections: 10 | Purpose: Transform ideas into decision document through structured dialog

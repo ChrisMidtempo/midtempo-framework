@@ -1,0 +1,914 @@
+# Setup Database Sub-Skill
+
+## Overview
+
+This sub-skill guides the human to create the `/midtempo-framework/instructions/db.md` file through structured dialogue and codebase analysis.
+
+**Goal:** Create db.md documenting which databases exist, where schemas live, where data access code lives, and how migrations work.
+
+**Target:** 200-300 lines total, regardless of repository size. Focus on inventory and navigation, not exhaustive catalogues.
+
+**Scope:** This file provides INVENTORY and NAVIGATION (what databases exist, where code lives) for THIS REPO only.
+- Database standards (normalisation, query patterns, transaction handling) live elsewhere (midtempo-framework/rules/testing.md)
+- Testing patterns live elsewhere
+
+
+---
+
+## The Process
+
+### Non-Negotiable Rules
+
+<CRITICAL_REQUIREMENT type="MANDATORY">
+
+**CORE PRINCIPLE: Inventory and navigation over exhaustive catalogues.**
+
+- You MUST target 200-300 lines total, regardless of repository size
+- You MUST focus on patterns and representative examples, not comprehensive listings
+- You MUST scan the codebase for database indicators before asking questions
+- You MUST detect all database systems in use (PostgreSQL, MySQL, MongoDB, Redis, etc.)
+- You MUST identify schema locations and count tables
+- You MUST draft sections based on evidence from code and configuration
+- You MUST present each drafted section for validation before proceeding
+- You MUST write validated content to `/midtempo-framework/instructions/db.md` incrementally
+- You MUST perform alignment check before marking complete (including line count check)
+- You MUST follow the `/midtempo-framework/rules/writing.md` rules
+- You MUST use UK English spelling throughout
+- You MUST focus on WHAT/WHERE, not HOW (no detailed procedures)
+- You MUST inline evidence (no separate Evidence subsections)
+- You MUST limit database listings, file examples, and table details to representative samples
+
+**IMPORTANT:** If no database usage detected, ask user for confirmation before proceeding.
+
+</CRITICAL_REQUIREMENT>
+
+---
+
+### ENTRY GATE 
+
+```
+IF not sub-skill triggered from `setup.md`
+  → STOP: This is a sub-skill and MUST NOT run independently
+  → TELL: Human to run "Setup Stage 5 - `/midtempo-framework/setup.md`"
+  → Do not proceed 
+
+IF not read ALL of `/midtempo-framework/rules/writing.md`
+  → INVALID: Read ALL of `/midtempo-framework/rules/writing.md` before proceeding
+
+IF not read ALL of {{ "architecture" | instructions }}
+  → INVALID: Read ALL of {{ instructions.architecture.page }} before proceeding
+
+LS check if `/midtempo-framework/instructions/db.md` exists
+IF `db.md` exists
+  → EMPTY `db.md` to create a fresh db document before proceeding
+```
+
+## 1. Phase 1 - Database Detection
+
+**Do not skip to questions.** Detect database usage first.
+
+### 1.1 Agent Actions (Silent)
+
+```
+SEARCH for database indicators:
+  - Schema files (*.sql, schema.prisma, alembic/versions/*, db/migrate/*, migrations/*)
+  - Database configuration (database.yml, ormconfig.json, knexfile.js, .env.example)
+  - ORM imports (SQLAlchemy, Prisma, TypeORM, Django ORM, Sequelize, Knex, mongoose)
+  - Database client libraries (psycopg2, pymongo, redis-py, pg, mysql2, mongodb)
+  - Connection code (database.ts, db.py, connection.js, config/database.*)
+  - Data access code (repositories/, dao/, queries/, models/)
+  - GCP imports (@google-cloud/spanner, @google-cloud/firestore, @google-cloud/bigquery, @google-cloud/datastore)
+  - Azure imports (@azure/cosmos, @azure/data-tables, azure-storage, mssql with azure)
+
+IDENTIFY database systems:
+  - PostgreSQL (pg, psycopg2, postgresql://)
+  - MySQL (mysql2, pymysql, mysql://)
+  - MongoDB (mongoose, pymongo, mongodb://)
+  - Redis (redis, ioredis, redis://)
+  - SQLite (sqlite3, better-sqlite3)
+  - GCP services (Cloud SQL, Cloud Spanner, Firestore, BigQuery, Bigtable, Memorystore)
+  - Azure services (Azure SQL, Azure Database for PostgreSQL/MySQL, Cosmos DB, Azure Cache)
+  - Other (Cassandra, DynamoDB, Elasticsearch, Neo4j)
+
+ANALYSE schemas:
+  - Find main schema file
+  - Count tables/collections
+  - Identify naming conventions (snake_case, camelCase)
+  - Note primary key patterns (UUIDs, serial, composite)
+
+FIND data access code:
+  - Repository/DAO directories
+  - ORM usage locations
+  - Query file locations
+
+IDENTIFY migration tool:
+  - Tool name (Alembic, TypeORM, Prisma, Flyway, Django)
+  - Migration directory location
+```
+
+### 1.2 Present Detection Summary
+
+**Output to human:**
+
+```
+
+# Database Detection Summary:
+
+Database systems found:
+- [Database 1]: [evidence]
+- [Database 2]: [evidence]
+
+Schema locations:
+- [file path]: [table/collection count]
+
+Data access code:
+- [directory/pattern]: [description]
+
+Migration tool:
+- [tool]: [location]
+
+[If NO database detected:]
+No database indicators found. Does this repository use a database?
+
+[If database detected:]
+Does this match your database setup?
+
+```
+
+{{ present_for_validation(pre_validation="If human says 'No database' then tell them to run 'Setup Stage 6 - `/midtempo-framework/setup.md` in a new conversation", post_validation="Proceed to '§2. Phase 2 - Database Systems Inventory'") }}
+
+---
+
+## 2. Phase 2 - Database Systems Inventory
+
+**Draft section listing which databases exist and their purpose.**
+
+**CRITICAL:** List 5-8 primary databases maximum. For systems with many databases, group minor or supporting ones by purpose.
+
+### 2.1 Agent Actions (silent)
+
+```
+IDENTIFY primary databases (5-8 maximum):
+  - Main operational databases (where primary data lives)
+  - Key supporting databases (cache, queue, search)
+  - Cloud-managed services (if applicable)
+
+GROUP databases in complex systems:
+  - Multiple PostgreSQL instances → "PostgreSQL (primary data - 4 instances)"
+  - Multiple Redis instances → "Redis (cache and sessions - 3 instances)"
+  - Similar-purpose databases → Group and summarise
+
+FOCUS ON:
+  - Primary operational databases (where main data lives)
+  - Clear purpose distinction (primary data vs. cache vs. queue)
+  - Representative examples for grouped databases
+
+AVOID:
+  - Exhaustive listing of every database in microservices
+  - Equal treatment of primary and auxiliary databases
+  - Separate subsections for dozens of databases
+```
+
+### 2.2 Draft "1. Database Systems"
+```
+# 1. Database Systems
+
+## 1.1 [Database Name]
+
+Type: [PostgreSQL/MySQL/MongoDB/Redis/etc.]
+
+Purpose: [primary data/cache/queue/analytics]
+
+Connection: [ORM/client library name]
+
+Config location: [file path with inline evidence]
+
+[Repeat for max 5-8 primary databases, grouping similar ones]
+```
+
+### 2.3 Present Draft
+
+**Output to human:**
+
+```
+
+Database Systems Inventory (drafted from analysis):
+
+# 1. Database Systems
+
+[Draft section with inline evidence - e.g., "Config location: src/config/database.ts (TypeORM connection)"]
+
+Does this accurately list the database systems?
+
+```
+
+{{ present_for_validation(post_validation="Write to `/midtempo-framework/instructions/db.md` with:
+      - Title: `# [Repository Name] Database`
+      - Table of Contents section exactly as shown below (use this exact structure)
+      - Then the Database Systems Inventory section
+") }}
+
+#### 2.3.1 Table of Contents:
+```
+## Table of Contents
+
+- [Database Systems](#1-database-systems)
+- [Schema Location & Overview](#2-schema-location--overview)
+- [Data Access Code Location](#3-data-access-code-location)
+- [Connection & Credentials](#4-connection--credentials)
+- [Migration Approach](#5-migration-approach)
+- [Compliance Gates](#6-compliance-gates)
+- [File References](#7-file-references)
+
+---
+```
+
+### 2.4 Example
+
+```
+# Demo-Repo Database
+
+## Table of Contents
+
+- [Database Systems](#1-database-systems)
+- [Schema Location & Overview](#2-schema-location--overview)
+- [Data Access Code Location](#3-data-access-code-location)
+- [Connection & Credentials](#4-connection--credentials)
+- [Migration Approach](#5-migration-approach)
+- [Compliance Gates](#6-compliance-gates)
+- [File References](#7-file-references)
+
+# 1. Database Systems
+
+## 1.1 Cloud SQL (PostgreSQL)
+
+Type: GCP Cloud SQL - PostgreSQL 15.x
+Purpose: Primary data store (users, orders, products)
+Connection: TypeORM via Cloud SQL Proxy
+Config location: src/config/database.ts
+
+## 1.2 Memorystore (Redis)
+
+Type: GCP Memorystore - Redis 7.x
+Purpose: Cache and background job queue
+Connection: ioredis
+Config location: src/config/redis.ts
+
+## 1.3 Firestore
+
+Type: GCP Firestore (NoSQL)
+Purpose: Real-time user session data
+Connection: @google-cloud/firestore
+Config location: src/config/firestore.ts
+```
+
+---
+
+## 3. Phase 3 - Schema Location & Overview
+
+**Document where schemas live and basic structure.**
+
+**CRITICAL:** Focus on naming patterns and conventions, not table-by-table enumeration. Limit table examples to 3-5 representative ones.
+
+### 3.1 Agent Actions (silent)
+
+```
+IDENTIFY schema patterns:
+  - Schema file locations
+  - Table count (report the number, don't list tables)
+  - Naming conventions (how tables and columns are named)
+  - 3-5 representative table examples only
+
+FOCUS ON:
+  - Naming convention patterns (how tables/columns are named)
+  - Primary key and foreign key patterns
+  - 3-5 representative table examples
+  - Schema organisation patterns (if tables are grouped)
+
+AVOID:
+  - Listing every table name
+  - Exhaustive foreign key mappings
+  - Comprehensive schema documentation
+  - Table-by-table enumeration
+
+SCALING GUIDANCE:
+  - Small schemas (< 20 tables): Can mention key tables
+  - Medium schemas (20-100 tables): Focus on patterns, 3-5 examples
+  - Large schemas (100+ tables): MUST use pattern-focused approach, avoid table listings
+```
+
+### 3.2 Draft "2. Schema Location"
+
+```
+# 2. Schema Location
+
+## 2.1 Overview
+
+Primary schema: [file path]
+Table/collection count: [X]
+
+## 2.2 Naming conventions
+
+Tables: [snake_case/camelCase/PascalCase with 3-5 examples]
+Columns: [snake_case/camelCase with pattern description]
+Foreign keys: [pattern observed with examples]
+
+## 2.3 Key patterns observed
+
+Primary keys: [UUID/serial/composite - pattern with examples, not exhaustive list]
+Foreign key constraints: [present/absent with inline evidence]
+
+[Any notable patterns with 2-3 examples maximum]
+```
+
+### 3.3 Present Draft
+
+**Output to human:**
+
+```
+Schema Location & Overview:
+
+# 2. Schema Location
+
+[Draft section with inline evidence and pattern focus]
+
+Does this capture the schema organisation and patterns?
+
+```
+
+{{ present_for_validation(post_validation="APPEND to `/midtempo-framework/instructions/db.md`") }}
+
+### 3.4 Example
+
+```
+# 2. Schema Location
+
+## 2.1 Overview
+
+Primary schema: db/schema.sql
+Table count: 47
+
+## 2.2 Naming conventions
+
+Tables: snake_case (users, order_items, payment_transactions)
+Columns: snake_case (created_at, user_id, first_name)
+Foreign keys: {parent}_id (user_id, order_id, product_id)
+
+## 2.3 Key patterns observed
+
+Primary keys: UUIDs for main entities, serial for legacy tables
+Foreign key constraints: Present on all relationships with CASCADE/SET NULL
+One-to-one tables use parent FK as PK (user_profiles.user_id is PK)
+```
+
+---
+
+## 4. Phase 4 - Data Access Code Location
+
+**Document where data access code lives and what pattern is used.**
+
+**CRITICAL:** Focus on directory structure, naming patterns, and organisation. Limit file examples to 3-5 representative ones.
+
+### 4.1 Agent Actions (silent)
+
+```
+IDENTIFY data access patterns:
+  - Directory structure and location
+  - File naming convention (how files are named)
+  - Organisation pattern (by entity, by domain, by module)
+  - 3-5 representative file examples only
+
+FOCUS ON:
+  - Directory structure and organisation pattern
+  - Naming conventions (how files are named)
+  - 3-5 representative examples showing the pattern
+  - How to find a specific data access file
+
+AVOID:
+  - Listing every repository or DAO file
+  - Comprehensive file inventory
+  - Entity-by-entity documentation
+```
+
+### 4.2 Draft "3. Data Access Code"
+
+```
+# 3. Data Access Code
+
+## 3.1 Location
+
+[directory path]
+
+## 3.2 Pattern
+
+[repository/DAO/active record/query files with naming convention]
+
+## 3.3 ORM/Query tool
+
+[TypeORM/Prisma/SQLAlchemy/etc.]
+
+## 3.4 Pattern and examples
+
+[Naming pattern description: e.g., "Files follow {Entity}Repository.ts pattern"]
+
+Examples (3-5 representative files):
+- [file 1]: [purpose]
+- [file 2]: [purpose]
+- [file 3]: [purpose]
+
+## 3.5 Query approach
+
+- [ORM query builder/raw SQL/mixed] - [when each is used]
+```
+
+### 4.3 Present Draft
+
+**Output to human:**
+
+```
+
+Data Access Code Location (drafted from code analysis):
+
+# 3. Data Access Code
+
+[Draft section with inline evidence and pattern focus]
+
+Does this capture where data access code lives and how to find specific files?
+
+```
+
+{{ present_for_validation(post_validation="APPEND to `/midtempo-framework/instructions/db.md`") }}
+
+### 4.4 Example
+
+```
+# 3. Data Access Code
+
+## 3.1 Location
+
+src/repositories/
+
+## 3.2 Pattern
+
+Repository pattern with interfaces (I{Entity}Repository)
+
+## 3.3 ORM/Query tool
+
+TypeORM query builder (70%), raw SQL for complex queries (30%)
+
+## 3.4 Pattern and examples
+
+Files follow {Entity}Repository.ts pattern. Each entity has a repository implementing I{Entity}Repository interface.
+
+Examples:
+- src/repositories/UserRepository.ts: User data access
+- src/repositories/OrderRepository.ts: Order data access
+- src/repositories/ProductRepository.ts: Product catalogue access
+- queries/reports/*.sql: Complex reporting queries (raw SQL)
+
+## 3.5 Query approach
+
+- TypeORM query builder for CRUD operations
+- Raw SQL in queries/ directory for complex reports and analytics
+- All queries parameterised (no string interpolation)
+```
+
+---
+
+## 5. Phase 5 - Connection & Credentials
+
+**Document where connection code lives and what credentials are needed.**
+
+### 5.1 Agent Actions (Silent)
+
+```
+FIND connection initialisation:
+  - Connection file location
+  - Connection pool configuration
+  - Retry logic and error handling
+  - Health check endpoints
+
+ANALYSE credential sources:
+  - Environment variables (.env.example)
+  - Secrets management service
+  - Configuration files
+  - Connection string construction
+
+CHECK for local database access:
+  - Docker Compose files (docker-compose.yml, docker-compose.dev.yml)
+  - Local database containers (postgres, mysql, redis services)
+  - Development credentials (.env.local, .env.development)
+  - Database port mappings (exposed ports for local access)
+  - Whether agent can query local database (credentials accessible, no secrets required)
+
+IF local database accessible:
+  → Document connection details for agent use
+  → Note which operations are available (read-only queries, full access)
+
+IF local database NOT accessible:
+  → Suggest to user that local database access improves development
+  → Explain benefits (schema validation, query testing, data exploration)
+  → Continue with documentation
+```
+
+### 5.2 Draft "4. Connection & Credentials"
+
+```
+# 4. Connection & Credentials
+
+## 4.1 Connection code
+
+[file path]
+
+## 4.2 Connection method
+
+[connection pool/single connection/cluster]
+
+## 4.3 Credentials source
+
+[.env file/secrets manager/config file/unknown (credential files may be hidden from agent: lack of visibility !== file absence)]
+
+## 4.4 Environment variables required
+
+- [VAR_1]: [purpose]
+- [VAR_2]: [purpose]
+
+## 4.5 Key configuration
+
+- [Setting 1]: [value/default]
+- [Setting 2]: [value/default]
+
+## 4.6 Local database access (for agent development)
+
+[Available/Not available]: [details if available]
+```
+
+### 5.3 Present Draft
+
+**Output to human:**
+
+```
+
+Connection & Credentials (drafted from config analysis):
+
+## 4. Connection & Credentials
+
+[Draft section with inline evidence]
+
+
+[IF local database NOT accessible:]
+
+  RECOMMENDATION: Local Database Access for Agents
+
+  No local database access detected for agent development.
+
+  Setting up a local dockerised database would significantly improve development:
+
+  Benefits:
+  - Schema validation: Agents can verify table structures and column names
+  - Query testing: Agents can test queries before suggesting them
+  - Data exploration: Agents can inspect actual data patterns
+  - Migration verification: Agents can validate migrations against real schema
+  - Faster iteration: No need to ask user for schema details
+
+
+Does this capture connection configuration?
+
+```
+
+{{ present_for_validation(post_validation="APPEND to `/midtempo-framework/instructions/db.md`") }}
+
+### 5.4 Example (with local database access)
+
+```
+# 4. Connection & Credentials
+
+## 4.1 Connection code
+
+src/config/database.ts
+
+## 4.2 Connection method
+
+TypeORM DataSource with connection pooling
+
+## 4.3 Credentials source
+
+- Development: .env file
+- Production: AWS Secrets Manager
+
+## 4.4 Environment variables required
+
+- DATABASE_URL: PostgreSQL connection string
+- REDIS_URL: Redis connection string
+- DB_POOL_SIZE: Connection pool size (optional, default 20)
+
+## 4.5 Key configuration
+
+- Pool size: 20 connections (configurable)
+- Connection timeout: 5 seconds
+- SSL mode: Required for production
+
+## 4.6 Local database access (for agent development)
+
+- Available via docker-compose.dev.yml
+- PostgreSQL: localhost:5432, user: dev, password: dev, database: app_dev
+- Redis: localhost:6379, no password
+- Start with: `docker compose -f docker-compose.dev.yml up -d`
+- Agents can query database to validate schemas and test queries
+
+```
+
+---
+
+## 6. Phase 6 - Migration Approach
+
+**Document which migration tool is used and how to run migrations.**
+
+### 6.1 Draft "5. Migrations"
+
+```
+# 5. Migrations
+
+## 5.1 Tool
+
+[TypeORM/Prisma/Alembic/Flyway/etc.]
+
+## 5.2 Location
+
+[directory path]
+
+## 5.3 Commands
+
+Run migrations: [command]
+
+Create migration: [command]
+
+Rollback: [command / not supported]
+
+## 5.4 Migration count
+
+[X] migrations
+
+## 5.5 Notes
+
+[Any important details about migration process]
+```
+
+### 6.2 Present Draft
+
+**Output to human:**
+
+```
+
+Migration Approach (drafted from analysis):
+
+## 5. Migrations
+
+[Draft section with inline evidence]
+
+Does this capture the migration approach?
+
+```
+
+{{ present_for_validation(post_validation="APPEND to `/midtempo-framework/instructions/db.md`") }}
+
+### 6.3 Example
+
+```
+# 5. Migrations
+
+## 5.1 Tool
+
+TypeORM migrations
+
+## 5.2 Location
+
+migrations/
+
+## 5.3 Commands
+
+Run migrations: `npm run migration:run`
+
+Create migration: `npm run migration:generate -- -n MigrationName`
+
+Rollback: `npm run migration:revert`
+
+## 5.4 Migration count
+
+87 migrations
+
+## 5.5 Notes
+
+- Migrations run automatically before deployment
+- All migrations have up() and down() methods
+- Applied migrations tracked in migrations table
+```
+
+---
+
+## 7. Phase 7: Compliance Gates
+
+**Distil verifiable rules from the database document.**
+
+### 7.1 Agent Actions (Silent)
+
+```
+REVIEW existing Organisation Rules in `midtempo-framework/rules/db.md`
+  
+REVIEW content sections in db.md:
+  - Schema location (§2) — naming conventions, key patterns
+  - Data access code (§3) — repository patterns, query approach
+  - Connection (§4) — configuration rules
+  - Migration approach (§5) — migration patterns
+
+SELECT 5-7 rules that are:
+  - Verifiable by code inspection
+  - Specific to this repository (not generic advice)
+  - Are not explicitly covered in Organisation Rules (rules/db.md)
+  - Focused on data rules (naming conventions, FK constraints, migration patterns)
+
+WRITE rules using compliance gates format:
+  - Checklist items with CG-N prefix
+  - Each gate references its source section
+  - One-line verifiable statements
+```
+
+### 7.2 Draft Compliance Gates
+
+**Output to human:**
+
+```
+Compliance Gates:
+
+## 6. Compliance Gates
+
+> Delivery and review skills verify these gates. Each gate must pass for code touching this domain.
+
+- [ ] **CG-1:** [Naming rule — e.g., "Tables use snake_case naming convention"] (§2.2)
+- [ ] **CG-2:** [FK rule — e.g., "Foreign keys follow {parent}_id pattern with CASCADE constraints"] (§2.3)
+- [ ] **CG-3:** [Access rule — e.g., "Data access uses repository pattern — no direct SQL outside repositories/"] (§3.2)
+- [ ] **CG-4:** [Migration rule — e.g., "All migrations have up() and down() methods"] (§5.5)
+
+Target: 5-7 gates for db.md (data — naming, constraints, access patterns, migrations)
+
+Are these gates verifiable and correct?
+```
+
+{{ present_for_validation(post_validation="APPEND to `/midtempo-framework/instructions/db.md`") }}
+
+---
+
+## 8. Phase 8 - Alignment Check
+
+**Review all sections for coherence.**
+
+### 8.1 Check for Issues
+
+```
+READ all drafted sections from midtempo-framework/instructions/db.md
+
+CHECK:
+1. Completeness — All databases documented?
+2. Clarity — Can agent find database code quickly?
+3. Conflicts — Any contradictions?
+4. Scope — Stayed focused on WHAT/WHERE (not HOW)?
+5. Evidence — All statements backed by code?
+6. Brevity — Is document within 200-300 line budget? If over, identify areas for condensing.
+7. Patterns over catalogues — Focused on navigation, not comprehensive documentation?
+8. Representative examples — Limited to 3-5 examples per section?
+```
+
+**SCALING GUIDANCE:**
+- Small repos (1-2 databases): Can detail individual databases and schemas
+- Medium repos (3-5 databases, < 100 tables): Brief per-database summaries, pattern-focused schema documentation
+- Large repos (6+ databases, 100+ tables, microservices): Group databases by purpose, strict pattern focus, avoid table listings
+- Polyglot persistence (many databases): Categorise by purpose (primary/cache/queue/search), group similar databases
+
+### 8.2 Present Findings
+
+**Output to human:**
+
+```
+
+# Alignment Check Results:
+
+Completeness: [all databases covered / gaps found]
+Clarity: [clear navigation / areas needing detail]
+Conflicts: [none / issues found]
+Scope: [focused on inventory / too prescriptive]
+Evidence: [all backed by code / unsupported claims]
+
+[If issues found:]
+Fixes needed:
+1. [fix 1]
+2. [fix 2]
+
+Shall I apply these fixes?
+
+[If no issues:]
+Anything else to add?
+
+```
+
+{{ present_for_validation(pre_validation="**If fixes approved:** Apply and re-present") }}
+
+---
+
+
+## 9. Phase 9 - Finalise Document
+
+**Add file references section and complete.**
+
+### 9.1 Add Final Section
+
+**CRITICAL:** Limit to 5-10 key landmarks only. Focus on navigation, not comprehensive listings.
+
+```
+ADD File References section:
+  - Key schema files (not every migration)
+  - Core configuration files
+  - Main data access directories
+  - Navigation landmarks ("Start here to understand migrations")
+
+AVOID:
+  - Comprehensive file listings by category
+  - Every schema file, every migration
+  - Exhaustive documentation of repository structure
+  - Subdividing into 6.1, 6.2, 6.3, etc. for lengthy lists
+```
+
+###  8.2 Example 
+
+```
+# 7. File References
+
+Key landmarks for database navigation:
+
+- [schema file path] — Main schema definition
+- [migration directory path] — Database migrations
+- [connection config file] — Database connection setup
+- [.env.example location] — Required environment variables
+- [repository/DAO directory] — Data access code
+- [query file directory if applicable] — Complex queries
+
+### 7.1 End Marker
+
+{{ end_of_file(total_sections=7, file_purpose='Database inventory and navigation') }}
+
+---
+
+```
+
+### 8.3 Exit Gate
+
+```
+
+IF midtempo-framework/instructions/db.md exists
+IF Document is within 200-300 line target
+IF All database systems listed (5-8 primary databases, grouped if needed)
+IF Schema location documented (patterns and conventions, not exhaustive tables)
+IF Data access code location documented (patterns with 3-5 examples)
+IF Connection approach documented (where config lives, env vars needed)
+IF Migration approach documented (tool, commands, location)
+IF File references complete (5-10 key landmarks)
+IF Stayed focused on WHAT/WHERE (not HOW)
+IF Evidence inlined (no separate Evidence subsections)
+IF Focus on patterns and navigation, not exhaustive catalogues
+
+VALID: Display "§8.4 DB Complete Output"
+```
+
+
+### 8.4 DB Complete Output
+
+{{ exit_gate_requirements(extra_rules=["You MUST verify document is within 200-300 line budget and focuses on WHAT/WHERE not HOW before producing this output"]) }}
+
+````markdown
+---
+                      DATABASE DOCUMENTATION COMPLETE
+---
+
+Documents created:
+- midtempo-framework/instructions/db.md — Database inventory and navigation
+
+Sections completed:
+✅ Database Systems (which databases, where configured)
+✅ Schema Location (where schemas live, table count, patterns)
+✅ Data Access Code (where repositories/queries live)
+✅ Connection & Credentials (where connection code lives, env vars)
+✅ Migrations (tool, commands, location)
+✅ File References (quick lookup)
+
+Summary:
+- [X] database systems documented
+- [Y] tables in schema
+- Data access code in [location]
+- Migrations via [tool]
+
+---
+
+Start the next setup stage in a new conversation with:
+Setup Stage 6 - /midtempo-framework/setup.md
+
+---
+````
