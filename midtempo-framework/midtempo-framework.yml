@@ -229,5 +229,5 @@ instructions:
 #     description: 'Public-facing security headers, CORS, and attack surface reduction'
 
 metadata:
-  generated_at: '2026-04-09T11:40:31.935453+00:00'
+  generated_at: '2026-04-09T13:02:57.656946+00:00'
   framework_version: 0.3.7

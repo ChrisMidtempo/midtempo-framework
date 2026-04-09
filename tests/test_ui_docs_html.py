@@ -87,6 +87,28 @@ class TestDocsModalStructure:
         ), 'element with id="docs-modal-content" missing from index.html'
 
 
+class TestConfigurationAnchorLink:
+    """A link that opens the docs modal at the Overview #configuration anchor."""
+
+    def test_configuration_anchor_link_present_in_index_html(self):
+        """index.html contains an element with data-testid="docs-link-configuration"."""
+        content = HTML_FILE.read_text()
+        assert 'data-testid="docs-link-configuration"' in content, (
+            'index.html must contain an element with data-testid="docs-link-configuration"'
+        )
+
+    def test_configuration_link_has_no_inline_onclick(self):
+        """The docs-link-configuration element uses no inline onclick handler."""
+        content = HTML_FILE.read_text()
+        match = re.search(r'<[^>]*data-testid="docs-link-configuration"[^>]*>', content)
+        assert match, 'element with data-testid="docs-link-configuration" not found'
+        tag = match.group(0)
+        assert "onclick" not in tag, (
+            "docs-link-configuration must not use an inline onclick handler — "
+            "wire via event-wiring.js"
+        )
+
+
 class TestScriptOrder:
     """B20 — marked.js script tag appears before form.js module tag in index.html."""
 

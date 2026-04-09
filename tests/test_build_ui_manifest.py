@@ -186,6 +186,34 @@ class TestBuildUiManifest:
             build_ui_manifest()
 
     @pytest.mark.integration
+    @pytest.mark.parametrize(
+        "language",
+        [
+            "javascript",
+            "javascript-npm",
+            "kotlin-maven",
+            "python-poetry",
+            "python-uv",
+        ],
+    )
+    def test_new_language_template_included_in_manifest(self, tmp_path, language):
+        """New language template renders with test, lint, and typecheck core commands."""
+        shutil.copytree(PROJECT_ROOT / "commands", tmp_path / "commands")
+
+        with mock.patch("scripts.build_ui_manifest.PROJECT_ROOT", tmp_path):
+            build_ui_manifest()
+
+        content = json.loads((tmp_path / "ui" / "json" / "languages.json").read_text())
+        assert language in content, f"Expected '{language}' in languages.json"
+        entries = content[language]
+        categories = {e["category"] for e in entries}
+        assert "test" in categories, f"'{language}' missing test command"
+        assert "lint" in categories, f"'{language}' missing lint command"
+        assert "typecheck" in categories, f"'{language}' missing typecheck command"
+        for entry in entries:
+            assert entry["command"] != "", f"Empty command in '{language}' entry: {entry['name']}"
+
+    @pytest.mark.integration
     def test_integration_produces_valid_json_from_real_commands_dir(self, tmp_path):
         """build_ui_manifest() produces valid ui/json/languages.json from real commands/*.yml.j2 files."""
         # Arrange: copy real commands/ into tmp_path for filesystem isolation

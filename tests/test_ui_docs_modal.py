@@ -290,3 +290,41 @@ class TestExternalLinkDetection:
         assert re.search(r"href\.slice\(1\)|href\.substring\(1\)", content), (
             "docs-modal.js must strip the '#' from href before the scroll-target lookup"
         )
+
+
+class TestOpenModalAt:
+    """openModalAt(tab, anchor) opens the modal at a specific tab and scrolls to an anchor."""
+
+    def test_open_modal_at_is_a_named_export(self):
+        """docs-modal.js exports a named function openModalAt."""
+        content = DOCS_MODAL_FILE.read_text()
+        assert re.search(r"export\s+(?:async\s+)?function\s+openModalAt\b", content), (
+            "docs-modal.js must export a named function 'openModalAt'"
+        )
+
+    def test_open_modal_at_awaits_activate_tab(self):
+        """openModalAt() awaits activateTab so content is ready before scrolling."""
+        content = DOCS_MODAL_FILE.read_text()
+        body = _extract_function_body(content, "openModalAt")
+        assert "await" in body, (
+            "openModalAt() must await activateTab so content is ready before scrolling"
+        )
+        assert "activateTab" in body, (
+            "openModalAt() must call activateTab to load the tab content"
+        )
+
+    def test_open_modal_at_calls_scroll_into_view_for_anchor(self):
+        """openModalAt() calls scrollIntoView to jump to the named anchor."""
+        content = DOCS_MODAL_FILE.read_text()
+        body = _extract_function_body(content, "openModalAt")
+        assert "scrollIntoView" in body, (
+            "openModalAt() must call scrollIntoView to jump to the anchor"
+        )
+
+    def test_activate_tab_returns_fetch_doc_promise(self):
+        """activateTab() returns fetchDoc(key) so callers can await content load."""
+        content = DOCS_MODAL_FILE.read_text()
+        body = _extract_function_body(content, "activateTab")
+        assert re.search(r"return\s+fetchDoc", body), (
+            "activateTab() must return fetchDoc(key) so openModalAt can await it"
+        )

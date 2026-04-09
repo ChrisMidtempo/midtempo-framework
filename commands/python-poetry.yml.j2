@@ -1,0 +1,156 @@
+# Midtempo Framework Configuration File
+#
+# IMPORTANT: If you edit this file you **MUST** re-generate the framework for changes to take effect
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 1. BASE CONFIG
+# ═══════════════════════════════════════════════════════════════════════════
+
+{{ base_config }}
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 2. CORE COMMANDS
+# ═══════════════════════════════════════════════════════════════════════════
+# test, lint, typecheck commands MUST be available. The framework depends on them
+
+commands:
+  test:
+    command: "poetry run pytest"
+    description: "Run all tests"
+    category: "test"
+
+  lint:
+    command: "poetry run ruff check scripts/ tests/"
+    description: "Run linter for code quality"
+    category: "lint"
+
+  typecheck:
+    command: "poetry run mypy scripts/ tests/"
+    description: "Run type checker"
+    category: "typecheck"
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 3. VARIANTS - Test/Lint/Typecheck
+# ═══════════════════════════════════════════════════════════════════════════
+# Organised variants of core commands by purpose - add/amend as required
+
+  # Testing variants
+  test_summary:
+    command: "poetry run pytest -q --tb=short"
+    description: "Run tests with summary output (quiet mode for gate checks)"
+    category: "test"
+
+  test_coverage:
+    command: "poetry run pytest -q --tb=short --cov --cov-report=term-missing"
+    description: "Run tests with coverage report"
+    category: "test"
+
+  test_unit:
+    command: "poetry run pytest tests/unit/"
+    description: "Run unit tests only"
+    category: "test"
+
+  test_integration:
+    command: "poetry run pytest tests/integration/"
+    description: "Run integration tests only"
+    category: "test"
+
+  # test_e2e:
+  #   command: "poetry run pytest tests/e2e/"
+  #   description: "Run all E2E tests"
+  #   category: "test"
+
+  # Linting variants
+  lint_fix:
+    command: "poetry run ruff check --fix scripts/ tests/"
+    description: "Auto-fix linting issues"
+    category: "lint"
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 4. FORMATTING
+# ═══════════════════════════════════════════════════════════════════════════
+# Code formatting tools - add/amend as required
+
+  format:
+    command: "poetry run black scripts/ tests/"
+    description: "Format code with Black"
+    category: "format"
+
+  format_check:
+    command: "poetry run black --check scripts/ tests/"
+    description: "Check formatting without changes"
+    category: "format"
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 5. DOCUMENTATION COMMANDS
+# ═══════════════════════════════════════════════════════════════════════════
+# Documentation generation tools - add/amend as required
+
+  # Sphinx documentation
+  # sphinx:
+  #   command: "poetry run sphinx-build docs/ docs/_build"
+  #   description: "Generate Sphinx documentation"
+  #   category: "docs"
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 6. OPTIONAL EXAMPLES
+# ═══════════════════════════════════════════════════════════════════════════
+# Categories are: test, lint, typecheck, docs, format, docker, db, utilities, discovery
+
+  # Development server
+  # dev:
+  #   command: "poetry run python -m app.main"
+  #   description: "Start development server"
+  #   category: "docker"
+
+  # Database queries (if hasDB: true)
+  # db_query:
+  #   command: "poetry run python -m scripts.query_database"
+  #   description: "Query database for debugging"
+  #   category: "db"
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 7. INSTRUCTIONS
+# ═══════════════════════════════════════════════════════════════════════════
+# Client-maintained/repo-specific documentation files injected into the midtempo-framework scripts
+
+instructions:
+  purpose:
+    page: 'purpose.md'
+    description: 'Provides an overview of the goal and capabilities of the service'
+
+  architecture:
+    page: 'architecture.md'
+    description: 'Services architectural structure and design principles'
+
+  error-handling:
+    page: 'error-handling.md'
+    description: 'Error handling patterns and conventions for the repository'
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 8. SECURITY
+# ═══════════════════════════════════════════════════════════════════════════
+# Bespoke security domain configuration
+# If a repo requires bespoke rules, uncomment to replace security/ doc with instructions/ doc
+
+# security:
+# secrets-management:
+#    page: 'secrets-management.md'
+#    description: 'Credential handling, API keys, and secret storage rules'
+#  input-validation:
+#    page: 'input-validation.md'
+#    description: 'Input sanitisation, validation, and injection prevention'
+#  authentication:
+#    page: 'authentication.md'
+#    description: 'Authentication flows, session management, and access control'
+#  data-protection:
+#    page: 'data-protection.md'
+#    description: 'Encryption, data handling, and confidentiality rules'
+#  public-hardening:
+#    page: 'public-hardening.md'
+#    description: 'Public-facing security headers, CORS, and attack surface reduction'

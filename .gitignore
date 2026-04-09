@@ -55,9 +55,7 @@ planning/**
 !planning/**/
 !planning/**/*-design.md
 
-# Generation (all the generated agents live here)
-/agents/
-
+agents/*
 # OS
 .DS_Store
 Thumbs.db

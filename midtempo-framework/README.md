@@ -6,6 +6,11 @@ A framework for building production-quality code with AI coding agents.
 >
 > Wider [framework concepts](GUIDE.md) are described here.
 
+## Links
+
+- View/download/fork the codebase on [Github](https://github.com/ChrisMidtempo/midtempo-framework)
+- Easily re/generate using the [Midtempo Framework UI](https://www.midtempo.com)
+
 ---
 
 ## Table of Contents

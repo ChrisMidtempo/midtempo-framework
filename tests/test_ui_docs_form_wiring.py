@@ -45,3 +45,25 @@ class TestFormDocsModalWiring:
             content,
             re.DOTALL,
         ), "docsModalInit() must be called inside the DOMContentLoaded listener in form.js"
+
+
+class TestConfigurationLinkWiring:
+    """event-wiring.js wires the configuration anchor link to openModalAt."""
+
+    def test_event_wiring_imports_open_modal_at_from_docs_modal(self):
+        """event-wiring.js imports openModalAt from ./docs-modal.js."""
+        content = Path("ui/js/event-wiring.js").read_text()
+        assert re.search(
+            r"import\s+\{[^}]*openModalAt[^}]*\}\s+from\s+['\"]./docs-modal\.js['\"]",
+            content,
+        ), "event-wiring.js must import { openModalAt } from './docs-modal.js'"
+
+    def test_event_wiring_wires_click_on_configuration_link(self):
+        """event-wiring.js queries docs-link-configuration and wires a click to openModalAt."""
+        content = Path("ui/js/event-wiring.js").read_text()
+        assert "openModalAt" in content, (
+            "event-wiring.js must call openModalAt to wire the configuration link"
+        )
+        assert "docs-link-configuration" in content, (
+            "event-wiring.js must query for the docs-link-configuration element"
+        )
