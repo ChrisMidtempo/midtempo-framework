@@ -1,6 +1,6 @@
 {
   "name": "midtempo-framework",
-  "version": "0.3.6",
+  "version": "0.4.1",
   "description": "Midtempo Framework - Templating and documentation tools",
   "scripts": {
     "lint:markdown": "markdownlint '**/*.md' --ignore node_modules --ignore venv --ignore rules --ignore templates --ignore typescript --ignore planning --ignore instructions",
@@ -23,8 +23,7 @@
     "docs:validate": "venv/bin/python build-scripts/validate_docs.py",
     "check:all": "npm run format:python:check && npm run lint:python && npm run typecheck:python && npm run test:python && npm run docs:validate && npm run lint:markdown",
     "fix:all": "npm run format:python && npm run lint:python:fix",
-    "server": "PYTHONPATH=. venv/bin/uvicorn server.app:app --reload",
-    "ui:manifest": "PYTHONPATH=. venv/bin/python scripts/build_ui_manifest.py"
+    "server": "PYTHONPATH=. venv/bin/uvicorn server.app:app --reload"
   },
   "devDependencies": {
     "markdownlint-cli": "^0.39.0",
@@ -35,6 +34,6 @@
     "framework",
     "templating"
   ],
-  "author": "",
-  "license": "ISC"
+  "author": "Chris Burford",
+  "license": "Apache-2.0"
 }

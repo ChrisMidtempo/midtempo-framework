@@ -1,6 +1,6 @@
 [project]
 name = "midtempo-framework"
-version = "0.4.0"
+version = "0.4.1"
 description = "Midtempo Framework"
 requires-python = ">=3.14"
 

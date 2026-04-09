@@ -1,4 +1,6 @@
 > **Note:** This project is currently maintained as a solo project and is not accepting unsolicited pull requests. If you'd like to propose a change, please [open an issue](https://github.com/ChrisMidtempo/agentic-framework/issues) first. Unopened PRs will be closed without review.
+>
+> This repository is also a published mirror, meaning contributions can't easily be merged upstream from here
 
 ---
 
