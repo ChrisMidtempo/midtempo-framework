@@ -2,22 +2,19 @@
 
 ---
 
-## Summary
+## Changes
 
-<!-- What does this PR do? -->
+<!-- What does this PR do and why? -->
+
+-
 
 ## Related Issue
 
-<!-- Link to the issue this addresses -->
-
 Closes #
-
-## Changes
-
-- 
 
 ## Testing
 
-- [ ] Tests pass locally
+- [ ] Tests pass locally (`npm run test:python`)
+- [ ] Coverage thresholds met (`npm run test:python:coverage`)
 - [ ] New tests added for changes
 - [ ] Design Docs included with review-test notifications

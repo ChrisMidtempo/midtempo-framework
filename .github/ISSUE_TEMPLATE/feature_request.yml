@@ -1,0 +1,50 @@
+name: Feature Request
+description: Suggest an idea for this project
+title: "[FEATURE] "
+labels: [enhancement]
+assignees: [ChrisMidtempo]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Ideas welcome... and a well-described request helps even more.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which part of the framework does this relate to?
+      options:
+        - Templates
+        - Schema / Configuration
+        - CLI
+        - Documentation
+        - New language support
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What problem would this solve?
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: How you'd like to see this addressed
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Anything else — screenshots, links, related issues
+    validations:
+      required: false
