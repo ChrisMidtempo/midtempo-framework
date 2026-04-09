@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Discussion
+    url: https://github.com/ChrisMidtempo/agentic-framework/discussions
+    about: Questions and general discussion

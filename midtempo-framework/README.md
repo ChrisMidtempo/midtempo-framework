@@ -183,16 +183,16 @@ The agent injects these commands into your repo's framework to run exactly as wr
 
 **Test, lint, and typecheck are compulsory**
 
-**Command categories** — group commands for display in the generated docs:
+**Command categories** — where commands are used in the generated docs:
 
 | Category | Purpose |
 |---|---|
 | `test` | Test runners — shown in all delivery phases |
 | `lint` | Lint tools — shown in delivery and refine exit gates |
 | `typecheck` | Type checkers — shown when `hasTypecheck: true` |
-| `format` | Formatters — shown in delivery exit gate |
-| `docs` | Doc generators — shown in the Docs phase |
-| `utilities` | Project-wide checks — shown in investigations and reviews |
+| `format` | Formatters — shown in delivery exit gates |
+| `docs` | Doc-comment generators — shown in the documentation.md phase |
+| `utilities` | Inserts extra-tooling commands into the main CLAUDE.md for visibility |
 | `discovery` | APIs or scripts that the agent can run to support codebase understanding |
 
 **Reserved command keys** — specific names the framework recognises to change behaviour:
