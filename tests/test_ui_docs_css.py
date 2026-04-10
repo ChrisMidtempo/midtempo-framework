@@ -199,6 +199,35 @@ class TestTabAndContentStyles:
         ), "--header-height custom property missing from :root in style.css"
 
 
+class TestExamplesTabsLayout:
+    """Examples tab group sits on the right of the docs-modal header with a styled label."""
+
+    def test_examples_tabs_pushed_right_with_margin_left_auto(self):
+        """style.css .docs-examples-tabs rule uses margin-left: auto to push the group right."""
+        content = CSS_FILE.read_text()
+        match = re.search(r"\.docs-examples-tabs\s*\{([^}]*)\}", content, re.DOTALL)
+        assert match, ".docs-examples-tabs rule missing from style.css"
+        block = match.group(1)
+        assert re.search(r"margin-left\s*:\s*auto", block), (
+            ".docs-examples-tabs must use margin-left: auto so the group sits "
+            "on the right of the docs-modal header, before the close button"
+        )
+
+    def test_examples_label_uses_colour_and_font_tokens(self):
+        """style.css .docs-examples-label rule uses --colour-* and --font-* tokens (non-clickable label)."""
+        content = CSS_FILE.read_text()
+        match = re.search(r"\.docs-examples-label\s*\{([^}]*)\}", content, re.DOTALL)
+        assert match, ".docs-examples-label rule missing from style.css"
+        block = match.group(1)
+        assert "--colour-" in block, (
+            ".docs-examples-label must reference a --colour-* token — "
+            "no hardcoded colour values allowed"
+        )
+        assert "--font-" in block, (
+            ".docs-examples-label must reference a --font-* token for sizing or weight"
+        )
+
+
 class TestDocsModalContentProseStyles:
     """Prose typography for rendered markdown inside #docs-modal-content."""
 

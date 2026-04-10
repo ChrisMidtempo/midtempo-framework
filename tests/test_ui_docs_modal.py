@@ -328,3 +328,66 @@ class TestOpenModalAt:
         assert re.search(r"return\s+fetchDoc", body), (
             "activateTab() must return fetchDoc(key) so openModalAt can await it"
         )
+
+
+class TestExamplesDocsEntries:
+    """DOCS map contains four example entries served from the static /examples/ path."""
+
+    def test_docs_constant_contains_four_example_keys(self):
+        """docs-modal.js DOCS constant contains decisions, design, plan, and tests keys."""
+        content = DOCS_MODAL_FILE.read_text()
+        assert re.search(r"\bdecisions\s*:", content), (
+            "DOCS constant must contain a 'decisions' key for the examples group"
+        )
+        assert re.search(r"\bdesign\s*:", content), (
+            "DOCS constant must contain a 'design' key for the examples group"
+        )
+        assert re.search(r"\bplan\s*:", content), (
+            "DOCS constant must contain a 'plan' key for the examples group"
+        )
+        assert re.search(r"\btests\s*:", content), (
+            "DOCS constant must contain a 'tests' key for the examples group"
+        )
+
+    def test_example_entries_reference_static_examples_path(self):
+        """docs-modal.js references /examples/{file}.md for each example entry."""
+        content = DOCS_MODAL_FILE.read_text()
+        assert "/examples/decisions.md" in content, (
+            "DOCS decisions entry must resolve to /examples/decisions.md "
+            "(served from ui/examples/ via the static mount, not /api/docs/)"
+        )
+        assert "/examples/design.md" in content, (
+            "DOCS design entry must resolve to /examples/design.md"
+        )
+        assert "/examples/plan.md" in content, (
+            "DOCS plan entry must resolve to /examples/plan.md"
+        )
+        assert "/examples/tests.md" in content, (
+            "DOCS tests entry must resolve to /examples/tests.md"
+        )
+
+    def test_doc_entries_retain_api_docs_url(self):
+        """docs-modal.js keeps /api/docs/ URLs for the three whitelisted doc entries."""
+        content = DOCS_MODAL_FILE.read_text()
+        assert "/api/docs/README.md" in content, (
+            "DOCS overview entry must resolve to /api/docs/README.md"
+        )
+        assert "/api/docs/GUIDE.md" in content, (
+            "DOCS guide entry must resolve to /api/docs/GUIDE.md"
+        )
+        assert "/api/docs/INSTALL.md" in content, (
+            "DOCS install entry must resolve to /api/docs/INSTALL.md"
+        )
+
+    def test_fetch_doc_reads_url_field_from_docs_entry(self):
+        """fetchDoc() builds the fetch URL from the DOCS entry's url field, not a hardcoded path."""
+        content = DOCS_MODAL_FILE.read_text()
+        body = _extract_function_body(content, "fetchDoc")
+        assert re.search(r"\.url\b", body), (
+            "fetchDoc() must read the url field from DOCS[key] so examples "
+            "fetch from /examples/ and docs fetch from /api/docs/"
+        )
+        assert "/api/docs/" not in body, (
+            "fetchDoc() must not hardcode /api/docs/ — the URL comes from DOCS[key].url "
+            "so the same fetch path serves both docs and examples"
+        )

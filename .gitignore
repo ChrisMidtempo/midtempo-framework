@@ -52,6 +52,7 @@ dmypy.json
 # planning - commit design docs only
 planning/**
 !planning/*-design.md
+!planning/EXAMPLE-*.md
 !planning/**/
 !planning/**/*-design.md
 

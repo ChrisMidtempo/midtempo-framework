@@ -1,69 +1,35 @@
 # Midtempo Framework
 
-> You can generate complete framework docs at [midtempo.com](https://midtempo.com) if you'd rather avoid CLI / the overhead of another repo.
+> You can generate a complete set of framework docs at [midtempo.com](https://midtempo.com) if you'd rather avoid the overhead of installing the repo.
 
-## What does this solve?
+## What this is
+A constraint-first framework for LLM-assisted development on real codebases. It assumes the engineer remains responsible for everything that ships, and makes that responsibility sustainable.
 
-**The Problem**
-LLMs hallucinate, drift from instructions as context grows, and optimise for task completion rather than correctness. They lose knowledge between conversations and cannot validate their own output. Increasing agent autonomy amplifies these failures.
+### The principles
 
-**The Solution**
-A constraint-first framework that contains these failures by enforcing what LLMs cannot do themselves: validating output, maintaining standards, preserving knowledge, and respecting boundaries. The engineer stays responsible. The framework makes that sustainable.
+#### - You stay in control
+No agent access to git. Human approval at every phase - design, plan, tests, code. Documentation arrives in digestible sections you sign off on, not walls of text to rubber-stamp afterwards.
 
-## The Core Principles
+#### - External tools do the validating
+The agent answers to tools that can't be charmed. Clean lint, clean types, clean tests, every run - no exceptions, no pre-existing noise to hide behind. High coverage thresholds catch unapproved code generated outside the TDD loop.
 
-### 1. **Developer Sovereignty**
-- You own the code - No agent access to git. All commits, pushes, and PRs require explicit human action.
-- You approve the work - Human gates at every workflow phase. No autonomous decisions on architecture, approach, or scope.
-- You understand the work - Documentation presented in digestible sections requiring approval before proceeding. No massive docs to review after the fact.
- 
-Understanding is encouraged - designs are presented in small sections (200-300 words) with multiple approaches, trade-off analysis, and devil's advocate checks. 
+#### - Process before code
+Design → delivery plan → test manifest → implementation. TDD always, no exceptions, no "simple tweaks." Each task starts in a fresh conversation and stops before context compaction degrades instruction fidelity.
 
-One framework per repository - not per-user. Team-wide standards, not individual preferences.
+#### - Repository-grounded
+A structured setup dialogue produces docs describing what this codebase actually is - purpose, architecture, patterns - so every conversation starts grounded. Security gates adapt to the repo's risk profile across five domains: authn/authz, secrets, input validation, data protection, and public hardening. Repository-specific instructions survive regeneration when the framework updates, or org standards evolve.
 
-### 2. **External Validation**
-- LLMs cannot self-validate - Context drift, hallucination, and statistical pattern matching make self-assessment impossible and dangerous.
-- Zero tolerance for failures - Unit tests, linting, type checking, and doc generation must run clean (zero errors AND warnings). Any pre-existing issue becomes an excuse for the LLM to ignore rules.
-- Coverage enforcement - TDD combined with low coverage metrics indicates the agent generated unapproved code during implementation. High coverage thresholds catch this immediately.
-- Mechanical rule enforcement - Linters, type checkers, and test frameworks provide objective, consistent validation every run.
+#### - Work compounds
+New tasks review prior planning docs in the same domain; completed work updates them. Decisions, patterns, and lessons carry across fresh conversations rather than being lost.
 
-### 3. **Process Discipline**
-- Test-Driven Development always - No production code without a failing test first. No exceptions.
-- Documentation before implementation - Design → Delivery Plan → Test Manifest → Code. Understanding precedes action.
-- Fresh conversations per task - Each task starts in a new conversation to prevent context drift and instruction decay. Stop before compaction/summarisation occurs.
-- No instant fixes - Every code change requires prior documentation and TDD workflow, even "simple" tweaks.
+#### - Universal by design
+Pure markdown skills, no executable framework code. Language- and IDE-agnostic. One YAML config drives capabilities, commands, and conditional content. One framework per repository - team standards, not individual preferences.
 
-### 4. **Universal Design**
-- Pure markdown - No executable code in the framework itself. Skills are instructions, not scripts.
-- Language agnostic - Python, TypeScript, Go, Rust, Swift. Any language with testing and linting.
-- IDE independent - Works with Claude Code, Continue, Cursor, or any LLM interface. No proprietary integrations.
-- Config-driven - One YAML file controls capabilities, commands, and conditional content. Idempotent regeneration.
-- Organisation and team standards - Regenerate from updated settings or templates whilst preserving repository-specific instructions.
+## Why it exists
 
-### 5. **Safety by Design**
-- Command standardisation - Enforcing auto-approved commands prevents permission fatigue and approval blindness.
-- Complexity constraints - Functions ≤75 lines, files ≤500 lines, cyclomatic complexity ≤10. Shorter, simpler code is safer, reviewable code.
-- Immutable workflows - Iron laws (TDD, refactor-on-green, root-cause bug fixes) cannot be waived.
-- Conversation boundaries - Context compaction destroys instruction fidelity. Stop and restart rather than continue with degraded context.
-- Understanding before evaluation - Understanding before evaluation - Code, test, and architecture reviews verify implementation matches documented intent and repo rules, preventing "looks fine" approvals of incorrectly-solved problems.
+LLMs cannot reliably self-regulate. External validation catches errors, process discipline prevents drift, approval gates keep judgement with the engineer, and repository context means nothing is lost between conversations.
 
-### 6. **Repository Context**
-- Agent grounding - Structured setup dialogue creates repository-specific documentation (purpose, architecture, patterns) that grounds every conversation in what this codebase actually does.
-- Contextual security - Security rules adapt to capabilities and risk profile. High-risk services (authentication, confidential data, public-facing) trigger additional domain-specific validation gates.
-- Security domain coverage - Five compliance gate sets enforced at delivery: authentication & authorisation, secrets management, input validation & output encoding, data protection, and public hardening. Enhanced gates within each domain activate automatically when confidential data handling or public-facing exposure is configured.
-- Preserved knowledge - Repository-specific instructions survive framework regeneration. Update org-wide standards without losing local context.
-- Consistent patterns - Organisation-level rules (TDD enforcement, database access patterns, error handling) applied uniformly across all repositories.
-- Work builds on work - New tasks review prior planning documentation in the same domain (`planning/`), completed work updates those docs. Context, patterns, decisions, and lessons learned compound across fresh conversations - nothing is ever lost.
-
-## **Why This Matters**
-
-Engineers remain responsible for code quality under all circumstances. This framework makes that responsibility sustainable by solving the self-regulation LLM problem.
-
-External validation catches hallucinations. Process discipline prevents drift and shortcuts. Approval gates maintain control. Repository context compounds knowledge across conversations - nothing is lost.
-
-The result: safe, effective, maintainable LLM-assisted workflow with maximum capability and sustained responsibility. No compromises on velocity or judgement.
-
-**The framework enforces what matters. You decide what ships.**
+The framework enforces what matters. You decide what ships.
 
 ---
 
@@ -71,7 +37,13 @@ The result: safe, effective, maintainable LLM-assisted workflow with maximum cap
 
 This environment uses a Jinja2 templating system to generate repository-specific agent instructions. One YAML config produces complete agent skill files tailored to each repository's language, capabilities, and tooling.
 
-The templates are in `jinja-templates/` and there's a working version for this service in `midtempo-framework/`.
+#### Templates
+The templates are in `jinja-templates/` and there's a grounded framework that works for this repo in `midtempo-framework/`.
+
+#### Examples
+Examples of the delivery documents the framework generates are in `planning/EXAMPLE-*.md` (order is: decisions > design > plan > test)
+
+>  The framework docs are markdown. Viewing .md files is much easier in preview mode, or with an extension like "Markdown Preview Github Styling"
 
 ## Features
 

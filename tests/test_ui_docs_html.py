@@ -109,6 +109,63 @@ class TestConfigurationAnchorLink:
         )
 
 
+class TestExamplesTabGroup:
+    """Examples tab group renders in the docs-modal header with a non-clickable label."""
+
+    def test_examples_tabs_have_correct_data_tab_values(self):
+        """index.html contains tab buttons with data-tab="decisions", "design", "plan", "tests"."""
+        content = HTML_FILE.read_text()
+        assert 'data-tab="decisions"' in content, (
+            'tab button with data-tab="decisions" missing from index.html'
+        )
+        assert 'data-tab="design"' in content, (
+            'tab button with data-tab="design" missing from index.html'
+        )
+        assert 'data-tab="plan"' in content, (
+            'tab button with data-tab="plan" missing from index.html'
+        )
+        assert 'data-tab="tests"' in content, (
+            'tab button with data-tab="tests" missing from index.html'
+        )
+
+    def test_examples_label_element_present(self):
+        """index.html contains a docs-examples-label element with the text 'Examples:'."""
+        content = HTML_FILE.read_text()
+        assert "docs-examples-label" in content, (
+            "docs-examples-label class missing from index.html — "
+            "the Examples group requires a styled non-clickable label"
+        )
+        assert "Examples:" in content, (
+            "index.html must contain the literal text 'Examples:' "
+            "for the Examples tab group label"
+        )
+
+    def test_examples_tabs_group_wrapper_present(self):
+        """index.html contains a docs-examples-tabs wrapper holding the label and four tabs."""
+        content = HTML_FILE.read_text()
+        assert "docs-examples-tabs" in content, (
+            "docs-examples-tabs wrapper missing from index.html — "
+            "needed for CSS selector to push the group to the right of the header"
+        )
+
+    def test_examples_tabs_source_order_follows_install_and_precedes_close(self):
+        """Source order: Examples label and tabs follow the install tab and precede docs-modal-close."""
+        content = HTML_FILE.read_text()
+        install_idx = content.index('data-tab="install"')
+        label_idx = content.index("docs-examples-label")
+        decisions_idx = content.index('data-tab="decisions"')
+        close_idx = content.index("docs-modal-close")
+        assert install_idx < label_idx, (
+            "docs-examples-label must appear after the install tab in source order"
+        )
+        assert label_idx < decisions_idx, (
+            "docs-examples-label must appear before the decisions tab in source order"
+        )
+        assert decisions_idx < close_idx, (
+            "example tabs must appear before the docs-modal-close button in source order"
+        )
+
+
 class TestScriptOrder:
     """B20 — marked.js script tag appears before form.js module tag in index.html."""
 

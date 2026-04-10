@@ -19,4 +19,6 @@ Closes #
 - [ ] Tests pass locally (`npm run test:python`)
 - [ ] Coverage thresholds met (`npm run test:python:coverage`)
 - [ ] New tests added for changes
-- [ ] Design Docs included with review-test notifications
+- [ ] `planning/*-design.md` included 
+
+> If you've used the framework, also commit the planning/*-design.md doc. 

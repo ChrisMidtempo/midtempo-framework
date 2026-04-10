@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Midtempo Framework Configuration",
-  "description": "Configuration schema for midtempo-frameworkk.yml files",
+  "description": "Configuration schema for midtempo-framework.yml files",
   "type": "object",
   "required": [
     "name",
@@ -86,7 +86,7 @@
         "setup": {
           "type": "boolean",
           "default": false,
-          "description": "Read-only flag indicating repository setup status. Used by setup.md skill. Humans edit this field manually in config."
+          "description": "Read-only flag indicating repository setup status. Used by setup.md skill. Engineers edit this field manually in config."
         },
         "agentFile": {
           "type": "string",

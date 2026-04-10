@@ -1,6 +1,6 @@
 # Contributing
 
-Thank you for your interest in this project.
+Thank you for your interest in this project. This repository is a published mirror, meaning contributions can't easily be merged upstream from here. However...
 
 ## Bug Reports and Discussion
 
