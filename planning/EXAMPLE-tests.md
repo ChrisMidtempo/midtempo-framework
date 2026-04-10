@@ -1,4 +1,6 @@
 > A worked example of a Test Manifest. Where the Plan described the order of work, this document pins down what "done" looks like: every behaviour, every edge case, every rule the code will be held to.
+>
+> Note the framework's treatment of both[helpers](#helpers) and [integration](#integration) tests.  
 
 # Test Manifest: Security Config Model
 
@@ -630,6 +632,8 @@ Progress: Reviewed — PASS (15/02/2026)
 
 ---
 
+## Helpers
+
 ### Module: `tests/helpers/config_factory.py` — ✓ Reviewed — all gates passed
 
 **Test file:** `tests/test_security_config_model.py`
@@ -704,6 +708,8 @@ Progress: Reviewed — PASS (15/02/2026)
 - No `security` key in returned dicts
 
 ---
+
+## Integration
 
 ### Module: `scripts/generate_docs.py` (Integration) — ✓ Reviewed — all gates passed
 

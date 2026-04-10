@@ -2,14 +2,14 @@
 
 A framework for building production-quality code with AI coding agents.
 
-> LLM output is not trustworthy. This framework is centred around the belief that the engineer needs to be actively involved to build trust in the delivery. Here, the agent acts more as pair-programmer than autonomous code-generator.
+> LLM output is not trustworthy. This framework centres the engineer in the workflow to build trust in the delivery. The expectation is that the agent acts more as pair-programmer than autonomous code-generator.
 >
 > Wider [framework concepts](GUIDE.md) are described here.
 
 ## Links
 
-- View/download/fork the codebase on [Github](https://github.com/ChrisMidtempo/midtempo-framework)
-- Easily re/generate using the [Midtempo Framework UI](https://www.midtempo.com)
+- View/download the codebase on [Github](https://github.com/ChrisMidtempo/midtempo-framework)
+- Easily re/generate the framework using the [Midtempo UI](https://www.midtempo.com)
 
 ---
 
