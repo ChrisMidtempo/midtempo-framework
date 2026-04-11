@@ -1,6 +1,6 @@
 > A worked example of a Test Manifest. Where the Plan described the order of work, this document pins down what "done" looks like: every behaviour, every edge case, every rule the code will be held to.
 >
-> Note the framework's treatment of both[helpers](#helpers) and [integration](#integration) tests.  
+> Note the framework's separate treatment of both [helpers](#helpers) and [integration](#integration) tests.  
 
 # Test Manifest: Security Config Model
 

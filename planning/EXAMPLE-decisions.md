@@ -1,4 +1,4 @@
-> An example of a Decisions document. It's the starting point for any new piece of work: the framework interviews you about the idea, writes down what's been agreed, and uses it as the source of truth for the design doc that come next.
+> An example of a Decisions document. It's the starting point for any new piece of work: the framework interviews you about the idea, writes down what's been agreed, and uses it for the design doc that comes next.
 
 # Security Config Model — Decisions
 

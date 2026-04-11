@@ -145,6 +145,7 @@ Update **design doc** (`/planning/*-design.md`) with:
     - [ ] Changed core functionality or system boundaries
     - [ ] Modified primary use cases or system identity
 - [ ] Doc comments added for all public exports in plain UK English (following `/midtempo-framework/rules/writing.md`)
+- [ ] `npm run docs:generate` runs successfully without warnings or errors (fix all warnings, including pre-existing)
 - [ ] Updated `README.md` with important new behaviour that the human must know. Keep high-level and user-focused. Write in plain English, using clear examples for each significant point. Do not let README.md get bloated! Include:
   - Usage examples
   - Configuration or environment variables
@@ -178,6 +179,10 @@ IF implementation introduced new styling patterns not documented in style-guide.
 IF implementation changed core functionality requiring purpose.md update
   → STOP. "Update `/midtempo-framework/instructions/purpose.md` # Provides an overview of the goal and capabilities of the service with capability or boundary changes."
 
+
+IF `npm run docs:generate` has warnings or errors (current or pre-existing)
+  → STOP
+  → FIX ALL: "Doc-comments must run cleanly. Fix all errors AND warnings before proceeding."
 
 IF plan document status is not "Completed"
   → STOP. "Update plan document status."

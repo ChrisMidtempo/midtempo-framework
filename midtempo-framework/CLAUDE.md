@@ -1,6 +1,6 @@
 # Agent Rules
 
-Last Updated: 10/04/2026
+Last Updated: 11/04/2026
 
 **Agent's Core Principle:** Do the simplest thing that works.
 

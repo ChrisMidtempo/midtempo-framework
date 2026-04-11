@@ -40,16 +40,456 @@ This skill resolves documentation generation errors and warnings in batches. Eac
 ## ENTRY GATE
 
 ```
-STOP: No docs command defined in midtempo-framework.yml.
 
-This skill requires a docs command. Add to commands section:
+CHECK if `planning/docs-fix-progress.md` exists
 
-  docs:
-    command: "[your doc generation command]"
-    description: "Generate documentation"
-    category: "docs"
+IF progress file exists
+  → READ ALL of `planning/docs-fix-progress.md`
+  → EXTRACT: batch number, remaining issues, scope
+  → GOTO "§2. Continuation Entry Gate"
 
-Re-run after adding command and testing to make sure it runs.
+IF progress file does NOT exist
+  → GOTO "§1. Fresh Start Entry Gate"
+
+```
+---
+
+## 1. Fresh Start Entry Gate
+
+**First time running this skill.**
+
+### 1.1 Check Doc Rules
+
+```
+READ ALL of `/midtempo-framework/rules/writing.md`
+
+CHECK `/midtempo-framework/midtempo-framework.yml`for repo.language field
+IDENTIFY the primary language(s) used in this repository
+SEARCH for doc generation configuration files appropriate for that language
+
+READ configuration completely:
+  - Current required exports/visibility settings
+  - Current exclusion patterns
+
+PRESENT doc rules assessment to human:
+
+**DOCUMENTATION RULES ASSESSMENT**
+
+Tool: [tool name]
+Config location: [path]
+
+**Current settings:**
+- Required: [list what requires documentation]
+- Excluded: [list exclusions]
+- Visibility: [public/protected/private settings]
+
+**Recommendations (if any):**
+- [recommendation 1]
+- [recommendation 2]
+
+Are these rules fit for purpose?
+
+WAIT for human confirmation before proceeding.
+
+IF human requests config changes
+  → Make changes
+  → Re-present assessment
+  → Wait for confirmation
+
+VALID: Continue to §1.2 Assess Documentation State.
+```
+
+### 1.2 Assess Documentation State
+
+```
+RUN: npm run docs:generate
+
+CAPTURE full output including:
+  - Error count
+  - Warning count
+  - Files affected
+  - Types of issues (missing docs, invalid params, broken links, etc.)
+
+CATEGORISE issues:
+  - Missing documentation (no doc comment)
+  - Invalid @param tags (param names don't match signature)
+  - Missing @returns tags
+  - Broken @link references
+  - Type mismatches
+  - Other
+
+PRESENT assessment to human:
+
+**DOCUMENTATION STATE ASSESSMENT**
+
+Total errors: [N]
+Total warnings: [M]
+
+**By category:**
+- Missing documentation: [count]
+- Invalid @param tags: [count]
+- Missing @returns: [count]
+- Broken @link: [count]
+- Other: [count]
+
+Files affected: [count]
+
+Estimated batches: [N issues / 5-10 per batch = X batches]
+
+**Recommendation:**
+[If manageable] Proceed with batch processing
+[If large] Consider focusing on [specific folder/file] first
+
+**Ready to start fixing? Which approach:**
+- [A] Fix all issues in batches
+- [B] Focus on specific folder: [suggest folder]
+- [C] Focus on specific issue type: [suggest type]
+
+WAIT for human decision.
+
+AFTER decision: Create progress file and proceed to §3. Execute Batch.
+```
+
+### 1.3 Create Progress File
+
+```
+CREATE `planning/docs-fix-progress.md` with:
+
+# Documentation Fix Progress
+
+## Status
+- **Current batch:** 1
+- **Started:** [DD/MM/YYYY]
+- **Scope:** [all | folder: X | type: Y]
+
+## Summary
+- **Total issues at start:** [N]
+- **Issues fixed:** 0
+- **Issues remaining:** [N]
+
+## Remaining Issues
+
+[List all issues in format:]
+- [ ] `[file:line]` - [symbol] - [issue type]
+- [ ] `[file:line]` - [symbol] - [issue type]
+...
+
+## Completed Batches
+
+[None yet]
+
+---
+
+PROCEED to §3. Execute Batch.
+```
+
+---
+
+## 2. Continuation Entry Gate
+
+**Returning to continue from previous batch.**
+
+```
+READ `planning/docs-fix-progress.md`
+
+EXTRACT:
+  - Current batch number
+  - Scope (all/folder/type)
+  - Remaining issues list
+  - Issues fixed so far
+
+READ ALL of `/midtempo-framework/rules/writing.md`
+
+OUTPUT declaration verbatim:
+"I have read the rules - active voice, omit needless words, be specific"
+
+VERIFY current state:
+  RUN: npm run docs:generate
+  COMPARE output with remaining issues list
+
+IF new issues appeared (not in remaining list)
+  → ADD to remaining issues
+  → UPDATE progress file
+  → INFORM human
+
+PRESENT continuation summary:
+
+**CONTINUING DOCUMENTATION FIX**
+
+Batch: [N]
+Scope: [scope]
+
+**Progress:**
+- Issues fixed: [count]
+- Issues remaining: [count]
+
+Ready to proceed with batch [N]?
+
+WAIT for human confirmation.
+
+VALID: Proceed to §3. Execute Batch.
+```
+
+---
+
+## 3. Execute Batch
+
+### 3.1 Select Batch Issues
+
+```
+FROM remaining issues list, SELECT next 5-10 issues based on:
+  - Chosen scope (all, folder, issue type)
+  - Logical grouping (same file, related functions)
+  - Complexity (simpler issues first builds momentum)
+
+PRESENT batch to human:
+
+**BATCH [N] - [count] ISSUES**
+
+1. `[file:line]` - [symbol] - [issue]
+2. `[file:line]` - [symbol] - [issue]
+...
+
+Proceed with this batch?
+
+WAIT for approval.
+```
+
+### 3.2 Fix Each Issue
+
+```
+FOR each issue in batch:
+
+  1. READ the function/class/type definition completely
+
+  2. SEARCH for ALL usages:
+     - Direct calls
+     - Imports
+     - References in tests
+     - References in other documentation
+
+  3. UNDERSTAND:
+     - What does this function do? (from implementation)
+     - Why is it called? (from usage context)
+     - What are the edge cases? (from tests if available)
+     - What errors can occur? (from implementation)
+
+  4. ONLY THEN write documentation
+
+  5. VERIFY documentation:
+     - Describes actual behaviour (not assumed)
+     - Parameters match signature exactly
+     - Return value matches actual return
+     - Uses UK English
+     - Follows writing rules (active voice, specific, no hedge words)
+
+QUALITY CHECKLIST for each item:
+  - [ ] Read full function implementation
+  - [ ] Found at least one usage site
+  - [ ] Description reflects actual behaviour
+  - [ ] All @param names match function signature
+  - [ ] @param descriptions are specific (not "The X parameter")
+  - [ ] @returns describes actual return value
+  - [ ] @throws/@raises documents thrown errors (if any)
+  - [ ] UK English spelling
+  - [ ] Active voice
+  - [ ] No hedge words (might, could, possibly)
+  - [ ] No needless words (in order to, for the purpose of)
+```
+
+### 3.3 Verify Batch
+
+```
+AFTER all batch fixes applied:
+
+RUN: npm run docs:generate
+
+VERIFY:
+  - Batch issues are resolved
+  - No new issues introduced
+
+IF new issues introduced by fixes
+  → FIX immediately (same batch)
+  → Re-verify
+```
+
+---
+
+## 4. Batch Complete
+
+### 4.1 Update Progress File
+
+```
+UPDATE `planning/docs-fix-progress.md`:
+
+1. INCREMENT batch number
+2. UPDATE issues fixed count
+3. MARK completed issues with [x]
+4. ADD batch to "Completed Batches" section:
+
+## Completed Batches
+
+### Batch [N] - [DD/MM/YYYY]
+- Fixed [count] issues
+- Files: [list files modified]
+```
+
+### 4.2 Check Completion Status
+
+```
+RUN: npm run docs:generate
+
+COUNT remaining errors and warnings
+
+IF errors = 0 AND warnings = 0
+  → GOTO §5. All Complete Output
+
+IF errors > 0 OR warnings > 0
+  → GOTO §4.3 Batch Complete Output
+```
+
+### 4.3 Batch Complete Output
+
+<CRITICAL_REQUIREMENT type="MANDATORY">
+
+- You MUST produce this output for next conversation - include every section and field
+- You MUST NOT skip, paraphrase, or omit any section
+- You MUST format the output for readability
+</CRITICAL_REQUIREMENT>
+
+**BATCH [N] COMPLETE**
+
+Issues fixed this batch: [count]
+Total issues fixed: [total]
+Issues remaining: [count]
+
+**Files modified:**
+- [file 1]
+- [file 2]
+
+Progress file updated: planning/docs-fix-progress.md
+
+---
+
+**COMMIT (optional)**
+
+docs: fix documentation warnings batch [N]
+
+- [Primary change description]
+- [count] issues resolved, [remaining] remaining
+
+---
+
+**NEXT BATCH**
+
+Start a NEW conversation with:
+
+> Continue fix-docs batch [N+1] using /midtempo-framework/setup-skills/fix-docs.md
+
+---
+
+## 5. All Complete Output
+
+<CRITICAL_REQUIREMENT type="MANDATORY">
+
+- You MUST produce this output when all issues resolved - include every section and field
+- You MUST NOT skip, paraphrase, or omit any section
+- You MUST format the output for readability
+</CRITICAL_REQUIREMENT>
+
+**DOCUMENTATION BASELINE COMPLETE**
+
+Doc generation: CLEAN (0 errors, 0 warnings)
+
+Batches completed: [N]
+Total issues fixed: [count]
+
+**Files documented:**
+- [file 1]
+- [file 2]
+...
+
+---
+
+**CLEANUP**
+
+Archive progress file:
+`mv planning/docs-fix-progress.md planning/archive/`
+
+---
+
+**BASELINE ESTABLISHED ✓**
+
+**Future delivery (Phase 4) enforces:**
+- Zero doc warnings on new code
+- Fix any pre-existing issues encountered
+
+COMMIT MESSAGE (copy/paste):
+─────────────────────────────────────────────────────────────────
+
+docs: establish clean documentation baseline
+
+Resolved all documentation generation warnings and errors.
+
+Summary:
+- [count] exports now fully documented
+- [N] batches completed
+- Documentation generation runs cleanly (0 errors, 0 warnings)
+
+Files documented:
+- [list primary files/modules documented]
+
+All documentation follows writing rules:
+- Active voice
+- UK English spelling
+- Specific descriptions (no hedge words)
+- Parameter and return types documented
+
+─────────────────────────────────────────────────────────────────
+```
+
+---
+
+## Quick Reference
+
+### Invocation
+
+**Fresh start:**
+```
+Fix documentation using /midtempo-framework/setup-skills/fix-docs.md
+```
+
+**Continue batch:**
+```
+Continue fix-docs batch [N] using /midtempo-framework/setup-skills/fix-docs.md
+```
+
+### Commands
+
+```bash
+npm run docs:generate    # Generate API documentation
+npm run docs:validate    # Validate docstring presence on all public functions and classes
+```
+
+### Progress File Location
+
+`planning/docs-fix-progress.md`
+
+### Documentation Comment Format
+
+```typescript
+/**
+ * [Brief description - what it does, not how]
+ *
+ * @param paramName - [Specific description of parameter]
+ * @returns [What the function returns]
+ * @throws [Error type] - [When this error occurs]
+ *
+ * @example
+ * ```typescript
+ * const result = functionName(arg);
+ * ```
+ */
 
 ```
 

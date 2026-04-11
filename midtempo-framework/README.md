@@ -19,7 +19,6 @@ A framework for building production-quality code with AI coding agents.
 - [Repo Setup](#repo-setup)
 - [Main Workflow](#main-workflow)
 - [Other Skills](#other-skills)
-- [Configuration](#configuration)
 - [Updating Framework](#updating-framework)
 - [Rules the Agent Follows](#rules-the-agent-follows)
 - [Key Files](#key-files)
@@ -116,7 +115,7 @@ The agent implements the plan using strict Test-Driven Development:
 
 Each of these run in a separate conversation.
 
-`Phase 2 — use midtempo-framework/deliver.md with planning/[feature]-plan.md. Run Phase 2`
+`Phase 2 - use midtempo-framework/deliver.md with planning/[feature]-plan.md. Run Phase 2`
 
 Prompts to move to the next phase should be provided by the agent at the end of the current phase.
 
@@ -150,74 +149,6 @@ Not everything goes through Build, Bugs, or Refine. Other skills handle specific
 | `review-architecture.md` | Checks boundaries and coupling. Tries to identify broader issues and solutions |
 
 ---
-
-## Configuration
-
-### `midtempo-framework.yml`
-
-This file controls what the framework knows about your repo. Key sections:
-
-**Capabilities** - toggle features on or off:
-```yaml
-capabilities:
-  hasUI: true                   # Enables UI-specific rules
-  hasDB: true                   # Enables database rules
-  hasTypecheck: true            # Lang has type checking
-  hasAuthentication: true       # Triggers security rules
-  handlesConfidentialData: true # Triggers security rules
-  isPublicFacing: true          # Triggers security rules
-```
-
-**Commands** - define exactly how tools run:
-```yaml
-commands:
-  test:
-    command: npm test
-    description: Run all tests
-  lint:
-    command: npm run lint
-    description: Run linting
-```
-
-The agent injects these commands into your repo's framework to run exactly as written.
-
-**Test, lint, and typecheck are compulsory**
-
-**Command categories** — where commands are used in the generated docs:
-
-| Category | Purpose |
-|---|---|
-| `test` | Test runners — shown in all delivery phases |
-| `lint` | Lint tools — shown in delivery and refine exit gates |
-| `typecheck` | Type checkers — shown when `hasTypecheck: true` |
-| `format` | Formatters — shown in delivery exit gates |
-| `docs` | Doc-comment generators — shown in the documentation.md phase |
-| `utilities` | Inserts extra-tooling commands into the main CLAUDE.md for visibility |
-| `discovery` | APIs or scripts that the agent can run to support codebase understanding |
-
-**Reserved command keys** — specific names the framework recognises to change behaviour:
-
-| Key | Required | Behaviour when present |
-|---|---|---|
-| `test` | Yes | Primary test command — also used for targeted TDD runs (`test <file>`) |
-| `lint` | Yes | Primary lint command |
-| `typecheck` | Yes | Primary type check command |
-| `test_unit` | No | Replaces `test` at Red/Green exit gates — runs unit tests only, skipping integration |
-| `test_integration` | No | Enables integration test classification logic at Red/Green exit gates |
-| `test_summary` | No | Replaces `test` at entry/exit gate checks — quieter pass/fail output |
-| `test_coverage` | No | Replaces `test` at the Refactor phase coverage check |
-| `format` | No | Triggers a format run at the Green exit gate (impacts file-length checks during Refactor phase) |
-| `test_e2e` | No | Triggers E2E failure check at Green exit gate when UI changes are present |
-
-**Instructions** - repo-specific documentation the agent reads during delivery:
-```yaml
-instructions:
-  architecture:
-    page: 'architecture.md'
-    description: 'How the codebase is structured'
-```
-
-These files live in `/midtempo-framework/instructions/` and are created during setup. Keep them up to date - the more accurate they are, the better the agent's output.
 
 ## Updating Framework
 
@@ -322,5 +253,5 @@ The LLM will follow instructions, so it's easy to override any process. If you'r
 
 ## Next Steps
 
-- **Install:** See [install](INSTALL.md) for setup instructions
+- **Install:** See [install](INSTALL.md) for setup instructions, configuration, and security setup
 - **Understand the reasoning:** Read [concepts](GUIDE.md) for why each rule exists and what the framework is designed to prevent

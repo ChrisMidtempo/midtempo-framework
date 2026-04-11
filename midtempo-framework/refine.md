@@ -602,7 +602,11 @@ For any modified functions/classes/interfaces:
 
 
 ### 8.3 Verify Documentation
-// Ignore, repo has no documentation commands
+```
+npm run docs:generate    # Generate API documentation
+npm run docs:validate    # Validate docstring presence on all public functions and classes
+```
+Add content so that there are ZERO errors or warnings.
 
 ### 8.4 Present Documentation Updates
 
@@ -640,6 +644,7 @@ Step 8 complete when ALL conditions met:
 npm run test:python    # Verbose — no summary command configured    # All tests passing
 npm run lint:python    # Clean
 npm run typecheck:python  # Clean
+npm run docs:generate    # Clean
 ```
 
 ### 9.2 Compliance Gate Verification

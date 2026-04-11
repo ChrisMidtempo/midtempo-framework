@@ -24,7 +24,7 @@ A companion to [overview](README.md) for those who want to understand the reason
 
 ## The Problem
 
-AI coding agents are powerful but unreliable. They produce convincing code that often looks right but isn't. They drift from instructions as conversations grow. They rationalise mistakes instead of fixing them. They'll declare a lint warning is "legacy" and ignore it. They write code before tests and then write tests that pass by definition.
+AI coding agents are powerful but unreliable. It will produce convincing code that often looks right but isn't. It will drift from instructions as conversations grow. It will rationalise mistakes instead of fixing them. It will declare a lint warning is "legacy" and ignore it. It will write code before tests and then write tests that pass by definition.
 
 Left unchecked, you get code that works today and breaks tomorrow - with no one understanding why it was written that way or able to unpick it.
 
@@ -60,7 +60,7 @@ This matters with AI agents because:
 
 ## Why External Validation?
 
-AI agents cannot reliably check their own work. They operate on statistical patterns, not understanding. When you ask an agent "does this code have bugs?", it gives you a plausible answer - not a correct one.
+Coding agents do not understand code - they predict text. There is no mental model, no causal reasoning, no ground truth. When one reviews its own output, it is not checking correctness; it is checking plausibility. Those are not the same thing. 
 
 The framework delegates all validation to external tools:
 
@@ -83,7 +83,7 @@ Clean baselines remove ambiguity. Every warning is signal. Every error is the ag
 
 ## Why Fresh Conversations?
 
-AI agents have a context window - a fixed amount of text they can hold in memory. As a conversation grows, older instructions get pushed out or compressed. The agent's behaviour degrades:
+AI agents have a context window - a fixed amount of text it can hold in memory. As a conversation grows, older instructions get pushed out or compressed. The agent's behaviour degrades:
 
 - Rules it followed perfectly at the start get ignored
 - It forgets constraints from earlier in the conversation
@@ -96,6 +96,10 @@ The framework handles this by:
 3. **Hard stop on compaction.** If the AI tool compresses or summarises earlier messages, stop immediately. The agent has lost fidelity. Start a new conversation.
 
 This is why the pipeline produces documents at each stage - they're not just deliverables, they're the agent's memory between conversations.
+
+> And because everything is run in a fresh window, the "review" skills tend to work better.  Never ask review-questions in the same conversation as the delivery-aspect they're reviewing - an agent's response to _"do the work... has the work been done correctly?"_ will invariably be _"yes"_. Running in a fresh conversation, _"here's my delivery doc, has the work been done correctly?"_ provides a substantially stronger contract. 
+>
+> When LLM-is-the-judge, a clean-slate approach to validating output is essential. 
 
 ---
 
@@ -112,13 +116,13 @@ Each document answers a different question:
 
 You approve each document before the agent moves on. This isn't bureaucracy - it's the cheapest place to catch mistakes. Fixing a wrong decision in a document costs minutes. Fixing it in code costs hours.
 
-A primary reason for splitting documentation is context window fidelity. To get an accurate delivery plan, you need to know what you're delivering before you can understand how to deliver it. By breaking the documentation stage into separate deliverables we ensure each step is handled in a single context window, our instructions are comprehensive, and GenAi delivery risk is mitigated.
+A primary reason for splitting documentation is context window fidelity. To get an accurate delivery plan, you need to know what you're delivering before you can understand how to deliver it. By breaking the documentation stage into separate deliverables we ensure each step is handled in a single context window, the effort for each is focused, our instructions are comprehensive, and some of the delivery risks are mitigated.
 
 ---
 
 ## Why Complexity Limits?
 
-The framework enforces hard limits on code size:
+The framework enforces hard limits on code size and complexity. The core rules are:
 
 - **Functions: 75 lines max**
 - **Files: 500 lines max**
@@ -126,11 +130,11 @@ The framework enforces hard limits on code size:
 
 These exist for two reasons:
 
-**For you:** Shorter functions are easier to review. You can read a 40-line function and understand it. A 200-line function requires you to hold too much state in your head, impacting your ability to manage your code.
+**For you:** Shorter, simpler functions are easier to review. You should be able to scan a 40-line function and understand it. A 200-line function requires you to hold too much state in your head, impacting your ability to understand your code.
 
-**For the agent:** AI agents read files in chunks. Long files get partially read or summarised. When the agent can't see the whole function, it makes changes based on incomplete information. Smaller files mean the agent sees everything it's editing.
+**For the agent:** AI agents read files in chunks. Long files get partially read or summarised. When the agent can't see the whole function, it makes changes based on incomplete information. Smaller files mean the agent sees everything it's editing in a clean, modular structure. 
 
-Linting enforces these limits mechanically. The agent can't rationalise "this function needs to be longer" - it either fits the limit or it doesn't.
+Linting enforces these limits mechanically. The agent can't just keep adding more and more content as it sees fit - the code fits the limit or it's decomposed.
 
 ---
 
@@ -155,17 +159,25 @@ Each layer only imports from layers below it. Lint rules should enforce this. Wh
 
 ## Why Security Rules?
 
-AI agents don't have security intuition. They'll hardcode an API key if it makes the test pass. They'll log a full request object including auth tokens. They'll return a stack trace to the client because it's "helpful for debugging".
+Coding agents don't have security intuition. They will hardcode a credential if it makes the test pass, log a full request object because it's convenient, or return a stack trace because it surfaces the error clearly. Adding security checks is well-documented.
 
-The five universal security gates exist because these mistakes are common, dangerous, and easy to miss in review:
+The less obvious design question is: why are there *two layers* of rules - universal gates that always apply, and capability-based rules that load conditionally?
 
-1. **No hardcoded secrets** - the agent must use environment variables or secret managers
-2. **No sensitive data in logs** - credentials, tokens, and personal information stay out of log output
-3. **Secure defaults** - if something fails, it denies access rather than granting it
-4. **Input validation at boundaries** - anything from outside the system gets checked
-5. **Safe error messages** - users see helpful messages, not internal details
+**Rules that don't apply become noise.** If a repo with no authentication or user data gets auth token handling rules, the agent encounters requirements it can't satisfy and starts treating security checks as obstacles. Rules that are consistently irrelevant teach the agent that security rules in general are negotiable. That's worse than no rules.
 
-Additional rules load based on your repo's capabilities. If you handle authentication, the auth rules apply. If you're public-facing, the hardening rules apply. This keeps the security overhead proportional to the risk.
+**Proportional rules stay signal.** Five universal gates cover the failure modes that appear in every codebase, regardless of what it does. A CLI tool and a payment service both need secrets out of source code. Beyond that baseline, rules load where the attack surface exists:
+
+- Authentication rules when there's session and token handling
+- Data protection rules when the repo stores personal information
+- Public hardening rules when endpoints are exposed to untrusted networks
+
+Each domain's rules are structured as named compliance gates (CG-AU*, CG-DP*, CG-PH*, etc.) that delivery and review skills verify. The agent either satisfies the gate or it doesn't - there's no room to argue "this warning is cosmetic" because a security gate isn't a lint rule.
+
+The universal gates and domain rules are grounded in OWASP. They cover the failure modes that appear most often in agent-generated code: hardcoded credentials, unvalidated input reaching a database, PII leaking into logs, auth decisions embedded in request handlers.
+
+The five universal gates are the floor. Capability gates raise the ceiling to match the risk.
+
+See [security install](INSTALL.md#security) for more details.
 
 ---
 
@@ -206,7 +218,7 @@ The skills and rules the agent follows are themselves written with a rigorous se
 
 ### The core problem with instructions
 
-An instruction that works in one conversation might fail in another. AI agents don't "understand" - they pattern-match against them. Vague instructions produce inconsistent behaviour across different conversations. _"Make sure the tests pass"_ gets interpreted differently each time. _"Run `npm test` and confirm zero failures"_ does not.
+An instruction that works in one conversation might fail in another. AI agents don't "understand" prompts - it pattern-matches against them. Vague instructions produce inconsistent behaviour across different conversations. _"Make sure the tests pass"_ gets interpreted differently each time. _"Run `npm test` and confirm zero failures"_ does not.
 
 The framework's template rules define three properties every instruction must have:
 
@@ -258,7 +270,7 @@ The agent sometimes jumps ahead and writes production code before the test exist
 
 ### Tests that test nothing
 
-The agent writes tests that pass but don't check meaningful behaviour. Signs: tests that only check a function was called, tests with no meaningful assertions, tests that mock everything. The testing rules should prohibit this, but they still slip through. Run the review-test skill when you're unsure - or read the code! 
+The agent writes tests that pass but don't check meaningful behaviour. Signs: tests that only check a function was called, tests with no meaningful assertions, tests that mock everything. The testing rules should prohibit this, but issues will still slip through. Run the review-test skill when you're unsure - or read the code! 
 
 ### Expanding scope
 
@@ -272,10 +284,6 @@ The agent says "all tests pass" but coverage is at 60%. Or it says "implementati
 
 If the phase ends with a non-standard complete script (you'll recognise the format fairly quickly), prompt the LLM to provide the end of skill 'completed script'. This does happen when the context window is full, so it's not uncommon. The 'completed script' includes exit gates, which are worth running against the current state.
 
-> Because everything is run in a fresh window, the review skills work better than if the questions were asked in the "delivery" thread (the response to _"do the work... did you do the work?"_ will always be yes). 
->
-> The clean-slate approach to validating output when LLM-is-the-judge is essential. 
-
 ---
 
 ## The Framework's Limitations
@@ -288,7 +296,9 @@ This framework improves AI-assisted development significantly, but it doesn't so
 
 - **It works best at moderate scale.** Features under 30 tests work well. Larger features should be broken into stages. Trying to build too much in one pass leads to context loss and compounding errors.
 
-- **It doesn't replace understanding.** You need to understand the code the agent produces. If you can't explain why a function works the way it does, you haven't reviewed it properly.
+- **It doesn't replace understanding.**  Technical debt is code you'll fix later. Cognitive debt is not understanding code that's already in production. An engineer who can't reason about their own codebase can't scope the next feature, challenge an architectural decision, or spot when the agent is going in the wrong direction. They become dependent on the agent to make decisions the LLM isn't qualified to make.
+
+Everything in this framework - the approval gates, the planning documents, the fresh conversations, the review skills - is designed to keep you in the loop, not take you out of it. The agent does the typing. You do the thinking.
 
 - **Rules drift over long conversations.** This is why fresh conversations matter. No amount of instruction can prevent an agent from losing fidelity over a long enough conversation.
 

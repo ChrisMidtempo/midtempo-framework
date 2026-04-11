@@ -1,4 +1,4 @@
-> This is an example of a Plan document. Produced after Design, it breaks the agreed shape of the feature into ordered, testable phases - each one with a clear goal, a clear exit, and a clear test.
+> This is an example of a Plan document. It sits between Design and Tests: where the Design describes what to build, the Plan maps how to build it - module by module, in order - giving the Test Manifest a firm surface to write against.
 
 # Security Config Model Planning Document
 

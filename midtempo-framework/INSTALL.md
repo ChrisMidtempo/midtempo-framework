@@ -1,41 +1,112 @@
 # Installation
 
-Run a setup skill to create grounding documents, and make sure your testing, linting, and documentation states are healthy.
+Run the setup skills to create grounding documents, then make sure your testing, linting, and documentation states are healthy.
 
 ## Table of Contents
 
-- [Quickstart](#quickstart)
 - [Requirements](#requirements)
+- [Quickstart](#quickstart)
+- [Configuration](#configuration)
 - [Setup](#setup)
-- [Next Steps](#next-steps)
+- [Environment Health](#environment-health)
   - [Unit Tests](#unit-tests)
   - [Linting](#linting)
   - [Documentation](#documentation)
-- [Finally](#finally)
+- [Security](#security)
+- [Next Steps](#next-steps)
 
 ---
+
+## Requirements
+
+A repository with:
+- Unit Tests
+- Linting
+- Type checking
+
+The first priority, after setting up the framework, will be to get to zero test/lint/type check errors **and** warnings (clean baseline).
+
+External metrics are the ONLY way to validate LLM output, and even one prior issue can be an excuse for an Agent to ignore the rules.
 
 ## Quickstart
 
 - Move `CLAUDE.md` to your repo root
 - Leave everything else in `midtempo-framework/`.
 - Run setup
-    ```
-    Setup Stage 1 using `/midtempo-framework/setup.md`
-    ```
 
-## Requirements
+```
+Setup Stage 1 using `/midtempo-framework/setup.md`
+```
 
-A repository with:
-- Working test suite
-- Linting
-- Type checking
+## Configuration
 
-The first priority, after setting up the framework, will be to get to zero test/lint/typecheck errors **and** warnings (clean baseline).
+### `midtempo-framework.yml`
 
-External metrics are the ONLY way to validate LLM output, and even one prior issue can be an excuse for an Agent to ignore the rules.
+This file controls what the framework knows about your repo. Key sections:
 
-> IMPORTANT: ONE framework setup per repo, not one-per-user.
+**Capabilities** - toggle features on or off:
+```yaml
+capabilities:
+  hasUI: true                   # Enables UI-specific rules
+  hasDB: true                   # Enables database rules
+  hasTypecheck: true            # Lang has type checking
+  hasAuthentication: true       # Triggers security rules
+  handlesConfidentialData: true # Triggers security rules
+  isPublicFacing: true          # Triggers security rules
+```
+
+**Commands** - define exactly how tools run:
+```yaml
+commands:
+  test:
+    command: npm test
+    description: Run all tests
+  lint:
+    command: npm run lint
+    description: Run linting
+```
+
+The agent injects these commands into your repo's framework to run exactly as written.
+
+**Test, lint, and typecheck are compulsory.**
+
+**Command categories** - where commands are used in the generated docs:
+
+| Category | Purpose |
+|---|---|
+| `test` | Test runners - shown in all delivery phases |
+| `lint` | Lint tools - shown in delivery and refine exit gates |
+| `typecheck` | Type checkers - shown when `hasTypecheck: true` |
+| `format` | Formatters - shown in delivery exit gates |
+| `docs` | Doc-comment generators - shown in the documentation.md phase |
+| `utilities` | Inserts extra-tooling commands into the main CLAUDE.md for visibility |
+| `discovery` | APIs or scripts that the agent can run to support codebase understanding |
+
+**Reserved command keys** - specific names the framework recognises to change behaviour:
+
+| Key | Required | Behaviour when present |
+|---|---|---|
+| `test` | Yes | Primary test command - also used for targeted TDD runs (`test <file>`) |
+| `lint` | Yes | Primary lint command |
+| `typecheck` | Yes | Primary type check command |
+| `test_unit` | No | Replaces `test` at Red/Green exit gates - runs unit tests only, skipping integration |
+| `test_integration` | No | Enables integration test classification logic at Red/Green exit gates |
+| `test_summary` | No | Replaces `test` at entry/exit gate checks - quieter pass/fail output |
+| `test_coverage` | No | Replaces `test` at the Refactor phase coverage check |
+| `format` | No | Triggers a format run at the Green exit gate (impacts file-length checks during Refactor phase) |
+| `test_e2e` | No | Triggers E2E failure check at Green exit gate when UI changes are present |
+
+**Instructions** - repo-specific documentation the agent reads during delivery:
+```yaml
+instructions:
+  architecture:
+    page: 'architecture.md'
+    description: 'How the codebase is structured'
+```
+
+These files live in `/midtempo-framework/instructions/` and are created during setup. Keep them up to date - the more accurate they are, the better the agent's output.
+
+---
 
 ## Setup
 
@@ -55,9 +126,11 @@ Start a new conversation with a coding LLM - Claude Sonnet provides consistent r
 Setup Stage 1 using `/midtempo-framework/setup.md`
 ```
 
-The setup orchestrator aligns the framework with your environment and coding approach. This process is done once per repo.
+The setup orchestrator aligns the framework with your environment and coding approach. This process is done once per repo and the grounding docs will survive a framework update.
 
-Setup should be overseen by someone who knows the host environment. The documents generated during setup dictate everything the framework does. Any errors or omissions in these docs **will** magnify into delivery problems later.
+> IMPORTANT: ONE framework setup per repo, not one-per-user.
+
+Setup should ideally be run by someone who knows the host environment. The documents created during setup dictate everything the LLM generates. Any errors or omissions in these docs **will** magnify into delivery problems later.
 
 There are nine setup stages:
 
@@ -69,78 +142,120 @@ There are nine setup stages:
 
   - [9] Final configuration checks
 
-After each stage completes, the LLM provides the prompt to run the next stage. Keep going until the final configuration checks (Stage 9) are complete
+After each stage completes, the skill provides the prompt to run the next stage. Keep going until the final configuration checks (Stage 9) are complete
 
 **Important:** These instruction files are the repo's source of truth. The framework updates them automatically when features are delivered. These docs are foundational, so if you're finding delivery isn't aligned with the codebase, then review/update the instruction/*.md files.
 
-> You can re-run the setup skills at any point to regenerate any of the instruction documents afresh.
+> You can re-run any of the setup skills at any point to regenerate any of the instruction documents afresh.
 
-Once setup is run, the framework is ready to use. 
+Once setup is run, check the testing, linting, and documentation state. 
 
 ---
 
-## Next Steps
+## Environment Health
 
-The framework needs high coverage unit tests, and linting, type checks, and doc generation to run without warnings or errors. Without clean external metrics the approach _will_ struggle. 
+The framework needs healthy unit tests, alongside linting, type checks, and doc generation to run safely. Without clean external metrics any agentic coding approach _will_ struggle. 
 
-The framework contains skills to support that transition if your repo doesn't hit these metrics, but this may be a vast over-simplification depending on your environment/profile (i.e. fixing 200 lint warnings in a CAT-1 payment processing service is no small task).
+> The framework contains skills to support that transition if your repo doesn't hit these metrics, but this may be a vast over-simplification depending on your environment/profile. Strengthening linting rules, then fixing the 200 warnings that appear in a CAT-1 payment processing service is not something to be approached lightly, especially with a generic skill off the internet.
+>
+>  In-the-wild testing of these skills has been minimal - use with care.
 
 ### Unit tests
-Are unit tests running GREEN? If not, get to Green before you do anything else (try the bugs.md skill to resolve?)
+The framework's foundation is test-driven development. If coverage is low, if runs take a long time, if integration and unit tests are mixed, then progress _will_ be painful.
 
-The framework's foundation is test-driven development. If coverage is low, if runs take a long time, if integration and unit tests are mixed, then development will be painful.
-
-There's a `fix-tests.md` skill - run it and see whether it can uncover anything useful to improve your test harness.
+The `fix-tests.md` skill audits your test infrastructure: it gets failing tests to green, separates unit from integration tests by dependency type, configures coverage reporting, and quiets verbose test output. It does not touch production code - any issues found there are logged for routing through the appropriate skill. Progress is tracked across batches so you can pause and resume safely.
 
 ```
 Run /midtempo-framework/setup-skills/fix-tests.md
 ```
 
+### Test log
+
+Each delivery phase runs in a fresh conversation. Reading a text file to check test state is far faster than rerunning the full suite, especially on larger repos. 
+
+If test output is saved at runtime, delivery will be smoother. Setting `repo.logfile` in `midtempo-framework.yml` to a path where your test runner writes its output will enable this feature.
+
+The simplest way to keep it current is to run your tests through a wrapper script rather than calling Jest (or pytest, etc.) directly. The wrapper mirrors full output to the log while keeping the terminal clean. Summary mode shows only failures and the coverage table, suppressing the per-test noise that bloats context on large suites. Targeted runs (a single file) auto-include per-file coverage so the agent can see exactly what it's working with.
+
+There's a one-time 'fix-log-file.md' skill to help with this.
+
+```
+Run /midtempo-framework/setup-skills/fix-log-file.md
+```
+
+> If you want to run multiple agents on the same repo, ensure there's file lock detection on during test runs to prevent concurrent writing/buffer overruns.
 
 ---
 
 ### Linting
 
-How about your linting rules? How tight are they? What state are they in? Can we identify anything that might help the agent stick to the right standards for this environment?
+The `fix-linting.md` skill enforces lint configuration and works toward a clean baseline: zero errors, zero warnings. It audits your current config, upgrades all rules to `error`, and applies thresholds. 
+
+These are guidelines, not a one-size-fits-all mandate. The right starting point for a large brownfield repo is to set thresholds at a level that catches the worst offenders without generating hundreds of violations on day one, then tighten them incrementally.
+
+> Agents will happily ignore warnings, even if the skills says "fix all warnings", so set everything to "error", or drop completely.
+
+Recommended thresholds (adjust to your repo's reality):
+
+ - Function length ≤75 lines
+ - Cyclomatic complexity ≤10
+ - File length ≤500 lines
+ - Max nesting depth ≤4
+ - Max parameters ≤5
 
 ```
 Run /midtempo-framework/setup-skills/fix-linting.md
 ```
 
-Ideally linting should enforce the following:
- - Function length ≤75 lines
- - Cyclomatic complexity ≤10 per function
- - File length 500 lines (if linting supports)
- - Nested ternaries < 3
+Violations are fixed via the refactor skill - no `lint-disable` comments, no rule suppressions. The skill batches work by file, rule, or folder and tracks progress across conversations, because on a large codebase this could be a multi-day effort. Fix the worst offenders first, commit that, then lower the thresholds and repeat.
 
-The fix-linting skill will check settings and the state of the current output before recommending changes.
+The outcome should be a healthier, cleaner environment that's better for everyone to work in.
 
-Fixing will (very likely) include refactoring production code. This could be a significant change, depending on the health of your code base. 
-
-> Ideally zero linting errors. Get them gone. Even one warning is enough for the LLM to ignore the rules.
+> Zero lint issues is the target, whatever the settings. Even one warning is enough for the LLM to ignore the rules.
 
 ---
 
 ### Documentation
 
-How about documentation? Does sphinx/jsdocs/swagger/whatever run without warnings?
+The `fix-docs.md` skill gets your documentation generator (Sphinx, JSDoc, TypeDoc, etc.) to clean output: zero errors, zero warnings. It first audits your doc config, then works through missing or broken doc comments in batches of 5–10 issues per conversation.
 
 ```
 Run /midtempo-framework/setup-skills/fix-docs.md
 ```
 
-Note that this is a one-off skill to get the repo ready to use the midtempo-framework.
+The skill requires the agent to read both the function definition and its usage before writing anything - no guessing from names alone. This is intentional: good documentation reflects real behaviour, not assumed behaviour. Batches are kept small for exactly this reason; feeding too many files into one pass degrades quality fast.
 
-If there are too many changes to handle at once, it will batch-process one at a time. Remember that the agent *should* read both the function and how the function is used for full context, so check it doesn't feed too many files into each pass.
+Each batch runs in a fresh conversation and progress is tracked in `planning/docs-fix-progress.md`. Stop as soon as the conversation starts compacting and start a new one to continue.
 
-Adding/improving documentation can be process intensive - STOP as soon as the thread compacts/summarises.
+> Clear, accurate documentation is one of the best tools you have for preventing the agent from duplicating work or making wrong assumptions. Precise doc generation rules enforced as errors are worth the upfront effort.
 
-> and another reminder not to run sequential tasks in the same conversation - start each one fresh
+---
 
-Documentation is perfect for agent understanding. Want to avoid multiple functions that do the same thing? Having clear docs helps. And make sure your generation rules are precise - enforcing strict rules with LLMs is A GOOD THING.
+## Security
 
+**Capability-based rules** load automatically based on your `midtempo-framework.yml` capabilities:
 
-## Finally
+| Capability | What it enables |
+|---|---|
+| `hasAuthentication: true` | Auth rules: token handling, session management, access control |
+| `handlesConfidentialData: true` | Data rules: PII handling, encryption, data minimisation |
+| `isPublicFacing: true` | Hardening rules: rate limiting, input sanitisation, CORS |
+
+Rules are structured as named compliance gates (CG-AU*, CG-DP*, CG-PH*, etc.). During delivery, the agent checks each gate before marking a phase complete - a failing gate blocks progression the same way a failing test does. The review skills surface any gates the delivery phase missed.
+
+These are solid defaults, but they are still defaults. A rule that doesn't match your context is worse than no rule: the agent will either ignore it or apply it incorrectly.
+
+**To customise a rule set:**
+
+1. Find the relevant rule file in `midtempo-framework/rules/security/`
+2. Copy it into `midtempo-framework/instructions/`
+3. Edit it to match your environment - follow the existing pattern/structure/formatting. DO NOT change section number for the gates.
+4. Uncomment the matching security override in `midtempo-framework.yml`
+5. Regenerate the framework docs (either `npm run generate` or the midtempo.com website, depending on your set-up).
+
+The agent will then use your version instead of the default. The more precisely the rules reflect your actual environment, the better the output.
+
+## Next steps?
 
 Did creating the instructions documentation uncover any repo conflicts? Multiple error-handling paths for the same processes? Confusing db rules? Something missing?
 
