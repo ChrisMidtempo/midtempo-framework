@@ -28,6 +28,8 @@ wheels/
 .installed.cfg
 *.egg
 
+.secrets/
+
 # Testing
 .pytest_cache/
 .coverage

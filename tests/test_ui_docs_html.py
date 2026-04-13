@@ -166,6 +166,61 @@ class TestExamplesTabGroup:
         )
 
 
+class TestMobileHamburgerHTML:
+    """Mobile hamburger button and dropdown present in index.html."""
+
+    def test_hamburger_button_element_present(self):
+        """index.html contains a button with data-testid="docs-examples-hamburger"."""
+        content = HTML_FILE.read_text()
+        assert 'data-testid="docs-examples-hamburger"' in content, (
+            'index.html must contain a button with data-testid="docs-examples-hamburger" — '
+            "the hamburger replaces the examples tab group on mobile"
+        )
+
+    def test_hamburger_button_has_id(self):
+        """index.html hamburger button has id="docs-examples-hamburger"."""
+        content = HTML_FILE.read_text()
+        assert 'id="docs-examples-hamburger"' in content, (
+            'index.html must contain id="docs-examples-hamburger" — '
+            "docs-modal.js wires the hamburger toggle by this ID"
+        )
+
+    def test_examples_dropdown_element_present(self):
+        """index.html contains an element with id="docs-examples-dropdown"."""
+        content = HTML_FILE.read_text()
+        assert 'id="docs-examples-dropdown"' in content, (
+            'index.html must contain an element with id="docs-examples-dropdown" — '
+            "the dropdown holds the four example tab buttons on mobile"
+        )
+
+    def test_examples_dropdown_contains_example_tab_buttons(self):
+        """index.html #docs-examples-dropdown contains tab buttons for all four examples."""
+        content = HTML_FILE.read_text()
+        dropdown_start = content.find('id="docs-examples-dropdown"')
+        assert dropdown_start != -1, 'id="docs-examples-dropdown" missing from index.html'
+        # Find content inside the dropdown div (up to its closing tag)
+        dropdown_section = content[dropdown_start: dropdown_start + 800]
+        for tab in ("decisions", "design", "plan", "tests"):
+            assert f'data-tab="{tab}"' in dropdown_section, (
+                f'data-tab="{tab}" button missing from #docs-examples-dropdown'
+            )
+
+    def test_examples_dropdown_contains_title(self):
+        """index.html #docs-examples-dropdown contains a title element with text 'Example Docs'."""
+        content = HTML_FILE.read_text()
+        dropdown_start = content.find('id="docs-examples-dropdown"')
+        assert dropdown_start != -1, 'id="docs-examples-dropdown" missing from index.html'
+        dropdown_section = content[dropdown_start: dropdown_start + 800]
+        assert "docs-examples-dropdown-title" in dropdown_section, (
+            "docs-examples-dropdown-title class missing from #docs-examples-dropdown — "
+            "dropdown needs a title so users know what the menu contains"
+        )
+        assert "Example Docs" in dropdown_section, (
+            "'Example Docs' text missing from #docs-examples-dropdown — "
+            "the title must read 'Example Docs'"
+        )
+
+
 class TestScriptOrder:
     """B20 — marked.js script tag appears before form.js module tag in index.html."""
 

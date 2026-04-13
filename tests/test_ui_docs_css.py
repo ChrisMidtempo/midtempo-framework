@@ -264,3 +264,61 @@ class TestDocsModalContentProseStyles:
             content,
             re.DOTALL,
         ), "#docs-modal-content a must use --colour-brand"
+
+
+class TestMobileHamburgerMenu:
+    """Mobile breakpoint hides Examples tabs and shows a hamburger dropdown instead."""
+
+    def test_mobile_media_query_hides_examples_tabs(self):
+        """style.css contains a max-width media query that hides .docs-examples-tabs."""
+        content = CSS_FILE.read_text()
+        assert re.search(
+            r"@media[^{]*max-width[^{]*\{[^@]*\.docs-examples-tabs\s*\{[^}]*display\s*:\s*none",
+            content,
+            re.DOTALL,
+        ), (
+            "style.css must contain a max-width media query that hides .docs-examples-tabs — "
+            "the four example buttons overflow the header on narrow viewports"
+        )
+
+    def test_hamburger_button_hidden_by_default(self):
+        """style.css default rule for #docs-examples-hamburger sets display: none."""
+        content = CSS_FILE.read_text()
+        assert re.search(
+            r"#docs-examples-hamburger\s*\{[^}]*display\s*:\s*none",
+            content,
+            re.DOTALL,
+        ), (
+            "style.css must set display: none on #docs-examples-hamburger by default — "
+            "the hamburger is hidden on desktop and shown only at the mobile breakpoint"
+        )
+
+    def test_mobile_media_query_shows_hamburger_button(self):
+        """style.css contains a max-width media query that shows #docs-examples-hamburger."""
+        content = CSS_FILE.read_text()
+        assert re.search(
+            r"@media[^{]*max-width[^{]*\{[^@]*#docs-examples-hamburger\s*\{[^}]*display\s*:",
+            content,
+            re.DOTALL,
+        ), (
+            "style.css must show #docs-examples-hamburger inside a max-width media query — "
+            "the hamburger replaces the inline example tabs on mobile"
+        )
+
+    def test_mobile_media_query_tightens_tab_button_padding(self):
+        """style.css overrides .docs-modal-tabs button padding with --space-050 at the mobile breakpoint.
+
+        The default padding is --space-100 --space-200 (8px 16px). The mobile override
+        must use --space-050 (4px) so the three main tabs, hamburger, and close button
+        fit on a narrow viewport without overflowing.
+        """
+        content = CSS_FILE.read_text()
+        assert re.search(
+            r"\.docs-modal-tabs\s+button\s*\{[^}]*--space-050",
+            content,
+            re.DOTALL,
+        ), (
+            "style.css must override .docs-modal-tabs button padding with --space-050 "
+            "at the mobile breakpoint — default --space-200 horizontal padding is too "
+            "wide for the hamburger and close button to be visible"
+        )

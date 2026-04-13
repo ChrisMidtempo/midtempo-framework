@@ -1,6 +1,9 @@
 > A worked example of a Test Manifest. Where the Plan described the order of work, this document pins down what "done" looks like: every behaviour, every edge case, every rule the code will be held to.
 >
-> Note the framework's separate treatment of both [helpers](#helpers) and [integration](#integration) tests.  
+> The write-tests process breaks out [helpers](#helpers), [integration](#integration) tests, and [errors](#errorexception-scenarios), with multiple [validation](#validation) steps to ensure everything is covered.
+> 
+> Note that the Review-tests skill has been run subsequently on this work - you can see example review findings/fixes [here](#module-schemaconfigschemajson) and [here](#module-scriptsgenerate_schemapy).
+ 
 
 # Test Manifest: Security Config Model
 
@@ -64,9 +67,10 @@ This iteration targets the following modules from the planning document:
 
 Progress: Reviewed — PASS (15/02/2026)
 
-### Module: `scripts/capabilities.py` — ✓ Reviewed — all gates passed
+### Module: `scripts/capabilities.py`
 
 **Test file:** `tests/test_security_config_model.py`
+✓ Reviewed 15/02/2026 — all gates passed
 
 #### Test 1.1: Registry contains `isPublicFacing` with correct metadata
 
@@ -182,9 +186,11 @@ Progress: Reviewed — PASS (15/02/2026)
 
 ---
 
-### Module: `schema/config.schema.json` — ✓ Reviewed — all gates passed
+### Module: `schema/config.schema.json`
 
 **Test file:** `tests/test_security_config_model.py`
+
+**Reviewed 15/02/2026** — 1 violation fixed: CG-5 T3.5–T3.9 shared a single config dict mutated between tests — rewrote each test to call `create_valid_config()` fresh so tests are fully isolated.
 
 #### Test 2.1: Schema accepts `isPublicFacing` set to true
 
@@ -505,9 +511,11 @@ Progress: Reviewed — PASS (15/02/2026)
 
 ---
 
-### Module: `scripts/generate_schema.py` — ✓ Reviewed — all gates passed
+### Module: `scripts/generate_schema.py`
 
 **Test file:** `tests/test_security_config_model.py`
+
+**Reviewed 15/02/2026** — 1 violation fixed: CG-3 temp schema written to project directory rather than an isolated temp path — fixed to use `tempfile.NamedTemporaryFile` so tests make no changes to the working tree.
 
 #### Test 4.1: `generate_schema()` writes security section to schema output
 
@@ -634,9 +642,10 @@ Progress: Reviewed — PASS (15/02/2026)
 
 ## Helpers
 
-### Module: `tests/helpers/config_factory.py` — ✓ Reviewed — all gates passed
+### Module: `tests/helpers/config_factory.py`
 
 **Test file:** `tests/test_security_config_model.py`
+✓ Reviewed 15/02/2026 — all gates passed
 
 #### Test 5.1: `create_valid_config()` without security parameter omits `security` key
 
@@ -711,9 +720,10 @@ Progress: Reviewed — PASS (15/02/2026)
 
 ## Integration
 
-### Module: `scripts/generate_docs.py` (Integration) — ✓ Reviewed — all gates passed
+### Module: `scripts/generate_docs.py` (Integration)
 
 **Test file:** `tests/test_security_config_model.py`
+✓ Reviewed 15/02/2026 — all gates passed
 
 #### Test 6.1: Capability defaults merge includes security flags
 

@@ -171,6 +171,25 @@ class TestFormJsStage7:
             r"nameEl\.(?:append|prepend)\s*\(\s*icon\b", body
         ), "showModal does not append/prepend icon into nameEl — icon must be the first child of modal-filename"
 
+    def test_show_modal_queries_card_within_modal_container(self):
+        """showModal queries .modal-card scoped to #modal, not the document root.
+
+        index.html contains two .modal-card elements: one inside #about-modal and one
+        inside #modal. document.querySelector(".modal-card") returns the first in document
+        order — the about-modal card — leaving the download modal visually empty.
+        The selector must be scoped to "#modal .modal-card". (T1.11, BUG-modal-card)
+        """
+        content = JS_FILE.read_text()
+        body = _extract_function_body(content, "showModal")
+        assert body, "showModal function body not found in form.js"
+        assert re.search(
+            r'querySelector\s*\(\s*["\']#modal\s+\.modal-card["\']', body
+        ), (
+            "showModal queries '.modal-card' without scoping to '#modal'. "
+            "index.html has two .modal-card elements; the unscoped query targets "
+            "the about-modal card, leaving the download modal empty."
+        )
+
     def test_call_generate_filename_uses_name_only(self):
         """callGenerate constructs the download filename as {name}.zip with no suffix."""
         content = JS_FILE.read_text()

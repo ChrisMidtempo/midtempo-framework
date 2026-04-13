@@ -3,11 +3,11 @@
 A framework for building production-quality code with AI coding agents.
 
 > LLM output is not trustworthy. This framework centres the engineer in the workflow to build trust in the delivery. The expectation is that the agent acts more as pair-programmer than autonomous code-generator.
->
-> Wider [framework concepts](GUIDE.md) are described here.
+
 
 ## Links
 
+- Wider [framework concepts](GUIDE.md) are described here
 - View/download the codebase on [Github](https://github.com/ChrisMidtempo/midtempo-framework)
 - Easily re/generate the framework using the [Midtempo UI](https://www.midtempo.com)
 
@@ -29,16 +29,17 @@ A framework for building production-quality code with AI coding agents.
 ---
 
 ## How It Works
+The entire framework is simply a collection of markdown documents (text files with a little formatting). They act as comprehensive prompts that guide the agent through every phase of development - from initial idea to delivered, tested code - enforcing consistent behaviour, quality standards, and workflow discipline across every conversation.
 
-The agent follows fixed workflows, with each step running in a **fresh conversation**. The main workflow is token and time intensive, but this is balanced by fewer re-writes, deeper understanding, and better code. 
+The agent follows fixed paths, with each step running in a **fresh conversation**. The main workflow is token and time intensive, but this is balanced by fewer re-writes, deeper understanding, and better code. 
 
 ```
 BUILD → DESIGN → PLAN → TESTS → DELIVER (Red → Green → Refactor → Docs)
 ```
 
-You approve progress in bite-sized chunks and discuss the approach as the delivery is defined. Each step produces documentation that the next stage consumes, providing the necessary context to successfully complete. This bite-sized approach keeps the agent on track and gives you control throughout the process.
+You approve progress in bite-sized chunks and discuss the approach as the work is defined. Each step produces documentation that the next stage consumes, providing the necessary context to successfully complete. This bite-sized approach keeps the agent on track and gives you understanding and control throughout delivery.
 
-Once complete, the main workflow's DESIGN docs provide full context for refinement and bug fixes.
+Once complete, the main workflow's DESIGN docs provide full context for future work, refinement and bug fixes.
 
 ```
 BUGS → DESIGN docs → TRACE TO SOURCE → FIX (Red → Green → Refactor → Docs)
@@ -53,11 +54,11 @@ REFINE → DESIGN docs → DEFINE SCOPE → DELIVER (Red → Green → Refactor 
 
 Agents lose accuracy as conversations grow. When the context window fills, rules drift and mistakes creep in. Starting fresh for each step avoids this - the delivery documents and test state carry the context.
 
-**If the conversation hits a compact/summary trigger: stop, start a new conversation, provide previous prompt, and tell the agent to continue from where you left off.**
+**If the conversation hits a compact/summary trigger: stop, start a new conversation, provide the previous prompt, and tell the agent to continue from where you left off.**
 
 ### You Commit
 
-The framework includes no Git interaction skills. You commit, not the LLM. It's your name on the code, you are responsible. Each phase will provide commit reminders with proposed commit messages, but it's your decision when code is ready to push. 
+The framework includes no Git interaction skills. You commit, not the LLM. It's your name on the code, you are responsible. Each skill will provide commit reminders with proposed commit messages, but it's your decision when your code is ready to push. 
 
 ---
 

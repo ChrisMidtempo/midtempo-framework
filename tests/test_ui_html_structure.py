@@ -141,15 +141,15 @@ class TestIndexHtml:
         )
 
     def test_ajv_imported_as_esm_in_form_js(self):
-        """form.js imports Ajv via ESM import statement. (BUG-4a)
+        """form.js imports Ajv via ESM import statement from vendor bundle. (BUG-4a)
 
         ajv 8.x has no UMD browser bundle. Since form.js is type="module",
-        the correct pattern is: import Ajv from '<esm-cdn-url>'.
+        the correct pattern is: import Ajv from '<local-esm-path>'.
         """
         content = JS_FILE.read_text()
         assert re.search(
-            r"import\s+Ajv\s+from\s+['\"]https://", content
-        ), "form.js must import Ajv via an ESM import statement (e.g. from jsDelivr +esm)"
+            r"import\s+Ajv\s+from\s+['\"][^'\"]*vendor/ajv[^'\"]*['\"]", content
+        ), "form.js must import Ajv via an ESM import statement from the local vendor bundle"
 
     def test_js_yaml_cdn_script_tag_present(self):
         """A script tag with src containing 'js-yaml' is present. (T1.7, B7)"""
