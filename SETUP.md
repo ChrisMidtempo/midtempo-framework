@@ -34,8 +34,7 @@ These are used via npm scripts to validate the output of the templating system (
 
 **Why This Approach?**
 
-I wanted to test multi-lingual agent configurations AND have a clear signal when the LLM started losing context (for this repo, if it started calling python tools directly = not following our instructions)
-
+I wanted to test multi-lingual agent configurations AND use npm on a python repo as a "context canary" - when the agent starts calling mypy or pytest, I know it's losing fidelity and/or the instructions aren't strong enough.
 
 ## Initial Setup
 
@@ -63,9 +62,6 @@ npm install
 ## Development Workflow
 
 ### Linting and Formatting
-
-> Doing it this way to explore reinforcement strategies
-> If we can get a python delivery to use node-like tooling...
 
 ```bash
 # Format Python code
