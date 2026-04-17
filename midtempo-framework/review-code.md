@@ -2,7 +2,7 @@
 
 ## Overview
 
-Review code for fitness-for-purpose, instruction compliance, and security compliance. Each analysis section is validated by the human and persisted to file before the next begins.
+Review code for fit-for-purpose, instruction compliance, and security compliance. Each analysis section is validated by the human and persisted to file before the next begins.
 
 **Goal:** Produce an incremental review report and a grouped recommendations file with skill routing per finding.
 
@@ -27,7 +27,7 @@ Review code for fitness-for-purpose, instruction compliance, and security compli
 - [Severity Taxonomy](#severity-taxonomy)
 - [Entry Gate](#entry-gate)
 - [Step 1: Scope & Intent](#step-1-scope--intent)
-- [Step 2: Fitness-for-Purpose](#step-2-fitness-for-purpose)
+- [Step 2: Fit-for-Purpose](#step-2-fit-for-purpose)
 - [Step 3: Instruction Compliance](#step-3-instruction-compliance)
 - [Step 4: Security Compliance](#step-4-security-compliance)
 - [Step 5: Compile Recommendations](#step-5-compile-recommendations)
@@ -96,7 +96,6 @@ IF human request is about test quality
 
 IF human request is about E2E reliability
   → REDIRECT to `/midtempo-framework/review-e2e.md`
-```
 
 VERIFY-COMPLETE-READ for EVERY file below:
   CHECK the last line says "END OF DOCUMENT"
@@ -116,7 +115,6 @@ READ ALL of `/midtempo-framework/instructions/style-guide.md` → for styling co
 
 
 
-```
 VALID: Continue to Step 1
 ```
 
@@ -126,9 +124,9 @@ VALID: Continue to Step 1
 
 ### 1.1 Establish Scope
 
-ASK the human two questions. WAIT for each answer before continuing.
+ASK the human what they are reviewing. WAIT for the answer.
 
-**Q1 — What are you reviewing?**
+**What are you reviewing?**
 
 | Scope Type | Behaviour |
 |------------|-----------|
@@ -136,13 +134,12 @@ ASK the human two questions. WAIT for each answer before continuing.
 | Specific files | Human provides file list |
 | PR/diff | Scope to changed files in the diff |
 
-**Q2 — What's driving this review?**
+After the scope answer, ASK: "Is there a specific concern to prioritise in this review?" WAIT for the answer.
 
-| Intent | Effect |
-|--------|--------|
-| Pre-merge check | Standard full review against instructions and plan |
-| Investigate concern | Prioritise concern area, then standard checks |
-| Post-delivery verification | Focus on design compliance and acceptance criteria |
+IF human names a concern
+  → NOTE the concern. Prioritise that area after standard checks complete.
+IF human says no (or equivalent)
+  → Run standard review — no prioritisation.
 
 ### 1.2 Documentation Check
 
@@ -185,8 +182,8 @@ Present scope summary to human:
 Review Scope: [Feature/Target Name]
 
 - Type: [feature / files / PR]
-- Target: [from Q1]
-- Intent: [from Q2]
+- Target: [from scope answer]
+- Concern: [concern or "none"]
 - Planning docs:
   - Design: [path or "not applicable"]
   - Plan: [path or "not applicable"]
@@ -217,9 +214,9 @@ CREATE `planning/reviews/code-[date].md` with:
 
 ## Review Scope
 
-- **Type:** [from Q1]
-- **Target:** [from Q1]
-- **Intent:** [from Q2]
+- **Type:** [from scope answer]
+- **Target:** [from scope answer]
+- **Concern:** [concern or "none"]
 - **Planning docs:**
   - Design: [path or "not applicable"]
   - Plan: [path or "not applicable"]
@@ -237,7 +234,7 @@ IF Review File created → VALID: Continue to Step 2
 
 ---
 
-## Step 2: Fitness-for-Purpose
+## Step 2: Fit-for-Purpose
 
 Compare code against design and plan documents. Check intent before compliance — does the code do what the plan says?
 
@@ -266,7 +263,7 @@ IF code matches design OR deviations justified
 
 IF design doc absent:
   → STATE: "No design doc — skipping design comparison"
-  → APPEND note to review file: "Fitness-for-Purpose: not checked (no design doc)"
+  → APPEND note to review file: "Fit-for-Purpose: not checked (no design doc)"
   → VALID: Continue to §2.2
 ```
 
@@ -279,7 +276,7 @@ IF design doc absent:
 `[severity] Summary (source: "doc.md: quoted requirement or gate rule")`
 
 ```
-Fitness-for-Purpose: [Feature Name]
+Fit-for-Purpose: [Feature Name]
 
 Design alignment: [PASS | FAIL with details]
 Acceptance criteria: [X/Y satisfied]
@@ -299,7 +296,7 @@ IF findings exist
 
 WAIT for human validation before proceeding
 
-Review fitness-for-purpose findings for accuracy
+Review fit-for-purpose findings for accuracy
 IF human approves
   → VALID: APPEND to `planning/reviews/code-[date].md`
   → Continue to next section
@@ -308,7 +305,7 @@ IF human requests changes
 
 ```
 IF no findings (design alignment PASS)
-  → STATE: "Fitness-for-Purpose: PASS — code matches design"
+  → STATE: "Fit-for-Purpose: PASS — code matches design"
   → APPEND to `planning/reviews/code-[date].md` without waiting
 
 Continue to Step 3.
@@ -547,7 +544,7 @@ Before completing, verify every item:
 
 ```
 [ ] Step 1: Scope established, planning docs found, review file created
-[ ] Step 2: Fitness-for-purpose checked against design/plan
+[ ] Step 2: Fit-for-Purpose checked against design/plan
 [ ] Step 3: All applicable instruction compliance gates verified with PASS/FAIL
 [ ] Step 4: Skipped (no security domains configured)
 [ ] Step 5: Findings compiled with severity and skill routing (or no findings confirmed)
@@ -583,7 +580,7 @@ Date: [DD/MM/YYYY]
 Status: Complete
 
 Results:
-  Fitness-for-Purpose: [PASS | FAIL]
+  Fit-for-Purpose: [PASS | FAIL]
   Instruction Compliance: [N] gates — [N] PASS, [N] FAIL
 Findings: [N] total ([N] blocking, [N] recommended, [N] nit)
 
@@ -608,7 +605,7 @@ Files:
 | **INVALID** | Jump straight to code and check against general best practices |
 | **VALID** | Find planning docs first, extract acceptance criteria and edge cases, then review code against those specific requirements |
 
-**Why it matters:** Without planning docs, fitness-for-purpose checks become subjective opinion rather than verifiable compliance.
+**Why it matters:** Without planning docs, fit-for-purpose checks become subjective opinion rather than verifiable compliance.
 
 ### 2. Findings Without Citations
 
@@ -662,4 +659,4 @@ Otherwise → review incomplete → do not mark as done
 No exceptions without human partner's permission.
 
 ---
-**END OF DOCUMENT:** Total sections: 16 | Purpose: Code review for fitness-for-purpose, instruction compliance, and security compliance with incremental sectional output
+**END OF DOCUMENT:** Total sections: 16 | Purpose: Code review for fit-for-purpose, instruction compliance, and security compliance with incremental sectional output

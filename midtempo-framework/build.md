@@ -385,16 +385,24 @@ IF human requests changes
 
 ### 3.1 Diverge — Generate Without Judging
 
-List 2-3 approaches as one-line descriptions. **Do not evaluate yet.**
+Determine the divergence mode (read §2.1.1 Understanding Summary and §2.4 Risk & Trade-off Check from `planning/[feature-name]-decisions.md`):
 
-Force distinct categories by varying at least one of:
+IF the brief specifies architectural pattern AND data model AND integration point
+  → Mode B (specified architecture): list 2–4 *open design questions* the brief leaves undecided within the specified approach. Do NOT list options yet. Each question is then resolved one at a time through §3.2 and §3.3 — applying the same rigour as Mode A: Impact Assessment Table (columns = options for that question), Per-Option Analysis (better/worse/assumption), recommendation with reasoning, runner-up rejection, and devil's advocate check for complex questions.
+
+IF any of {architectural pattern, data model, integration point} is open
+  → Mode A (open architecture): list 2–3 distinct approaches using the divergence axes below.
+
+#### 3.1.1 Mode A — Divergence axes
+
+Identify where genuine divergence exists by varying at least one of:
 
 - Architectural pattern (event-driven vs polling, push vs pull)
 - Data model (denormalised vs normalised, embedded vs referenced)
 - UX paradigm (modal vs inline, wizard vs single-page)
 - Integration point (client vs server, sync vs async)
 
-**Example format:**
+**Example (Mode A):**
 
 ```
 Approach A: Server-side filtering with cached results
@@ -402,20 +410,45 @@ Approach B: Client-side filtering with full dataset fetch
 Approach C: Hybrid with server pagination, client sort
 ```
 
-If you cannot articulate 2-3 genuinely different approaches, ask the user: "I see only one viable path here — [describe it]. Should I explore alternatives, or proceed with single-approach analysis?"
+If you cannot articulate 2-3 genuinely different approaches, ask the user: "I see only one viable path here — [describe it]. Should I explore alternatives, or switch to Mode B and identify the open design questions within it?"
+
+#### 3.1.2 Mode B — Open design questions
+
+List the open design questions only — do not draft options yet. Options are drafted in §3.2, one question at a time.
+
+**Example (Mode B):**
+
+```
+Architecture is specified: list view with server-side pagination and cached results. Open design questions within this approach:
+
+1. Cache invalidation strategy (time-based vs event-driven)
+2. Error UI for stale cache reads (silent refresh vs banner)
+3. Sort stability across cache segments (sort at server vs stitch at client)
+4. Empty-state behaviour (suggestive prompts vs clear search)
+```
 
 WAIT for human validation before proceeding
 
-Present approach list to human
+Present approach list (Mode A) or open design question list (Mode B) to human
 IF human approves
-  → VALID: Write approach list to `planning/[feature-name]-decisions.md`
+  → VALID: Write the list to `planning/[feature-name]-decisions.md`
   → Continue to next section
 IF human requests changes
   → REVISE: Update and re-present
 
 ### 3.2 Evaluate — Assess Each Fairly
 
+#### 3.2.1 Mode A — per approach (open architecture)
+
 Use the **Impact Assessment Table** format (see §Required Formats). Use the **Per-Approach Analysis** format for each approach.
+
+#### 3.2.2 Mode B — per question (specified architecture)
+
+Iterate per design question from §3.1 — one question at a time. For each question:
+
+1. Apply the **Impact Assessment Table** with columns = options for that question.
+2. Apply **Per-Option Analysis** (better/worse/assumption per option).
+3. Run §3.3 Recommend for the question. Do NOT advance to the next question until §3.3 is complete and the human has validated the recommendation.
 
 ### 3.3 Recommend — Now Pick
 
@@ -443,6 +476,12 @@ State the best-practice recommendation with reasoning. Validate against project 
 - Show your recommendation with reasoning
 - Show runner-up rejection
 - Show devil's advocate check
+
+**Before finalising the recommendation — framing check:**
+
+Is the question I've framed the actual question you need answered?
+  IF yes → approved: proceed to the validation gate below.
+  IF no  → state where the real uncertainty is; I will reframe the question(s) and re-enter §3.1 at the appropriate mode.
 
 **Ask:** "Does this evaluation look right?"
 

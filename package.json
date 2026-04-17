@@ -1,6 +1,6 @@
 {
   "name": "midtempo-framework",
-  "version": "0.4.5",
+  "version": "0.4.6",
   "description": "Midtempo Framework - Templating and LLM coding tools",
   "scripts": {
     "lint:markdown": "markdownlint '**/*.md' --ignore node_modules --ignore venv --ignore rules --ignore templates --ignore typescript --ignore planning --ignore instructions",
