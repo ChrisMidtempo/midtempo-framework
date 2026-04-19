@@ -201,11 +201,12 @@ CHECK logfile for coverage data (lines, functions, branches percentages)
 IF coverage data found in logfile
   → Use those numbers
 IF coverage data NOT found in logfile
-  → RUN:
+  → RUN ONCE:
     ```bash
     npm run test:python:coverage    # Coverage — metrics + pass/fail
     ```
-  → Use the coverage numbers from this run
+  → Extract lines, functions, and branches percentages from this single run
+  → Do NOT run the test suite again
 ````
 
 Before presenting "§6. Complete Script", verify:

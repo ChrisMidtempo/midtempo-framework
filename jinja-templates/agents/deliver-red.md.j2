@@ -24,6 +24,7 @@
 - You MUST NOT use placeholder assertions (`expect(true).toBe(false)` or similar literals) — assert on expected behaviour
 - You MUST verify each test fails (not errors) with failure reason "behaviour not implemented"
 - You MUST use targeted test runs only — never run full suite in this step
+- You MUST NOT run `test_coverage` or coverage variants at any point — tests are expected to fail and coverage is invalid in RED state
 - You MUST NOT self-approve this step when any test passes or errors instead of failing
 
 </CRITICAL_REQUIREMENT>
@@ -123,6 +124,8 @@ Entry required green, any failing test is our failing test.
 COUNT §3-passing tests — tests that passed immediately during §3 and were handled (fixed per human instruction or approved as known-pass). Record this count for reconciliation below.
 
 **Run once before human review:**
+
+Run only the commands listed — do not add `test_coverage` or coverage variants.
 
 ```bash
 {% if commands.test_unit is defined -%}

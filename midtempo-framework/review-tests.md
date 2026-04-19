@@ -52,7 +52,7 @@ Review test quality file-by-file: apply compliance gates, fix issues inline, rec
 - You MUST write each file's review outcome to the output target before starting the next file
 - You MUST NOT batch multiple file reviews into a single write
 - You MUST NOT skip files already identified in scope
-- You MUST run the targeted test command after every fix to verify the fix works
+- You MUST run the targeted test command after every compliance fix to confirm the fix did not change the test's Red/Green state
 - You MUST record unresolved items (design decisions, new files needed) separately — do not silently skip them
 - You MUST use UK English throughout
 
@@ -92,9 +92,14 @@ IF file path provided in prompt
   → MODE: Manifest Review
   → READ the provided file completely
   → Extract test file list from manifest
+  → CHECK manifest Status field:
+      IF Status contains "Red" → SET phase = RED
+      IF Status does not contain "Red" OR Status absent → SET phase = GREEN
 
 IF no file path provided
   → MODE: Scope Discovery
+  → ASK: "Is this review in TDD Red phase (tests expected to fail) or Green/Refactor phase?"
+  → WAIT for answer. SET phase = RED or GREEN.
   → Continue to Step 1 for scope questions
 
 VALID: Continue to Step 1
@@ -159,6 +164,7 @@ IF MODE = Scope Discovery:
 Test Review Scope:
 
 Mode: [Manifest Review / Scope Discovery]
+Phase: [Red / Green]
 Output target: [manifest path / planning/reviews/tests-[date].md]
 
 Planning docs:
@@ -230,12 +236,14 @@ FOR EACH test file in the remaining file list:
      → Present findings (§2.3)
      → WAIT for human validation
      → Fix violations
-     → Run targeted test to verify fix:
+     → Run targeted test to confirm fix did not change the test's Red/Green state:
        ```bash
        npm run test:python <test-file>    # Verbose — single file for TDD loop
        ```
-     → PRESENT test result to human: "[N] tests passed — fix verified"
-     → IF test fails after fix → ASK human for guidance
+     → IF phase = RED AND test still fails → STATE: "Still failing as expected — fix verified"
+     → IF phase = RED AND test now passes → STOP. ASK human: "Test passes after compliance fix in Red phase — was this expected?"
+     → IF phase = GREEN AND test passes → PRESENT: "[N] tests passed — fix verified"
+     → IF phase = GREEN AND test fails → ASK human for guidance
   6. IF no violations:
      → STATE: "[file path]: PASS — all gates satisfied"
   7. Write outcome to output target (§2.4)
