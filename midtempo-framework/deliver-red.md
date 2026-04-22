@@ -208,7 +208,7 @@ If criteria fail → fix the tests. Deliver-red MUST not complete with passing o
 
 ---
 
-VALID: Show "§5. Complete Script"
+VALID: Continue to "Update test manifest status" below
 ```
 
 **Update test manifest status:**
@@ -246,6 +246,8 @@ ELSE
 
 SAVE the file
 ```
+
+MANDATORY: Show "§5. Complete Script" now.
 
 ### 5. Complete Script
 

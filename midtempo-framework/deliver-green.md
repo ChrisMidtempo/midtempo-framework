@@ -96,7 +96,8 @@ VALID: Continue with `§3. Process`.
 - You MUST NOT skip failing tests without human approval
 - You MUST NOT complete deliver-green (Phase 2 in deliver.md) with failures > 0 for any reason
 - You MUST NOT add behaviour beyond what the test requires
-- You MUST NOT refactor (that happens later)
+- You MUST NOT refactor — refactoring runs in Phase 3 (Refactor)
+- You MUST NOT run lint — linting runs in Phase 3 (Refactor)
 - You MUST NOT optimise prematurely or add "nice to have" code
 
 </CRITICAL_REQUIREMENT>
@@ -265,7 +266,7 @@ IF '/midtempo-framework/rules/testing.md "Compliance Gates"' not verified
   → STOP. "Verify all testing compliance gates before proceeding."
 
 
-VALID: Output "§5.5 Step 2 Complete Output"
+VALID: Continue to "§4.1 Criteria for VALID" below
 ```
 
 ---
@@ -297,6 +298,8 @@ ELSE
   → SET Status to: Green ([total] tests passing)
 SAVE the file
 ```
+
+MANDATORY: Show "§5. Complete Script" now.
 
 ## 5. Complete Script
 

@@ -640,8 +640,9 @@ Step 8 complete when ALL conditions met:
 
 ### 9.1 Run Full Check
 
+Tests were confirmed green at Step 6 (GREEN) and Step 7 (REFACTOR, if run). Documentation changes in Step 8 cannot break tests. Run only the remaining checks:
+
 ```bash
-npm run test:python    # Verbose — no summary command configured    # All tests passing
 npm run lint:python    # Clean
 npm run typecheck:python  # Clean
 npm run docs:generate    # Clean
