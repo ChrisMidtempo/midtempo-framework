@@ -225,6 +225,8 @@ IF failing + known-pass + deferred ≠ manifest total
 
 WAIT for human validation before proceeding
 
+Confirm the known-pass tests are correctly recorded. Approval updates the test manifest and completes the §4 exit gate.
+
 Known-pass count: [N]
 Names:
 - [test name] (approved in §3 or §4)

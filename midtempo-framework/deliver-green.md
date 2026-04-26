@@ -340,7 +340,7 @@ feat: [feature name]
 ---
 Review implementation and commit. Start new conversation with:
 
-Step 3 - use midtempo-framework/deliver.md with planning/[feature-name]-plan.md. Run Step 3.
+Phase 3 - use midtempo-framework/deliver.md with planning/[feature-name]-plan.md. Run Phase 3.
 
 ---
 

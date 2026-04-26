@@ -633,7 +633,7 @@ Review refactors and commit.
 
  Or start a new conversation with:
 
- Step 4 - use /midtempo-framework/deliver.md with /planning/[feature-name]-plan.md. Run Step 4.
+ Phase 4 - use /midtempo-framework/deliver.md with /planning/[feature-name]-plan.md. Run Phase 4.
 
 ---
 ```

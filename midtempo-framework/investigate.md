@@ -36,7 +36,8 @@ Investigate unknown problems, unexplained behaviour, or uncertainty through stru
   - [Code Tracing](#31-code-tracing)
   - [Data Investigation](#32-data-investigation)
   - [Behaviour Discovery](#33-behaviour-discovery)
-  - [Present Evidence](#34-present-evidence)
+  - [External Research](#34-external-research)
+  - [Present Evidence](#35-present-evidence)
 - [Step 4: Analyse & Synthesise](#step-4-analyse--synthesise)
   - [Pattern Recognition](#41-pattern-recognition)
   - [Impact Assessment](#42-impact-assessment)
@@ -51,9 +52,16 @@ Investigate unknown problems, unexplained behaviour, or uncertainty through stru
   - [Priority Ordering](#53-priority-ordering)
   - [Present Proposals](#54-present-proposals)
   - [Refine Proposals](#55-refine-proposals)
+- [Step 5U: Synthesise Understanding](#step-5u-synthesise-understanding)
+  - [Mechanism](#5u1-mechanism)
+  - [Current State](#5u2-current-state)
+  - [What Could Happen](#5u3-what-could-happen)
+  - [Glossary](#5u4-glossary)
+  - [Present Synthesis](#5u5-present-synthesis)
 - [Step 6: Write Recommendations](#step-6-write-recommendations)
   - [Recommendation File Template](#61-recommendation-file-template)
   - [Sequential Recommendation Approval](#62-sequential-recommendation-approval)
+- [Step 6U: Write Understanding Report](#step-6u-write-understanding-report)
 - [Step 7: Write Investigation Report](#step-7-write-investigation-report)
 - [Investigation Complete](#investigation-complete)
 - [Anti-Patterns](#anti-patterns)
@@ -102,7 +110,18 @@ IF not read ALL of `/midtempo-framework/instructions/architecture.md` # Services
   → INVALID: STOP - Read ALL of `architecture.md` before proceeding
 
 
-IF human describes something unclear, unexplained, or uncertain
+IF human wants to understand something unclear, unexplained, or uncertain
+  → SET investigation_path = "understanding"
+  → VALID: Continue to Step 1
+
+IF human wants to break a concern into actionable, deliverable work
+  → SET investigation_path = "recommendations"
+  → VALID: Continue to Step 1
+
+IF intent is unclear or could fit either path
+  → ASK: "Investigation intent — understanding the situation, or breaking it into deliverable work?"
+  → WAIT for selection
+  → SET investigation_path based on answer
   → VALID: Continue to Step 1
 ```
 
@@ -204,11 +223,13 @@ IF opening prompt describes observations with enough detail to frame an investig
 
     What I understand you're seeing: [agent's framing of observed behaviour]
     Related context: [relevant code, docs, or patterns from Step 1]
+    Investigation path: [investigation_path] — [one-sentence reason path was set]
 
-    Is this what you want to investigate?"
+    Is this — framing and path — what you want to investigate?"
 
-  IF human confirms → Continue to Question 1 below
-  IF human corrects → Revise understanding and re-present
+  IF human confirms → Continue to §2.2 Define Scope
+  IF human corrects framing → Revise understanding and re-present
+  IF human requests path switch → SET investigation_path = [other path] and re-present
 
 IF opening prompt is vague or partial:
   → Ask ONE focused question based on what is missing:
@@ -223,20 +244,6 @@ IF opening prompt is vague or partial:
   → Present reflection (same format as above)
 ```
 
-**Question 1 — Scope and Acceptance:**
-
-```
-What defines "done" for this investigation?
-
-Which matters most:
-A) Understanding the root cause
-B) Getting recommendations to fix it
-C) Both understanding and recommendations
-D) Something else (please specify)
-```
-
-**Wait for answer**
-
 ### 2.2 Define Scope
 
 Based on answers, present scope definition:
@@ -247,6 +254,8 @@ Based on answers, present scope definition:
 Scope Definition:
 
 Investigation name: [kebab-case-identifier]
+
+Investigation path: [investigation_path]
 
 Investigation question: [One-sentence question capturing the concern]
 
@@ -279,6 +288,7 @@ Is this scope correct?
 **Date:** [YYYY-MM-DD]
 **Status:** In Progress
 **Name:** [kebab-case-name]
+**Path:** [investigation_path]
 
 ---
 
@@ -360,7 +370,38 @@ Document observations:
 **Gap:** [Difference, if any]
 ```
 
-### 3.4 Present Evidence
+### 3.4 External Research
+
+**Use external knowledge only when the concern depends on it.**
+
+```
+TRIGGER:
+  IF concern depends on framework, library, protocol, or vendor semantics
+  IF behaviour aligns with known issues, RFCs, or third-party docs
+  IF terminology or mechanism is unfamiliar from codebase alone
+
+CHECK-RESOURCES:
+  SCAN `planning/assets/` for any curated resource documents relevant to this concern
+  IF a relevant resource doc exists → use it as the primary starting point before fetching
+
+FETCH:
+  Search authoritative sources (vendor docs, RFCs, official guides)
+  CAP: ≤3 sources per concern; each must map to a specific finding
+  REJECT: forum posts and blogs unless they corroborate an authoritative source
+
+DOCUMENT each reference:
+
+### Reference: [Source title]
+
+**URL:** https://...
+**Authority:** [vendor docs / RFC / official guide / corroborating secondary]
+
+**Excerpt:** [verbatim quote, ≤200 words]
+
+**Finding:** [what this source confirms, contradicts, or clarifies]
+```
+
+### 3.5 Present Evidence
 
 **Output to human:**
 
@@ -374,6 +415,10 @@ Code traces:
 Behaviour observations:
 - [Scenario 1]: [observation and gap]
 - [Scenario 2]: [observation and gap]
+
+External research:
+- [Reference 1]: [authority + finding mapping]
+- [Reference 2]: [authority + finding mapping]
 
 All findings backed by evidence — no speculation.
 
@@ -400,6 +445,10 @@ Does this evidence capture the situation?
 ### Behaviour Observations
 
 [scenarios, observations, and gaps from §3.3]
+
+### External Research
+
+[references with URL, fetch date, authority, finding mapping from §3.4]
 
 ---
 ```
@@ -454,7 +503,10 @@ Impact summary:
 - [Blocking issue] — must fix before [work]
 - [Recommended action] — improves [aspect]
 
-Ready to discuss recommendations?
+IF investigation_path == "understanding"
+  → "Ready to build understanding?"
+IF investigation_path == "recommendations"
+  → "Ready to discuss recommendations?"
 ```
 
 **Wait for validation**
@@ -466,6 +518,9 @@ Ready to discuss recommendations?
 ---
 
 ## Step 5: Propose Recommendations
+
+**Path gate:** Applies when `investigation_path == "recommendations"`.
+IF `investigation_path == "understanding"` → SKIP to Step 5U.
 
 **Present proposed recommendations for discussion before writing files.**
 
@@ -688,7 +743,113 @@ IF human approves:
 
 ---
 
+## Step 5U: Synthesise Understanding
+
+**Path gate:** Applies when `investigation_path == "understanding"`.
+IF `investigation_path == "recommendations"` → use Step 5 above.
+
+**Build the four-part synthesis from the evidence and analysis.**
+
+### 5U.1 Mechanism
+
+Construct the cause-effect chain that explains the observed behaviour.
+
+```
+FOR EACH link in the chain:
+  - Trigger — file:line, data point, or external reference (§3.1, §3.3, §3.4)
+  - Transformation — what happens at this link
+  - Output — what the next link receives
+  - Evidence — citation for this link
+
+DOCUMENT:
+
+### Link [N]: [Step name]
+
+**Trigger:** `file:line` or `Reference: [source]`
+**Transformation:** [what happens]
+**Output:** [what's produced]
+**Evidence:** [§3.1 trace / §3.3 observation / §3.4 reference]
+```
+
+### 5U.2 Current State
+
+State what is observably happening now, with evidence.
+
+```
+DOCUMENT:
+
+### Current State
+
+**Behaviour:** [specific behaviour with file:line evidence]
+**Effects:** [what the user/system experiences]
+**Conditions present:** [what is currently true that drives this behaviour]
+```
+
+### 5U.3 What Could Happen
+
+For each significant condition, state the conditional outcome.
+
+```
+DOCUMENT (one row per scenario):
+
+| Condition       | Outcome           | Evidence              | Likelihood     |
+| --------------- | ----------------- | --------------------- | -------------- |
+| [If X happens]  | [Then Y follows]  | [§3.x reference]      | [Low/Med/High] |
+```
+
+### 5U.4 Glossary
+
+For each unfamiliar term encountered (especially from external research):
+
+```
+DOCUMENT:
+
+**[Term]** — [definition ≤25 words]
+Source: [reference path or file:line]
+```
+
+### 5U.5 Present Synthesis
+
+**Output to human:**
+
+```
+Synthesis:
+
+Mechanism ([N] links):
+- Link 1 → Link 2 → Link 3 — [one-line summary chain]
+
+Current State:
+- [Behaviour] — [evidence]
+
+What Could Happen:
+| Condition | Outcome | Likelihood |
+|-----------|---------|------------|
+| [...]     | [...]   | [...]      |
+
+Glossary: [N terms defined]
+
+Ready to write the understanding report?
+```
+
+**Wait for validation**
+
+```
+IF human suggests changes:
+  → UPDATE synthesis based on feedback
+  → RE-PRESENT
+  → WAIT for validation
+  → REPEAT until human approves
+
+IF human approves:
+  → VALID: Continue to Step 6U (Write Understanding Report)
+```
+
+---
+
 ## Step 6: Write Recommendations
+
+**Path gate:** Applies when `investigation_path == "recommendations"`.
+IF `investigation_path == "understanding"` → SKIP to Step 6U.
 
 **Present each recommendation separately. Wait for validation before writing.**
 
@@ -773,8 +934,6 @@ Write ONE recommendation file at a time. Do NOT batch-write multiple files — l
 
 </CRITICAL_REQUIREMENT>
 
-**Wait for human's response after each recommendation**
-
 **If human asks clarifying questions:** Re-present the recommendation with updates based on any new understanding. Explain what changed and why.
 
 WAIT for human validation before proceeding
@@ -791,6 +950,56 @@ AFTER all recommendations written:
 
 ---
 
+## Step 6U: Write Understanding Report
+
+**Path gate:** Applies when `investigation_path == "understanding"`.
+IF `investigation_path == "recommendations"` → use Step 6 above.
+
+WRITE the validated synthesis from Step 5U to `planning/investigations/[name]-understanding.md`:
+
+```markdown
+# [Title] Understanding
+
+**Source:** Investigation `[name]` ([date])
+**Investigation Question:** [Original validated question from §2.2]
+
+---
+
+## 1. Mechanism
+
+[Cause-effect chain from §5U.1 — one ### Link per step, with file:line and reference citations]
+
+---
+
+## 2. Current State
+
+[Observable behaviour from §5U.2 — Behaviour / Effects / Conditions present]
+
+---
+
+## 3. What Could Happen
+
+[Conditional outcomes table from §5U.3]
+
+---
+
+## 4. Glossary
+
+[Term definitions from §5U.4]
+
+---
+
+## Reference
+
+Full investigation: `planning/investigations/[name]-investigation.md`
+```
+
+AFTER write:
+  DECLARE to human: "Wrote understanding report to `planning/investigations/[name]-understanding.md`."
+  → Continue to Step 7
+
+---
+
 ## Step 7: Write Investigation Report
 
 **Complete the investigation report at `planning/investigations/[name]-investigation.md`.**
@@ -798,6 +1007,8 @@ AFTER all recommendations written:
 The report already contains §1–§3 from earlier steps. APPEND the remaining sections and update the status.
 
 APPEND to `planning/investigations/[name]-investigation.md`:
+
+IF investigation_path == "recommendations":
 
 ```markdown
 
@@ -821,7 +1032,34 @@ Start follow-up work by opening the relevant recommendation file and using it as
 ---
 ```
 
+IF investigation_path == "understanding":
+
+```markdown
+
+---
+
+## 5. Understanding Report
+
+Full understanding: `planning/investigations/[name]-understanding.md`
+
+Sections:
+- Mechanism — [one-sentence summary]
+- Current State — [one-sentence summary]
+- What Could Happen — [one-sentence summary]
+- Glossary — [N terms]
+
+---
+
+## 6. Next Steps
+
+Use the understanding report as context for further conversations. If actionable work follows, run a new investigation with `investigation_path = "recommendations"`.
+
+---
+```
+
 UPDATE the file header: change `**Status:** In Progress` to `**Status:** Complete`.
+
+DECLARE to human: "Updated `planning/investigations/[name]-investigation.md` — appended §5 and §6, status set to Complete."
 
 ---
 
@@ -854,7 +1092,11 @@ Files Created:
 
   Investigation Report:
     `planning/investigations/[name]-investigation.md`
+```
 
+THEN APPEND, IF investigation_path == "recommendations":
+
+```
   Recommendation Reports:
     `planning/investigations/[name]-rec-1-[slug].md` — [Title] ([Classification])
     `planning/investigations/[name]-rec-2-[slug].md` — [Title] ([Classification])
@@ -867,8 +1109,30 @@ Recommendations Summary:
 | 2 | [Title] | [Classification] | [N] | [N] | [Low/Med/High] |
 
 ---
-Start follow-up work by opening the first recommendation file and using it 
+Start follow-up work by opening the first recommendation file and using it
 as context for a new conversation with the appropriate skill.
+
+---
+```
+
+THEN APPEND, IF investigation_path == "understanding":
+
+```
+  Understanding Report:
+    `planning/investigations/[name]-understanding.md`
+
+Understanding Summary:
+
+| Section            | Key takeaway              |
+|--------------------|---------------------------|
+| Mechanism          | [one-sentence summary]    |
+| Current State      | [one-sentence summary]    |
+| What Could Happen  | [one-sentence summary]    |
+| Glossary           | [N terms]                 |
+
+---
+Open the understanding report for the full context. If actionable work follows,
+run a new investigation with `investigation_path = "recommendations"`.
 
 ---
 ```
@@ -916,7 +1180,7 @@ Ask questions → Write recommendations without gathering evidence
 Step 4 complete → Jump to Step 6 (write files) without proposing first
 ```
 
-**VALID:** Complete steps in order: 1 → 2 → 3 → 4 → 5 → 6 → 7. No skipping.
+**VALID:** Complete steps in order — 1 → 2 → 3 → 4 → (5 OR 5U) → (6 OR 6U) → 7. Path is committed in the entry gate; do not switch paths mid-investigation.
 
 ---
 **END OF DOCUMENT:** Total sections: 7 | Purpose: Deep discovery and actionable recommendations
