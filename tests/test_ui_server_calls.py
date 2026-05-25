@@ -267,8 +267,8 @@ class TestServerCallsE2E:
         with zipfile.ZipFile(zip_path) as zf:
             zf.extractall(extract_dir)
 
-        yml_files = list(extract_dir.rglob(".midtempo-framework.yml"))
-        assert yml_files, ".midtempo-framework.yml not found in extracted zip"
+        yml_files = list(extract_dir.rglob("midtempo-framework.yml"))
+        assert yml_files, "midtempo-framework.yml not found in extracted zip"
 
         validate_config_with_enhanced_errors(yml_files[0])
 

@@ -4,6 +4,24 @@ All notable changes to the Midtempo Framework are documented here.
 
 ---
 
+## [0.5.0] — 25/05/2026
+
+### Investigate skill redesigned, and "reversibility" clarified
+
+**Investigate skill — single-path investigation:**  
+The two-path investigation model (understanding vs. recommendations) has been removed. The skill now follows a single path for all investigations. The four-part synthesis that was previously exclusive to the understanding path — Mechanism, Current State, What Could Happen, and Glossary — is now embedded in Step 4 (Analyse & Synthesise) for every investigation, before proposals are made. Step 5U, Step 6U, and the understanding report file have all been removed.
+
+**Investigate skill — explicit external research opt-in (§2.1.5):**  
+External research is no longer auto-triggered based on concern type. Instead, a new step (§2.1.5) is introduced after the framing reflection is confirmed, giving the human an explicit choice: skip external research, use agent-suggested areas (populated from Step 1 context), or specify custom sources. The `research_opt_in` flag set here controls whether §3.4 runs and whether §4.5 (Glossary) is populated.
+
+**Build skill — reversibility classification simplified:**  
+The "rollback" option has been removed from the reversibility axis in the impact assessment table and decision cards. Reversibility is now a binary choice — feature-flag or permanent — with clearer definitions: a feature-flag can be toggled off at runtime without a code change; permanent means later code will depend on it and reversing means rework.
+
+**README — templating engine clarification:**  
+A prominent note has been added to the top of the README clarifying that this repo is a templating engine for generating repo-specific skills — not the framework itself. An example of the generated framework lives in `midtempo-framework/`.
+
+---
+
 ## [0.4.9] — 26/04/2026
 
 ### Dual-path investigation skill, external research step, and a new CLAUDE.md

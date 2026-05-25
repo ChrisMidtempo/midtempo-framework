@@ -62,14 +62,14 @@ Use in §3.2 when evaluating approaches:
 | Complexity (files/abstractions)                 |            |            |            |
 | Breaking changes (none/migration/breaking)      |            |            |            |
 | Pattern alignment (follows/extends/deviates)    |            |            |            |
-| Reversibility (feature-flag/rollback/permanent) |            |            |            |
+| Reversibility (feature-flag/permanent) |            |            |            |
 | New dependencies (none/internal/external)       |            |            |            |
 **Criteria definitions:**
 
 - **Complexity** — Files touched and new abstractions introduced
 - **Breaking changes** — Changes to existing contracts or APIs
 - **Pattern alignment** — Follows, extends, or deviates from codebase patterns
-- **Reversibility** — Undone via feature flag, simple rollback, or permanent
+- **Reversibility** — Feature flag: can be toggled off at runtime without a code change. Permanent: later code will depend on this — reversing means rework, not a revert
 - **New dependencies** — Adds internal modules or external packages
 ### Per-Approach Analysis
 
@@ -92,7 +92,7 @@ Use in §4.1 for each key decision:
 | **Choice** | [Selected approach — one sentence] |
 | **Rationale** | [One paragraph: why this choice over alternatives] |
 | **Rejected alternatives** | [Runner-up and reason for rejection] |
-| **Plan Hand-off** | Affects: [modules/files]. Constraint: [what implementers must respect]. Reversibility: [feature-flag / rollback / permanent] |
+| **Plan Hand-off** | Affects: [modules/files]. Constraint: [what implementers must respect]. Reversibility: [feature-flag / permanent] |
 ```
 
 ### Skill Complete Script
@@ -462,7 +462,7 @@ State the best-practice recommendation with reasoning. Validate against project 
 - Does it follow `/midtempo-framework/instructions/error-handling.md` patterns?
 **Required:** Explain why the runner-up was not chosen.
 
-**Required:** State the reversibility classification from the impact assessment table (feature flag, simple rollback, or permanent). This carries forward to the Decision Card.
+**Required:** State the reversibility classification from the impact assessment table (feature-flag or permanent). This carries forward to the Decision Card.
 
 **For complex features** (touches 3+ modules, changes data model, or has multiple valid UX paths):
 

@@ -1,6 +1,8 @@
 # Midtempo Framework
 
-> You can generate a complete set of framework docs at [midtempo.com](https://midtempo.com) if you'd rather avoid the overhead of installing the repo.
+***THIS IS NOT THE FRAMEWORK*** This is a templating engine to generate repo-specific skills. The generated framework is a collection of markdown docs - there is a full example in the `midtempo-framework/` folder.
+
+> You can generate a bespoke set of framework docs for your repo at [midtempo.com](https://midtempo.com) if you'd rather avoid the overhead of installing the repo.
 
 ## What this is
 A constraint-first framework for LLM-assisted development on real codebases. It assumes the engineer remains responsible for everything that ships, and makes that responsibility sustainable.
