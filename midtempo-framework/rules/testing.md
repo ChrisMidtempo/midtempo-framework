@@ -395,6 +395,10 @@ test "registers tool B":
   assert len(registry.tools) == 1
 ```
 
+**Beyond instances — global state too:**
+
+Global state mutations (clocks, fake timers, locale, environment variables, random seeds, monkey-patches, registered handlers) follow the same rule: modified in setup, restored in teardown. A `beforeEach`/`setUp` in the next test file is not a safe backstop — it only runs if that file resets the state itself. Mode switches (e.g. fake → real timers) must be paired inside the same scope that opened them.
+
 ### 10. Incomplete Coverage Scope
 
 **Detection:** Function has documented error conditions but only happy path tested, boundary conditions not tested, function throws but no test expects error
@@ -522,6 +526,43 @@ test "admin has full access":
 **When factories are required:** Same object shape appears in 2+ test files
 **When inline is acceptable:** One-off test data unique to a single test file, or trivial scalars
 
+### 13. Guarded Preconditions
+
+**Detection:** Test action wrapped in a conditional that silently skips when the precondition is unmet (`if element exists: click`, `if result is not null: assert`, `if user found: ...`); downstream assertion times out or passes vacuously, hiding the real failure
+
+**INVALID:**
+```
+test "clicks submit button":
+  page = render(LoginForm)
+  button = page.find_by_test_id("submit")
+  if button exists:                  // Silently skips when button missing
+    button.click()
+  assert page.shows("Welcome")       // Times out — real error (missing button) is buried
+```
+
+**Recovery:**
+```
+1. STOP at this conditional
+2. State: "VIOLATION: Guarded precondition"
+3. REPLACE the conditional with an explicit assertion that the precondition holds
+4. USE the precondition unconditionally afterwards
+5. Execute automatically
+```
+
+**VALID:**
+```
+test "clicks submit button":
+  page = render(LoginForm)
+  button = page.find_by_test_id("submit")
+  assert button exists               // Missing button fails here, with a clear error
+  button.click()
+  assert page.shows("Welcome")
+```
+
+**Principle:** A missing precondition is a test failure, not a branch. Assert it; do not guard it. This applies across stacks — DOM nodes in component tests, rows in database tests, files in filesystem tests, responses in HTTP tests.
+
+**When guarding IS valid:** Production code defending against runtime nulls. Tests must never guard — they control their own setup.
+
 ## Common Rationalisations (FORBIDDEN)
 
 **Agent must refuse these justifications with mandatory counter-responses:**
@@ -538,6 +579,8 @@ test "admin has full access":
 | "Add a destroy() method for test cleanup" | "No. Test-only methods don't belong in production. I'll create a test utility instead." |
 | "Assert exact count to catch unintended additions" | "No. Count assertions break when the collection grows. Assert the required entry is present and satisfies the contract." |
 | "It's only used in two files, a factory is overkill" | "No. Two files is the threshold. Extract a factory now before it spreads further." |
+| "Guard the click in case the element isn't there" | "No. A missing element is a test failure, not a branch. Assert it exists, then use it." |
+| "Wrap it in a null check to be safe" | "No. Tests control their own setup. Assert the precondition; do not guard it." |
 | "getByText is fine, the text is unique" | "No. All queries must use data-testid. I'll add data-testid to the component and use getByTestId." |
 | "getByRole is the recommended RTL approach" | "No. RTL recommendations don't apply here. Our standard requires data-testid for all element queries." |
 | "Test that the gradient was removed" | "No. Test what code does, not what it doesn't. Design changes use visual review." |

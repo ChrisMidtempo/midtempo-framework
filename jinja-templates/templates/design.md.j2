@@ -111,6 +111,25 @@
   - **Interface:** [How they connect - API, event, database, etc.]
   - **Contract:** [Key expectations or requirements]
 
+**Coupling Assessment:**
+
+For each integration above, evaluate against the three dimensions of the Balanced Coupling model:
+
+- **Strength** (knowledge shared): `contract` (interface only) → `model` (shared domain model) → `functional` (shared business rules) → `intrusive` (private internals). Weakest is best.
+- **Distance** (cost of cascading change): same module → same service → cross-service → cross-team. Lower is cheaper.
+- **Volatility** (probability of change): `high` for Core subdomains; `low` for Supporting/Generic.
+
+**Balance rule:** `BALANCE = (STRENGTH XOR DISTANCE) OR NOT VOLATILITY` — coupling is healthy when one of {strength, distance} is high and the other low, or when the component rarely changes.
+
+| Integration | Strength | Distance | Volatility | Balanced? | Action if unbalanced |
+| ----------- | -------- | -------- | ---------- | --------- | -------------------- |
+| [A → B]     | [level]  | [level]  | [level]    | [Yes/No]  | [Rebalance how, or N/A] |
+
+**Patterns to flag:**
+
+- High strength + high distance + high volatility → distributed monolith risk (reduce strength via contract, or co-locate)
+- Low strength + low distance → low cohesion risk (merge or move closer)
+
 ---
 
 ### 3.4 Data Model

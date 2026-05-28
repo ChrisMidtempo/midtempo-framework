@@ -82,6 +82,7 @@ Refactoring improves the internal structure of the code **without changing its e
 - You MUST ensure architectural, UI, and import-layer rules remain valid after refactor
 - You MUST provide at least one positive observation in any Refactor Report output
 - You MUST present refactor report to human and await approval before executing
+- You MUST, when invoked standalone, update the feature design doc with refactor outcomes before producing exit output — also update the recommendation document if one was provided
 
 </CRITICAL_REQUIREMENT>
 
@@ -219,8 +220,11 @@ EXTRACT from recommendation document:
   - Scope: files affected, complexity, risk
   - Acceptance criteria: measurable outcomes
   - Evidence: file:line references from investigation
+  - Design doc: planning/[feature]-design.md per finding (or N/A — [reason])
 
 READ each targeted file completely.
+READ each referenced design doc completely (skip those marked N/A).
+
 ```
 
 ```bash

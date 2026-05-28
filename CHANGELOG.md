@@ -4,12 +4,36 @@ All notable changes to the Midtempo Framework are documented here.
 
 ---
 
+## [0.5.1] — 28/05/2026
+
+### Root cause synthesis in architecture reviews, coupling assessment in design, two new test rules
+
+**Review-architecture skill - root cause synthesis (new Step 7):**  
+A new step, "Synthesise Root Causes", now runs between findings collection (Steps 2–6) and the recommendations file. It clusters findings by the artefact they touch - type, module, implicit convention, or data shape - and where ≥ 2 findings share a single root cause, promotes the root cause into its own finding with the symptoms listed as evidence. If no clusters emerge, all findings remain independent. The former Steps 7 and 8 are now Steps 8 and 9, and the architecture checklist gains a "root cause synthesis pass complete" line.
+
+**Review-architecture and review-code - design doc field per finding:**  
+Both review skills now require every recommendation to declare which design doc it relates to: `planning/[path]/[feature]-design.md`, or an explicit `N/A — [reason]` (cross-cutting work, predates design-doc convention, general cleanup, etc.).
+
+**Refactor skill - design doc updates on standalone invocation:**  
+A new critical requirement: when the refactor skill runs standalone (not as part of the delivery workflow), it must update the feature design doc with refactor outcomes before producing exit output - and update the recommendation document if one was provided. The extraction step reads the referenced design doc per finding from the recommendation document.
+
+**Write-design and design template - Balanced Coupling assessment:**  
+The design template's §3.3 "Integration Points" now carries a "Coupling Assessment" sub-section based on the Balanced Coupling model. Each integration is rated for Strength (contract → model → functional → intrusive), Distance (same module → cross-team), and Volatility (high for Core; low for Supporting/Generic). The balance rule — `BALANCE = (STRENGTH XOR DISTANCE) OR NOT VOLATILITY` — flags distributed-monolith risk (high/high/high) and low-cohesion risk (low/low/low). 
+
+**Testing rules - global state restoration (§9 amendment):**  
+The "tests must reset state between runs" rule now explicitly covers global state mutations: clocks, fake timers, locale, environment variables, random seeds, monkey-patches, registered handlers. Mode switches (e.g. fake → real timers) must be paired inside the same scope that opened them - a `beforeEach`/`setUp` in the next test file is not a safe backstop.
+
+**Testing rules - guarded preconditions (new §13):**  
+A new violation class: wrapping a test action in a conditional that silently skips when the precondition is unmet (`if button exists: click`) buries the real failure as a downstream timeout. Tests must assert the precondition explicitly, then use it unconditionally. Two new entries are added to the Common Rationalisations table.
+
+---
+
 ## [0.5.0] — 25/05/2026
 
 ### Investigate skill redesigned, and "reversibility" clarified
 
 **Investigate skill — single-path investigation:**  
-The two-path investigation model (understanding vs. recommendations) has been removed. The skill now follows a single path for all investigations. The four-part synthesis that was previously exclusive to the understanding path — Mechanism, Current State, What Could Happen, and Glossary — is now embedded in Step 4 (Analyse & Synthesise) for every investigation, before proposals are made. Step 5U, Step 6U, and the understanding report file have all been removed.
+The two-path investigation model (understanding vs. recommendations) has been removed - 0.4.9 didn't work as hoped. The skill now follows a single path for all investigations. The four-part synthesis that was previously exclusive to the understanding path — Mechanism, Current State, What Could Happen, and Glossary — is now embedded in Step 4 (Analyse & Synthesise) for every investigation, before proposals are made. Step 5U, Step 6U, and the understanding report file have all been removed.
 
 **Investigate skill — explicit external research opt-in (§2.1.5):**  
 External research is no longer auto-triggered based on concern type. Instead, a new step (§2.1.5) is introduced after the framing reflection is confirmed, giving the human an explicit choice: skip external research, use agent-suggested areas (populated from Step 1 context), or specify custom sources. The `research_opt_in` flag set here controls whether §3.4 runs and whether §4.5 (Glossary) is populated.
@@ -53,7 +77,7 @@ The RED → GREEN → REFACTOR phases are now more explicitly enforced in the de
 
 ---
 
-## [0.4.7] — In development
+## [0.4.7]
 
 ### Phase-aware test reviews and smarter RED phase rules
 

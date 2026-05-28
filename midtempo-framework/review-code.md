@@ -405,6 +405,19 @@ SKIP: No security domains configured. Continue to Step 5.
 
 Compile all findings from Steps 2–4 into a single recommendations file.
 
+**Determining the design doc for each finding:**
+
+For each finding, identify the files it touches. Cross-reference against
+`planning/*-design.md` documents (including `planning/archive/` subfolders):
+
+- If one design doc owns the touched files → reference that path
+- If multiple design docs apply → reference the most recent specific (feature-level
+  over surface-level)
+- If no design doc applies → state `N/A — [reason]` (e.g.
+  "cross-cutting; predates design-doc convention", "general codebase cleanup")
+
+`N/A` must always include a reason. Omitting the field is not permitted.
+
 ### 5.1 Gather Positives
 
 Note positives as you encounter them in Steps 2–4. §5.1 collects what you found — it does not generate new observations.
@@ -428,6 +441,7 @@ For each finding, include:
   - Missing or incomplete feature → `refine.md`
   - Design gap or new capability needed → `build.md`
   - None of the above → ASK human: "Which skill applies to this finding?"
+- **Design doc:** `planning/[path]/[feature]-design.md` (or `N/A — [reason]`)
 - **Evidence:** file:line references
 - **Summary:** one-sentence description
 - **Source:** instruction/rule citation
@@ -494,6 +508,7 @@ After validation, CREATE `planning/reviews/code-[date]-recommendations.md`:
 
 - **Skill:** `/midtempo-framework/[skill].md`
 - **Source:** [instruction/rule citation]
+- **Design doc:** `planning/[path]/[feature]-design.md` (or `N/A — [reason]`)
 - **Evidence:** [file:line references]
 - **Summary:** [one sentence]
 - **Acceptance Criteria:**
@@ -507,6 +522,7 @@ After validation, CREATE `planning/reviews/code-[date]-recommendations.md`:
 
 - **Skill:** `/midtempo-framework/[skill].md`
 - **Source:** [instruction/rule citation]
+- **Design doc:** `planning/[path]/[feature]-design.md` (or `N/A — [reason]`)
 - **Evidence:** [file:line references]
 - **Summary:** [one sentence]
 - **Acceptance Criteria:**
@@ -520,6 +536,7 @@ After validation, CREATE `planning/reviews/code-[date]-recommendations.md`:
 
 - **Skill:** `/midtempo-framework/[skill].md`
 - **Source:** [instruction/rule citation]
+- **Design doc:** `planning/[path]/[feature]-design.md` (or `N/A — [reason]`)
 - **Evidence:** [file:line references]
 - **Summary:** [one sentence]
 - **Acceptance Criteria:**

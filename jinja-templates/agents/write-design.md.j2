@@ -178,6 +178,7 @@ Human clarifications during "Step 1" can introduce conflicts between sections. T
 2. **Check for omissions** — Re-read the Decisions file in full. Extract every discrete agreed requirement. For each requirement, confirm it appears in the design document. Flag any that do not.
 3. **Check terminology** — Same concepts must use same names throughout
 4. **Check scope consistency** — In-scope items have coverage; out-of-scope items are only described in "out of scope"
+5. **Check coupling coverage** — Every integration in §3.3 "Integration Points" has a row in the §3.3 "Coupling Assessment" table with all columns filled (Strength, Distance, Volatility, Balanced?, Action). No placeholder values (`[level]`, `[Yes/No]`, `[Rebalance how]`) remain.
 
 ### 2.2 Present Findings
 

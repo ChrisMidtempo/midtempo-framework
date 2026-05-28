@@ -39,8 +39,9 @@ Guard system shape: boundaries, complexity, pipelines, conventions. Each analysi
 - [Step 4: Check Design Principles](#step-4-check-design-principles)
 - [Step 5: Spot Structural Smells](#step-5-spot-structural-smells)
 - [Step 6: Verify Defensive Posture](#step-6-verify-defensive-posture)
-- [Step 7: Compile Recommendations](#step-7-compile-recommendations)
-- [Step 8: Complete Review](#step-8-complete-review)
+- [Step 7: Synthesise Root Causes](#step-7-synthesise-root-causes)
+- [Step 8: Compile Recommendations](#step-8-compile-recommendations)
+- [Step 9: Complete Review](#step-9-complete-review)
 - [Anti-Patterns](#anti-patterns)
 - [Severity Taxonomy](#severity-taxonomy)
 - [Common Rationalisations](#common-rationalisations-forbidden)
@@ -546,15 +547,103 @@ Continue to Step 7.
 
 ---
 
-## Step 7: Compile Recommendations
+## Step 7: Synthesise Root Causes
 
-Compile all findings from Steps 2–6 into a single recommendations file.
+Steps 2–6 record findings independently. Before grouping by severity, check whether several findings share a single root cause — if they do, the root cause is the finding and the symptoms become its evidence.
 
-### 7.1 Gather Positives
+### 7.1 Cluster Findings
+
+For each finding from Steps 2–6, identify the artefact it touches:
+- A specific type or interface
+- A specific module or file
+- An implicit convention (e.g., where data is stored, which slot owns what)
+- A specific data structure or shape
+
+Group findings that touch the same artefact.
+
+### 7.2 Identify Root Causes
+
+For each cluster with ≥ 2 findings:
+
+Name the root cause: one sentence — what shared knowledge leaks across ≥ 2 findings.
+
+IF fixing this root cause eliminates or trivialises ≥ 2 findings
+  → PROMOTE: create one root-cause finding. List symptom findings as evidence.
+    Remove symptoms from standalone list.
+IF fixing this root cause does NOT eliminate ≥ 2 findings
+  → Leave all findings independent. Do not cluster.
+
+### 7.3 Present Results
+
+**Output to human:**
+
+```
+Synthesis: [Feature Name]
+
+Root causes:
+- [Root cause description]
+  Resolves symptoms: [list of finding references from Steps 2–6]
+  Evidence: [file:line references shared by the cluster]
+- [Root cause description]
+  ...
+
+Standalone findings (not clustered):
+- [Reference to Step N finding]
+...
+
+OR
+
+"Synthesis: no root-cause clusters found — all findings are independent"
+```
+
+### 7.4 Validation Gate
+
+```
+IF clusters found
+  → PRESENT results to human
+```
+
+WAIT for human validation before proceeding
+
+Review root cause clusters for accuracy
+IF human approves
+  → VALID: APPEND to `planning/reviews/arch-[date].md`
+  → Continue to next section
+IF human requests changes
+  → REVISE: Update and re-present
+
+```
+IF no clusters found
+  → STATE: "Synthesis: no clusters — proceeding with independent findings"
+  → APPEND to `planning/reviews/arch-[date].md` without waiting
+
+Continue to Step 8.
+```
+
+---
+
+## Step 8: Compile Recommendations
+
+Compile the output of Step 7 (Synthesise Root Causes) into a single recommendations file: root-cause clusters replace their symptom findings; standalone findings are included as-is.
+
+**Determining the design doc for each finding:**
+
+For each finding, identify the files it touches. Cross-reference against
+`planning/*-design.md` documents (including `planning/archive/` subfolders):
+
+- If one design doc owns the touched files → reference that path
+- If multiple design docs apply → reference the most recent specific (feature-level
+  over surface-level)
+- If no design doc applies → state `N/A — [reason]` (e.g.
+  "cross-cutting; predates design-doc convention", "general codebase cleanup")
+
+`N/A` must always include a reason. Omitting the field is not permitted.
+
+### 8.1 Gather Positives
 
 Before compiling findings, record at least one positive observation — a concrete architectural strength with evidence.
 
-### 7.2 Group Findings
+### 8.2 Group Findings
 
 Group findings by severity (see §Severity Taxonomy):
 
@@ -566,11 +655,12 @@ For each finding, include:
 
 - **Severity:** blocking / recommended / nit
 - **Skill:** `/midtempo-framework/[bugs|refactor|build|refine].md`
+- **Design doc:** `planning/[path]/[feature]-design.md` (or `N/A — [reason]`)
 - **Evidence:** file:line references
 - **Summary:** one-sentence description
 - **Acceptance criteria:** measurable condition for resolution
 
-### 7.3 Present Results
+### 8.3 Present Results
 
 **Output to human:**
 
@@ -592,7 +682,7 @@ Nit:
 Total: [N] findings ([N] blocking, [N] recommended, [N] nit)
 ```
 
-### 7.4 Validation Gate
+### 8.4 Validation Gate
 
 This step always requires validation — it produces the recommendations file.
 
@@ -605,7 +695,7 @@ IF human approves
 IF human requests changes
   → REVISE: Update and re-present
 
-### 7.5 Write Recommendations File
+### 8.5 Write Recommendations File
 
 After validation, CREATE `planning/reviews/arch-[date]-recommendations.md`:
 
@@ -628,6 +718,7 @@ After validation, CREATE `planning/reviews/arch-[date]-recommendations.md`:
 ### [Finding Title]
 
 - **Skill:** `/midtempo-framework/[skill].md`
+- **Design doc:** `planning/[path]/[feature]-design.md` (or `N/A — [reason]`)
 - **Evidence:** [file:line references]
 - **Summary:** [one sentence]
 - **Acceptance Criteria:**
@@ -640,6 +731,7 @@ After validation, CREATE `planning/reviews/arch-[date]-recommendations.md`:
 ### [Finding Title]
 
 - **Skill:** `/midtempo-framework/[skill].md`
+- **Design doc:** `planning/[path]/[feature]-design.md` (or `N/A — [reason]`)
 - **Evidence:** [file:line references]
 - **Summary:** [one sentence]
 - **Acceptance Criteria:**
@@ -652,6 +744,7 @@ After validation, CREATE `planning/reviews/arch-[date]-recommendations.md`:
 ### [Finding Title]
 
 - **Skill:** `/midtempo-framework/[skill].md`
+- **Design doc:** `planning/[path]/[feature]-design.md` (or `N/A — [reason]`)
 - **Evidence:** [file:line references]
 - **Summary:** [one sentence]
 - **Acceptance Criteria:**
@@ -659,18 +752,18 @@ After validation, CREATE `planning/reviews/arch-[date]-recommendations.md`:
 ```
 
 ```
-IF no findings across Steps 2–6
+IF Step 7 produced no findings (synthesised list is empty)
   → SKIP recommendations file
   → STATE: "No findings — no recommendations file needed"
 
-Continue to Step 8.
+Continue to Step 9.
 ```
 
 ---
 
-## Step 8: Complete Review
+## Step 9: Complete Review
 
-### 8.1 Architecture Checklist
+### 9.1 Architecture Checklist
 
 Complete before finishing:
 
@@ -682,18 +775,19 @@ Complete before finishing:
 - [ ] Design principles checked (DRY, SOLID, KISS, YAGNI, LoD)
 - [ ] Structural smells identified or confirmed absent
 - [ ] Defensive posture verified
+- [ ] Root cause synthesis pass complete (or no clusters found)
 - [ ] Positive observation recorded (at least one)
 - [ ] Findings labelled (blocking/recommended/nit)
 - [ ] All sections written to `planning/reviews/arch-[date].md`
 - [ ] Recommendations file written (or no findings confirmed)
 
-### 8.2 Finalise Review File
+### 9.2 Finalise Review File
 
 APPEND completed checklist to `planning/reviews/arch-[date].md`.
 
 UPDATE the file header: change `**Status:** In Progress` to `**Status:** Complete`.
 
-### 8.3 Completion Output
+### 9.3 Completion Output
 
 <CRITICAL_REQUIREMENT type="MANDATORY">
 
@@ -808,4 +902,4 @@ No exceptions without human partner's permission.
 This skill supplements behavioural correctness checks with system-level guard rails.
 
 ---
-**END OF DOCUMENT:** Total sections: 19 | Purpose: Architecture review with sectional output and grouped recommendations
+**END OF DOCUMENT:** Total sections: 20 | Purpose: Architecture review with sectional output and grouped recommendations
