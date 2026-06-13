@@ -4,6 +4,14 @@
 
 ---
 
+**Document Conventions**
+
+- **Authoritative spec (§1–8):** the current-state specification. IF behaviour changes → edit the affected section in place so the spec stays true.
+- **Change History (foot of document):** an append-only log of one-line dated entries. Record what changed; put the full trace in the commit body, not here.
+- **Supersession:** IF an entry is invalidated → delete it and reconcile the spec. Never annotate `SUPERSEDED`.
+
+---
+
 ## 1. Problem Statement
 
 ### 1.1 Current Situation
@@ -383,3 +391,18 @@ Entity: [EntityName]
 
 **Approved by:** [Name/Role]  
 **Next step:** Create planning document using `write-plan.md` skill
+
+---
+
+## Change History
+
+One line per change. The full trace and rationale live in the commit body, not here.
+Delete superseded entries and reconcile sections 1–8 above — do not annotate them.
+
+Type is one of: bug, refine, refactor. Date format: DD/MM/YYYY.
+
+| Date | Type | Summary | Commit |
+|------|------|---------|--------|
+
+---
+**END OF DOCUMENT:** Total sections: 8 | Purpose: Feature design specification and change history

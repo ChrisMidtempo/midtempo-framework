@@ -160,9 +160,9 @@ class TestFetchDoc:
         """
         content = DOCS_MODAL_FILE.read_text()
         body = _extract_function_body(content, "fetchDoc")
-        assert "scrollTop" in body, (
-            "fetchDoc() must set scrollTop = 0 after rendering fetched content"
-        )
+        assert (
+            "scrollTop" in body
+        ), "fetchDoc() must set scrollTop = 0 after rendering fetched content"
 
 
 class TestActivateTab:
@@ -186,9 +186,9 @@ class TestActivateTab:
         """
         content = DOCS_MODAL_FILE.read_text()
         body = _extract_function_body(content, "activateTab")
-        assert "scrollTop" in body, (
-            "activateTab() must set scrollTop = 0 after rendering cached content"
-        )
+        assert (
+            "scrollTop" in body
+        ), "activateTab() must set scrollTop = 0 after rendering cached content"
 
 
 class TestDocsModalSource:
@@ -227,22 +227,20 @@ class TestTocAnchorLinks:
     def test_docs_modal_assigns_id_to_heading_elements(self):
         """docs-modal.js queries heading elements and assigns id attributes for ToC navigation."""
         content = DOCS_MODAL_FILE.read_text()
-        assert re.search(r"querySelectorAll\(['\"]h1", content), (
-            "docs-modal.js must querySelectorAll heading elements to add id attributes"
-        )
-        assert re.search(r"\.id\s*=", content), (
-            "docs-modal.js must assign .id to heading elements"
-        )
+        assert re.search(
+            r"querySelectorAll\(['\"]h1", content
+        ), "docs-modal.js must querySelectorAll heading elements to add id attributes"
+        assert re.search(r"\.id\s*=", content), "docs-modal.js must assign .id to heading elements"
 
     def test_anchor_link_click_calls_scroll_into_view(self):
         """docs-modal.js click handler calls scrollIntoView for href-starting-with-# links."""
         content = DOCS_MODAL_FILE.read_text()
-        assert "scrollIntoView" in content, (
-            "docs-modal.js must call scrollIntoView to scroll to a ToC target heading"
-        )
-        assert re.search(r'startsWith\(["\']#["\']', content), (
-            "docs-modal.js must check startsWith('#') to identify anchor links"
-        )
+        assert (
+            "scrollIntoView" in content
+        ), "docs-modal.js must call scrollIntoView to scroll to a ToC target heading"
+        assert re.search(
+            r'startsWith\(["\']#["\']', content
+        ), "docs-modal.js must check startsWith('#') to identify anchor links"
 
 
 class TestCrossDocLinks:
@@ -251,12 +249,12 @@ class TestCrossDocLinks:
     def test_cross_doc_link_uses_get_attribute_and_calls_prevent_default(self):
         """docs-modal.js uses getAttribute('href') and preventDefault to intercept cross-doc links."""
         content = DOCS_MODAL_FILE.read_text()
-        assert re.search(r"getAttribute\(['\"]href['\"]\)", content), (
-            "docs-modal.js must use getAttribute('href') to read the raw relative href"
-        )
-        assert "preventDefault" in content, (
-            "docs-modal.js must call preventDefault to stop browser navigation for intercepted links"
-        )
+        assert re.search(
+            r"getAttribute\(['\"]href['\"]\)", content
+        ), "docs-modal.js must use getAttribute('href') to read the raw relative href"
+        assert (
+            "preventDefault" in content
+        ), "docs-modal.js must call preventDefault to stop browser navigation for intercepted links"
 
 
 class TestExternalLinkDetection:
@@ -287,9 +285,9 @@ class TestExternalLinkDetection:
         [id='...'] avoids the CSS identifier restriction.
         """
         content = DOCS_MODAL_FILE.read_text()
-        assert re.search(r"href\.slice\(1\)|href\.substring\(1\)", content), (
-            "docs-modal.js must strip the '#' from href before the scroll-target lookup"
-        )
+        assert re.search(
+            r"href\.slice\(1\)|href\.substring\(1\)", content
+        ), "docs-modal.js must strip the '#' from href before the scroll-target lookup"
 
 
 class TestOpenModalAt:
@@ -298,36 +296,34 @@ class TestOpenModalAt:
     def test_open_modal_at_is_a_named_export(self):
         """docs-modal.js exports a named function openModalAt."""
         content = DOCS_MODAL_FILE.read_text()
-        assert re.search(r"export\s+(?:async\s+)?function\s+openModalAt\b", content), (
-            "docs-modal.js must export a named function 'openModalAt'"
-        )
+        assert re.search(
+            r"export\s+(?:async\s+)?function\s+openModalAt\b", content
+        ), "docs-modal.js must export a named function 'openModalAt'"
 
     def test_open_modal_at_awaits_activate_tab(self):
         """openModalAt() awaits activateTab so content is ready before scrolling."""
         content = DOCS_MODAL_FILE.read_text()
         body = _extract_function_body(content, "openModalAt")
-        assert "await" in body, (
-            "openModalAt() must await activateTab so content is ready before scrolling"
-        )
-        assert "activateTab" in body, (
-            "openModalAt() must call activateTab to load the tab content"
-        )
+        assert (
+            "await" in body
+        ), "openModalAt() must await activateTab so content is ready before scrolling"
+        assert "activateTab" in body, "openModalAt() must call activateTab to load the tab content"
 
     def test_open_modal_at_calls_scroll_into_view_for_anchor(self):
         """openModalAt() calls scrollIntoView to jump to the named anchor."""
         content = DOCS_MODAL_FILE.read_text()
         body = _extract_function_body(content, "openModalAt")
-        assert "scrollIntoView" in body, (
-            "openModalAt() must call scrollIntoView to jump to the anchor"
-        )
+        assert (
+            "scrollIntoView" in body
+        ), "openModalAt() must call scrollIntoView to jump to the anchor"
 
     def test_activate_tab_returns_fetch_doc_promise(self):
         """activateTab() returns fetchDoc(key) so callers can await content load."""
         content = DOCS_MODAL_FILE.read_text()
         body = _extract_function_body(content, "activateTab")
-        assert re.search(r"return\s+fetchDoc", body), (
-            "activateTab() must return fetchDoc(key) so openModalAt can await it"
-        )
+        assert re.search(
+            r"return\s+fetchDoc", body
+        ), "activateTab() must return fetchDoc(key) so openModalAt can await it"
 
 
 class TestExamplesDocsEntries:
@@ -336,18 +332,18 @@ class TestExamplesDocsEntries:
     def test_docs_constant_contains_four_example_keys(self):
         """docs-modal.js DOCS constant contains decisions, design, plan, and tests keys."""
         content = DOCS_MODAL_FILE.read_text()
-        assert re.search(r"\bdecisions\s*:", content), (
-            "DOCS constant must contain a 'decisions' key for the examples group"
-        )
-        assert re.search(r"\bdesign\s*:", content), (
-            "DOCS constant must contain a 'design' key for the examples group"
-        )
-        assert re.search(r"\bplan\s*:", content), (
-            "DOCS constant must contain a 'plan' key for the examples group"
-        )
-        assert re.search(r"\btests\s*:", content), (
-            "DOCS constant must contain a 'tests' key for the examples group"
-        )
+        assert re.search(
+            r"\bdecisions\s*:", content
+        ), "DOCS constant must contain a 'decisions' key for the examples group"
+        assert re.search(
+            r"\bdesign\s*:", content
+        ), "DOCS constant must contain a 'design' key for the examples group"
+        assert re.search(
+            r"\bplan\s*:", content
+        ), "DOCS constant must contain a 'plan' key for the examples group"
+        assert re.search(
+            r"\btests\s*:", content
+        ), "DOCS constant must contain a 'tests' key for the examples group"
 
     def test_example_entries_reference_static_examples_path(self):
         """docs-modal.js references /examples/{file}.md for each example entry."""
@@ -356,28 +352,26 @@ class TestExamplesDocsEntries:
             "DOCS decisions entry must resolve to /examples/decisions.md "
             "(served from ui/examples/ via the static mount, not /api/docs/)"
         )
-        assert "/examples/design.md" in content, (
-            "DOCS design entry must resolve to /examples/design.md"
-        )
-        assert "/examples/plan.md" in content, (
-            "DOCS plan entry must resolve to /examples/plan.md"
-        )
-        assert "/examples/tests.md" in content, (
-            "DOCS tests entry must resolve to /examples/tests.md"
-        )
+        assert (
+            "/examples/design.md" in content
+        ), "DOCS design entry must resolve to /examples/design.md"
+        assert "/examples/plan.md" in content, "DOCS plan entry must resolve to /examples/plan.md"
+        assert (
+            "/examples/tests.md" in content
+        ), "DOCS tests entry must resolve to /examples/tests.md"
 
     def test_doc_entries_retain_api_docs_url(self):
         """docs-modal.js keeps /api/docs/ URLs for the three whitelisted doc entries."""
         content = DOCS_MODAL_FILE.read_text()
-        assert "/api/docs/README.md" in content, (
-            "DOCS overview entry must resolve to /api/docs/README.md"
-        )
-        assert "/api/docs/GUIDE.md" in content, (
-            "DOCS guide entry must resolve to /api/docs/GUIDE.md"
-        )
-        assert "/api/docs/INSTALL.md" in content, (
-            "DOCS install entry must resolve to /api/docs/INSTALL.md"
-        )
+        assert (
+            "/api/docs/README.md" in content
+        ), "DOCS overview entry must resolve to /api/docs/README.md"
+        assert (
+            "/api/docs/GUIDE.md" in content
+        ), "DOCS guide entry must resolve to /api/docs/GUIDE.md"
+        assert (
+            "/api/docs/INSTALL.md" in content
+        ), "DOCS install entry must resolve to /api/docs/INSTALL.md"
 
     def test_fetch_doc_reads_url_field_from_docs_entry(self):
         """fetchDoc() builds the fetch URL from the DOCS entry's url field, not a hardcoded path."""

@@ -41,12 +41,12 @@ class TestAppHeaderStructure:
         """index.html contains an <img> referencing midtempo-logo inside #app-header, before the docs-btn."""
         content = HTML_FILE.read_text()
         assert "midtempo-logo" in content, "midtempo-logo img reference missing from index.html"
-        assert content.index("midtempo-logo") > content.index("app-header"), (
-            "midtempo-logo must appear after the #app-header opening tag"
-        )
-        assert content.index("midtempo-logo") < content.index("docs-btn"), (
-            "midtempo-logo must appear before docs-btn — logo is on the left side of the header"
-        )
+        assert content.index("midtempo-logo") > content.index(
+            "app-header"
+        ), "midtempo-logo must appear after the #app-header opening tag"
+        assert content.index("midtempo-logo") < content.index(
+            "docs-btn"
+        ), "midtempo-logo must appear before docs-btn — logo is on the left side of the header"
 
 
 class TestDocsModalStructure:
@@ -93,9 +93,9 @@ class TestConfigurationAnchorLink:
     def test_configuration_anchor_link_present_in_index_html(self):
         """index.html contains an element with data-testid="docs-link-configuration"."""
         content = HTML_FILE.read_text()
-        assert 'data-testid="docs-link-configuration"' in content, (
-            'index.html must contain an element with data-testid="docs-link-configuration"'
-        )
+        assert (
+            'data-testid="docs-link-configuration"' in content
+        ), 'index.html must contain an element with data-testid="docs-link-configuration"'
 
     def test_configuration_link_has_no_inline_onclick(self):
         """The docs-link-configuration element uses no inline onclick handler."""
@@ -115,18 +115,18 @@ class TestExamplesTabGroup:
     def test_examples_tabs_have_correct_data_tab_values(self):
         """index.html contains tab buttons with data-tab="decisions", "design", "plan", "tests"."""
         content = HTML_FILE.read_text()
-        assert 'data-tab="decisions"' in content, (
-            'tab button with data-tab="decisions" missing from index.html'
-        )
-        assert 'data-tab="design"' in content, (
-            'tab button with data-tab="design" missing from index.html'
-        )
-        assert 'data-tab="plan"' in content, (
-            'tab button with data-tab="plan" missing from index.html'
-        )
-        assert 'data-tab="tests"' in content, (
-            'tab button with data-tab="tests" missing from index.html'
-        )
+        assert (
+            'data-tab="decisions"' in content
+        ), 'tab button with data-tab="decisions" missing from index.html'
+        assert (
+            'data-tab="design"' in content
+        ), 'tab button with data-tab="design" missing from index.html'
+        assert (
+            'data-tab="plan"' in content
+        ), 'tab button with data-tab="plan" missing from index.html'
+        assert (
+            'data-tab="tests"' in content
+        ), 'tab button with data-tab="tests" missing from index.html'
 
     def test_examples_label_element_present(self):
         """index.html contains a docs-examples-label element with the text 'Examples:'."""
@@ -155,15 +155,15 @@ class TestExamplesTabGroup:
         label_idx = content.index("docs-examples-label")
         decisions_idx = content.index('data-tab="decisions"')
         close_idx = content.index("docs-modal-close")
-        assert install_idx < label_idx, (
-            "docs-examples-label must appear after the install tab in source order"
-        )
-        assert label_idx < decisions_idx, (
-            "docs-examples-label must appear before the decisions tab in source order"
-        )
-        assert decisions_idx < close_idx, (
-            "example tabs must appear before the docs-modal-close button in source order"
-        )
+        assert (
+            install_idx < label_idx
+        ), "docs-examples-label must appear after the install tab in source order"
+        assert (
+            label_idx < decisions_idx
+        ), "docs-examples-label must appear before the decisions tab in source order"
+        assert (
+            decisions_idx < close_idx
+        ), "example tabs must appear before the docs-modal-close button in source order"
 
 
 class TestMobileHamburgerHTML:
@@ -199,18 +199,18 @@ class TestMobileHamburgerHTML:
         dropdown_start = content.find('id="docs-examples-dropdown"')
         assert dropdown_start != -1, 'id="docs-examples-dropdown" missing from index.html'
         # Find content inside the dropdown div (up to its closing tag)
-        dropdown_section = content[dropdown_start: dropdown_start + 800]
+        dropdown_section = content[dropdown_start : dropdown_start + 800]
         for tab in ("decisions", "design", "plan", "tests"):
-            assert f'data-tab="{tab}"' in dropdown_section, (
-                f'data-tab="{tab}" button missing from #docs-examples-dropdown'
-            )
+            assert (
+                f'data-tab="{tab}"' in dropdown_section
+            ), f'data-tab="{tab}" button missing from #docs-examples-dropdown'
 
     def test_examples_dropdown_contains_title(self):
         """index.html #docs-examples-dropdown contains a title element with text 'Example Docs'."""
         content = HTML_FILE.read_text()
         dropdown_start = content.find('id="docs-examples-dropdown"')
         assert dropdown_start != -1, 'id="docs-examples-dropdown" missing from index.html'
-        dropdown_section = content[dropdown_start: dropdown_start + 800]
+        dropdown_section = content[dropdown_start : dropdown_start + 800]
         assert "docs-examples-dropdown-title" in dropdown_section, (
             "docs-examples-dropdown-title class missing from #docs-examples-dropdown — "
             "dropdown needs a title so users know what the menu contains"

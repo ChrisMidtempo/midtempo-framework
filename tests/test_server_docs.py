@@ -106,7 +106,7 @@ class TestDocsCors:
         response = client.options(
             "/api/docs/README.md",
             headers={
-                "Origin": "http://localhost:8000",
+                "Origin": "http://localhost:8888",
                 "Access-Control-Request-Method": "GET",
             },
         )

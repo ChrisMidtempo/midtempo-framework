@@ -53,9 +53,9 @@ class TestAppHeaderStyles:
         match = re.search(r"#app-header\s*\{([^}]*)\}", content, re.DOTALL)
         assert match, "#app-header rule missing from style.css"
         block = match.group(1)
-        assert re.search(r"background-color\s*:\s*var\(--colour-brand\)", block), (
-            "#app-header background-color must be var(--colour-brand)"
-        )
+        assert re.search(
+            r"background-color\s*:\s*var\(--colour-brand\)", block
+        ), "#app-header background-color must be var(--colour-brand)"
 
 
 class TestDocsBtnStyles:
@@ -223,9 +223,9 @@ class TestExamplesTabsLayout:
             ".docs-examples-label must reference a --colour-* token — "
             "no hardcoded colour values allowed"
         )
-        assert "--font-" in block, (
-            ".docs-examples-label must reference a --font-* token for sizing or weight"
-        )
+        assert (
+            "--font-" in block
+        ), ".docs-examples-label must reference a --font-* token for sizing or weight"
 
 
 class TestDocsModalContentProseStyles:
@@ -234,18 +234,18 @@ class TestDocsModalContentProseStyles:
     def test_docs_modal_content_headings_use_colour_text_strong(self):
         """style.css defines heading rules scoped to #docs-modal-content using --colour-text-strong."""
         content = CSS_FILE.read_text()
-        assert re.search(r"#docs-modal-content\s+h[1-6]", content), (
-            "#docs-modal-content h1-h6 selector missing from style.css"
-        )
+        assert re.search(
+            r"#docs-modal-content\s+h[1-6]", content
+        ), "#docs-modal-content h1-h6 selector missing from style.css"
         match = re.search(
             r"(#docs-modal-content\s+h[1-6][^{]*\{[^}]*\})",
             content,
             re.DOTALL,
         )
         assert match, "#docs-modal-content heading rule block missing from style.css"
-        assert "--colour-text-strong" in content, (
-            "#docs-modal-content heading rules must use --colour-text-strong"
-        )
+        assert (
+            "--colour-text-strong" in content
+        ), "#docs-modal-content heading rules must use --colour-text-strong"
 
     def test_docs_modal_content_code_uses_font_family_mono(self):
         """style.css #docs-modal-content code rule uses --font-family-mono."""

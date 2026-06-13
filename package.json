@@ -1,6 +1,6 @@
 {
   "name": "midtempo-framework",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "Midtempo Framework - Templating and LLM coding tools",
   "scripts": {
     "lint:markdown": "markdownlint '**/*.md' --ignore node_modules --ignore venv --ignore rules --ignore templates --ignore typescript --ignore planning --ignore instructions",
@@ -14,6 +14,9 @@
     "test:python:unit": "bash -c 'venv/bin/pytest -m \"not integration\" --tb=short | tee planning/last-test-ran.log'",
     "test:python:integration": "bash -c 'venv/bin/pytest -m integration --tb=short | tee planning/last-test-ran.log'",
     "test:python:coverage": "venv/bin/pytest --cov=scripts --cov-report=term-missing --cov-report=html -q | tee planning/last-test-ran.log",
+    "mutate": "venv/bin/mutmut run --paths-to-mutate scripts/ --tests-dir tests/",
+    "mutate:diff": "bash -c 'git diff HEAD -- scripts > planning/mt.patch && venv/bin/mutmut run --paths-to-mutate scripts/ --tests-dir tests/ --use-patch-file planning/mt.patch'",
+    "mutate:targeted": "bash -c 'venv/bin/mutmut run --paths-to-mutate \"$@\" --tests-dir tests/' --",
     "generate": "bash -c 'venv/bin/python scripts/cli.py --config \"$1/midtempo-framework.yml\" --output \".\"' --",
     "schema:generate": "bash -c 'PYTHONPATH=. venv/bin/python scripts/generate_schema.py'",
     "init": "bash -c 'venv/bin/python -c \"from scripts.init_framework import initialize_framework; initialize_framework(\\\"$1\\\", \\\"$2\\\")\"' --",
@@ -23,7 +26,7 @@
     "docs:validate": "venv/bin/python build-scripts/validate_docs.py",
     "check:all": "npm run format:python:check && npm run lint:python && npm run typecheck:python && npm run test:python && npm run docs:validate && npm run lint:markdown",
     "fix:all": "npm run format:python && npm run lint:python:fix",
-    "server": "PYTHONPATH=. venv/bin/uvicorn server.app:app --reload"
+    "server": "PYTHONPATH=. venv/bin/uvicorn server.app:app --reload --port 8888"
   },
   "devDependencies": {
     "markdownlint-cli": "^0.39.0",

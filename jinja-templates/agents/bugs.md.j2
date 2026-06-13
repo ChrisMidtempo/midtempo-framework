@@ -87,6 +87,13 @@ READ repo documentation:
 
 {{ find_design_doc() }}
 
+CONFIRM the located design doc owns the bug's domain:
+  READ its §2.2 Explicitly Out of Scope.
+  IF the reported behaviour — or, once traced in Step 3, the root cause — lies in a layer §2.2 excludes
+    → STOP: "The root cause lies in [layer], which this design doc marks out of scope.
+       Which design doc owns it?"
+    → Confirm the correct doc before recording anything in Step 6.
+
 IF bug has clear symptoms AND can be reproduced
   → VALID: Continue to Step 1
 ```
@@ -237,7 +244,7 @@ Root cause: [original trigger at file:line]
 Why: [explanation of how bad value propagates to symptom]
 ```
 
-WRITE trace summary to the design document immediately.
+WRITE the trace summary to the commit body (working notes until you commit) — not the design document.
 Do not hold trace output in conversation memory.
 
 ### 3.3 Gate Check
@@ -371,35 +378,37 @@ IF reproducing test passes AND all tests green
 
 ### 6.2 Documentation Updates
 
-**The design document is the single source of truth.** Update `planning/[feature]-design.md` with everything learned during this fix.
+**The design document is the single source of truth — keep its spec true and its history short.**
 
-**Format for design doc bug fix notes:**
+**Reconcile the authoritative spec (§1–8) before recording the change.**
 
-```markdown
-## Bug Fixes
+The design doc's numbered sections are the current-state specification. A fix that changes behaviour makes them stale.
 
-### [Date] - [Brief description]
+1. IDENTIFY every acceptance criterion, §3.x section, or §3.6 error case the fix changed
+2. EDIT each in place so it describes the fixed behaviour
+3. IF a prior decision is now invalid → delete the stale text, never annotate it
 
-**Root cause:** [where the bug originated]
+IF any affected AC / §3.x / §3.6 still describes the old behaviour
+  → INVALID: STOP — reconcile the spec before recording the change
 
-**Fix:** [what was changed at root and intermediate layers]
+**Record the change.** Add one row to the design doc's Change History table — nothing more:
 
-**Impact on design:** [None, or explain how design assumptions changed]
+| Date | Type | Summary | Commit |
+|------|------|---------|--------|
+| DD/MM/YYYY | bug | [what was broken, now fixed — one line] | [commit ref] |
 
-**Implementation learnings:** [understanding gained during investigation]
-```
-
-The design doc must reflect the current state of the feature. If the fix revealed that original decisions or acceptance criteria were wrong, update those sections too — do not leave stale information.
+The full Trace Summary, fix detail, and learnings live in the commit body, not the doc.
 
 ### 6.3 Self-Check
 
 Before presenting the Bug Fix Complete output, verify:
 
 1. Every file path in the output references a real file (not invented)
-2. Root cause description matches the trace summary written to the design document
+2. Root cause description matches the Trace Summary recorded in the commit body
 3. Defence-in-depth field is "N/A - simple bug" only if all complexity criteria matched "Simple Bug" in §4.1
-4. Design document contains trace summary and fix plan (written in Steps 3–4)
-5. No section contains placeholder text ("[TODO]", "[TBD]", "...")
+4. Every acceptance criterion / §3.x / §3.6 the fix changed now describes the fixed behaviour — no stale spec remains
+5. Exactly one Change History row was added; the full Trace Summary is in the commit, not the doc
+6. No section contains placeholder text ("[TODO]", "[TBD]", "...")
 
 IF any check fails → Fix before presenting. Do not present output with known violations.
 
@@ -423,7 +432,7 @@ Reproducing test: `tests/path/to/file.test.ts`
 All tests passing. Lint{% if capabilities.hasTypecheck %}/typecheck{% endif %} clean.
 
 Documentation updated:
-- Design doc: [Updated with fix context / N/A - no design impact]
+- Design doc: [Spec reconciled + Change History row added / N/A - no design impact]
 
 ## Commit
 

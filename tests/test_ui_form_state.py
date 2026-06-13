@@ -2,7 +2,7 @@
 
 Covers:
 - T1.1:  state object defined with top-level keys name, repo, capabilities, commands, instructions (B1)
-- T1.2:  state.capabilities declares all six capability flags (B2)
+- T1.2:  state.capabilities declares all seven capability flags (B2)
 - T1.3:  setState function defined (B3)
 - T1.4:  deriveInstructions function defined (B4)
 - T1.5:  setState body calls refreshYAML (B5)
@@ -26,38 +26,12 @@ Refinement — Language select optgroup grouping:
 import re
 from pathlib import Path
 
+from tests.helpers.js_helpers import _extract_function_body
+
 # File paths — tests run from project root where npm run test:python is invoked
 JS_FILE = Path("ui/js/form.js")
 WIRING_FILE = Path("ui/js/event-wiring.js")  # event listener wiring lives here
 NAME_JS_FILE = Path("ui/js/name-field.js")  # handleFileUpload and upload-error live here
-
-
-def _extract_function_body(content: str, fn_name: str) -> str:
-    """Extract the body of a named function from JS source using brace-matching.
-
-    Handles both declaration form (function name(...) {) and assignment form
-    (name = function(...) { or name = (...) => {).
-    Returns the text between the outermost braces (exclusive).
-    Returns an empty string if the function is not found.
-    """
-    pattern = (
-        rf"(?:function\s+{fn_name}\s*\([^)]*\)"
-        rf"|{fn_name}\s*=\s*(?:function\s*\([^)]*\)|\([^)]*\)\s*=>))"
-        rf"\s*\{{"
-    )
-    match = re.search(pattern, content)
-    if match is None:
-        return ""
-    start = match.end() - 1  # position of opening {
-    depth = 0
-    for i, ch in enumerate(content[start:]):
-        if ch == "{":
-            depth += 1
-        elif ch == "}":
-            depth -= 1
-            if depth == 0:
-                return content[start + 1 : start + i]
-    return ""
 
 
 class TestFormJsStage5:
@@ -70,8 +44,8 @@ class TestFormJsStage5:
         for key in ("name", "repo", "capabilities", "commands", "instructions"):
             assert re.search(rf"\b{key}\s*:", content), f"state.{key} key missing in form.js"
 
-    def test_state_capabilities_declares_all_six_flags(self):
-        """state.capabilities declares all six capability flags. (T1.2, B2)"""
+    def test_state_capabilities_declares_all_capability_flags(self):
+        """state.capabilities declares all seven capability flags. (T1.2, B2; T6.1, B13)"""
         content = JS_FILE.read_text()
         flags = (
             "hasUI",
@@ -80,9 +54,22 @@ class TestFormJsStage5:
             "isPublicFacing",
             "handlesConfidentialData",
             "hasAuthentication",
+            "hasMutationTesting",
         )
         for flag in flags:
             assert flag in content, f"capability flag '{flag}' missing from form.js"
+
+    def test_has_mutation_testing_false_in_state_capabilities(self):
+        """state.capabilities contains `hasMutationTesting: false` with correct default. (T6.1, B13)
+
+        State key must mirror schema field name exactly — populateFromYml() iterates
+        Object.keys(configObj.capabilities) and silently fails to populate if the key is absent.
+        """
+        content = JS_FILE.read_text()
+        assert "hasMutationTesting: false" in content, (
+            "'hasMutationTesting: false' not found in form.js — "
+            "add to state.capabilities after hasAuthentication: false"
+        )
 
     def test_set_state_function_defined(self):
         """setState is declared as a function in form.js. (T1.3, B3)"""
@@ -335,32 +322,8 @@ class TestCapabilityInstructions:
 class TestCapabilityCheckboxWiring:
     """Tests for capability checkbox change event wiring inside DOMContentLoaded. (T3.x)"""
 
-    def _extract_dom_content_loaded_body(self, content: str) -> str:
-        """Extract the body of the DOMContentLoaded arrow function handler.
-
-        Locates the addEventListener('DOMContentLoaded', ...) call and returns
-        the text between its outermost braces (exclusive).
-        Returns an empty string if not found.
-        """
-        pattern = (
-            r'addEventListener\s*\(\s*["\']DOMContentLoaded["\']\s*,\s*async\s*\(\s*\)\s*=>\s*\{'
-        )
-        match = re.search(pattern, content)
-        if match is None:
-            return ""
-        start = content.index("{", match.start())
-        depth = 0
-        for i, ch in enumerate(content[start:]):
-            if ch == "{":
-                depth += 1
-            elif ch == "}":
-                depth -= 1
-                if depth == 0:
-                    return content[start + 1 : start + i]
-        return ""
-
     def test_dom_content_loaded_queries_user_editable_capability_checkboxes(self):
-        """event-wiring.js queries the five user-editable capability checkbox data-testids. (T3.1)
+        """event-wiring.js queries all user-editable capability checkbox data-testids. (T3.1; T7.1, B14)
 
         hasTypecheck is excluded — it is language-derived, not user-editable.
         """
@@ -371,10 +334,9 @@ class TestCapabilityCheckboxWiring:
             "form-isPublicFacing",
             "form-handlesConfidentialData",
             "form-hasAuthentication",
+            "form-hasMutationTesting",
         ):
-            assert (
-                testid in body
-            ), f"event-wiring.js does not query checkbox data-testid '{testid}'"
+            assert testid in body, f"event-wiring.js does not query checkbox data-testid '{testid}'"
 
     def test_dom_content_loaded_reads_checkbox_checked_state(self):
         """event-wiring.js reads .checked from checkbox elements — proves change listeners read DOM state. (T3.2)"""
@@ -385,7 +347,7 @@ class TestCapabilityCheckboxWiring:
         )
 
     def test_capability_change_listener_calls_set_state_with_full_capabilities(self):
-        """The capability change listener calls setState with a capabilities object containing all six flags. (T3.3)
+        """The capability change listener calls setState with a capabilities object containing all seven flags. (T3.3; T7.3, B16)
 
         hasTypecheck is preserved from state.capabilities (language-derived) rather than read from a checkbox.
         """
@@ -401,119 +363,47 @@ class TestCapabilityCheckboxWiring:
             "isPublicFacing",
             "handlesConfidentialData",
             "hasAuthentication",
+            "hasMutationTesting",
         ):
             assert (
                 flag in body
             ), f"Capability flag '{flag}' not present in event-wiring.js setState call"
 
+    def test_has_mutation_testing_set_state_entry_with_optional_chaining(self):
+        """`wireCapabilityCheckboxes` reads hasMutationTesting with `?? false` fallback. (T7.3, B16)
 
-class TestHasTypecheckDerivedFromLanguage:
-    """Tests that hasTypecheck is derived from language data, not a user-editable checkbox. (T5.x)
-
-    hasTypecheck is a language-stack flag — it controls Jinja2 template rendering and is
-    determined by the selected language, not by the user.  The capability change listener
-    must not include hasTypecheck; the language change handler must derive it instead.
-    """
-
-    def _extract_dom_content_loaded_body(self, content: str) -> str:
-        """Extract the body of the DOMContentLoaded arrow function handler."""
-        pattern = (
-            r'addEventListener\s*\(\s*["\']DOMContentLoaded["\']\s*,\s*async\s*\(\s*\)\s*=>\s*\{'
-        )
-        match = re.search(pattern, content)
-        if not match:
-            return ""
-        start = match.end() - 1
-        depth = 0
-        for i, ch in enumerate(content[start:]):
-            if ch == "{":
-                depth += 1
-            elif ch == "}":
-                depth -= 1
-                if depth == 0:
-                    return content[start + 1 : start + i]
-        return ""
-
-    def test_language_change_handler_sets_has_typecheck(self):
-        """Language change handler calls setState with hasTypecheck derived from language data. (T5.1)"""
-        body = WIRING_FILE.read_text()
-        lang_handler_start = body.find("langSelect.addEventListener")
-        assert lang_handler_start >= 0, "langSelect change handler not found in event-wiring.js"
-        lang_handler_slice = body[lang_handler_start : lang_handler_start + 600]
-        assert "hasTypecheck" in lang_handler_slice, (
-            "Language change handler must set state.capabilities.hasTypecheck — "
-            "hasTypecheck is language-derived, not user-editable"
-        )
-
-    def test_language_change_handler_derives_typecheck_from_commands(self):
-        """Language change handler derives hasTypecheck by checking for typecheck-category commands. (T5.2)"""
-        body = WIRING_FILE.read_text()
-        lang_handler_start = body.find("langSelect.addEventListener")
-        assert lang_handler_start >= 0, "langSelect change handler not found in event-wiring.js"
-        lang_handler_slice = body[lang_handler_start : lang_handler_start + 600]
-        assert "typecheck" in lang_handler_slice, (
-            "Language change handler must derive hasTypecheck by checking for typecheck-category "
-            "commands in the language data"
-        )
-
-
-class TestLanguageSelectOptgroups:
-    """Tests that populateLanguageSelect groups options by ecosystem using <optgroup>. (T6.x)
-
-    A flat alphabetical list buries TypeScript at the bottom — the most common language choice
-    is hidden below the scroll threshold.  Grouping by ecosystem puts JS/TS first and gives the
-    list visible structure that helps users orient themselves.
-
-    LANGUAGE_GROUPS is a module-level constant in name-field.js: an ordered array of
-    [label, [key, ...]] pairs.  populateLanguageSelect iterates it, creates one <optgroup>
-    per entry, and collects any keys not covered by any group into an "Other" optgroup.
-    """
-
-    def test_language_groups_constant_defined_in_name_field_js(self):
-        """LANGUAGE_GROUPS is declared as a module-level constant in name-field.js. (T6.1)"""
-        content = NAME_JS_FILE.read_text()
-        assert "LANGUAGE_GROUPS" in content, "LANGUAGE_GROUPS constant not found in name-field.js"
-
-    def test_language_groups_first_entry_is_javascript_typescript(self):
-        """The first entry in LANGUAGE_GROUPS covers the JavaScript / TypeScript ecosystem. (T6.1)
-
-        typescript and typescript-npm must appear in the first group so they are visible
-        without scrolling when the <select> opens.  The first group label must reference
-        TypeScript; both language keys must appear before any second-group key (java-gradle).
+        The `?? false` fallback follows the pattern used by all existing capability elements.
+        The value may be assigned to a const before use in setState.
         """
-        content = NAME_JS_FILE.read_text()
-        assert "LANGUAGE_GROUPS" in content, "LANGUAGE_GROUPS not found in name-field.js"
-        # First group label must reference TypeScript
-        first_label_match = re.search(r'LANGUAGE_GROUPS\s*=\s*\[\s*\[\s*"([^"]+)"', content)
-        assert first_label_match, "Could not extract first group label from LANGUAGE_GROUPS"
-        assert "TypeScript" in first_label_match.group(
-            1
-        ), f"First LANGUAGE_GROUPS label must reference TypeScript, got: {first_label_match.group(1)!r}"
-        # Both typescript keys must appear before the second group's first key
-        ts_pos = content.find('"typescript"')
-        java_pos = content.find('"java-gradle"')
-        assert ts_pos > 0, '"typescript" key not found in name-field.js'
-        assert java_pos > 0, '"java-gradle" key not found in name-field.js'
-        assert ts_pos < java_pos, '"typescript" must appear before "java-gradle" in LANGUAGE_GROUPS'
-
-    def test_populate_language_select_body_creates_optgroup_elements(self):
-        """populateLanguageSelect body calls createElement with 'optgroup'. (T6.2)"""
-        content = NAME_JS_FILE.read_text()
-        body = _extract_function_body(content, "populateLanguageSelect")
-        assert body, "populateLanguageSelect function body not found in name-field.js"
-        assert "optgroup" in body, (
-            "populateLanguageSelect must create <optgroup> elements — "
-            "'optgroup' not found in function body"
+        body = WIRING_FILE.read_text()
+        assert "hasMutationTestingEl?.checked ?? false" in body, (
+            "'hasMutationTestingEl?.checked ?? false' not found in event-wiring.js — "
+            "ensure hasMutationTesting reads checkbox with ?? false fallback"
         )
 
-    def test_populate_language_select_body_handles_ungrouped_languages(self):
-        """populateLanguageSelect appends languages not in any group to an 'Other' fallback. (T6.3)"""
-        content = NAME_JS_FILE.read_text()
-        body = _extract_function_body(content, "populateLanguageSelect")
-        assert body, "populateLanguageSelect function body not found in name-field.js"
-        assert "Other" in body, (
-            "populateLanguageSelect must collect ungrouped languages into an 'Other' group — "
-            "'Other' not found in function body"
+    def test_has_mutation_testing_el_appears_after_has_authentication_el(self):
+        """`hasMutationTestingEl` appears after `hasAuthenticationEl` in positional destructuring. (T7.2, B15)
+
+        Append-only constraint — inserting before the end shifts positional destructuring
+        and silently mis-wires all existing capabilities.
+        """
+        body = WIRING_FILE.read_text()
+        assert "hasAuthenticationEl" in body, (
+            "'hasAuthenticationEl' not found in event-wiring.js — "
+            "cannot verify append-only ordering without reference element"
+        )
+        assert "hasMutationTestingEl" in body, (
+            "'hasMutationTestingEl' not found in event-wiring.js — "
+            "add hasMutationTestingEl to positional destructuring at end position"
+        )
+
+        auth_pos = body.index("hasAuthenticationEl")
+        mutation_pos = body.index("hasMutationTestingEl")
+
+        assert mutation_pos > auth_pos, (
+            "'hasMutationTestingEl' must appear after 'hasAuthenticationEl' in event-wiring.js — "
+            "append-only constraint: inserting earlier shifts positional destructuring "
+            "and silently mis-wires existing capabilities"
         )
 
 

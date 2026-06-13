@@ -1,0 +1,131 @@
+# Mutation Testing
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Non-Negotiable Rules](#non-negotiable-rules)
+- [Compliance Gates](#compliance-gates)
+- [What Good Classification Looks Like](#what-good-classification-looks-like)
+- [Anti-Patterns](#anti-patterns)
+- [Common Rationalisations](#common-rationalisations-forbidden)
+- [Final Rule](#final-rule)
+
+---
+
+## Overview
+
+Mutation testing grades the **test suite**, not the production code. It mutates a line of production code and checks whether a test fails. A killed mutant means a test caught the change; a surviving mutant means nothing did — an unverified gap.
+
+**Core principle:** A surviving mutant is a test gap until proven equivalent. The burden of proof is on "equivalent", never on "real".
+
+**Role in workflow:** This document defines the standards a mutation-testing session must meet. It does not run a session — `mt.md` (pre-triage) and `mt-fix.md` (triage + fix + ratchet) do. Mutation testing grades a green suite: it runs after delivery or refactor, never against a red suite, and it never edits production code.
+
+## Non-Negotiable Rules
+
+<CRITICAL_REQUIREMENT type="MANDATORY">
+
+- You MUST classify every surviving mutant before a session completes — equivalent, real test gap, or production bug. No mutant is left unclassified.
+- You MUST treat "equivalent" as a claim that carries proof — a stated reason the mutation produces no observable behaviour change for any reachable input. Absent that proof, the mutant is a real test gap.
+- You MUST keep every ignored mutant in the ratchet denominator, each with a rationale that earns the decision. `ignore` records a decision; it does not erase the gap.
+- You MUST record a ratchet FAIL and either explain it (scope-diff noise) or act on it (real regression) — never silently re-baseline.
+- You MUST NOT edit production code in a mutation-testing session. A mutant that reveals the original code is wrong is a production bug — route it to the fix manifest for `bugs.md`, which fixes it under TDD.
+
+</CRITICAL_REQUIREMENT>
+
+## Compliance Gates
+
+> Delivery and review skills verify these gates. Each must pass before a mutation-testing session is complete.
+
+- [ ] **CG-MT-1:** Every surviving mutant classified — equivalent / real test gap / production bug; none skipped (Anti-Pattern 3)
+- [ ] **CG-MT-2:** Each `equivalent` classification states why no reachable input produces a different observable result (Anti-Pattern 3)
+- [ ] **CG-MT-3:** Each real test gap resolved as an inline test fix or a recorded ignore — never deferred
+- [ ] **CG-MT-4:** Every ignored mutant carries an earned rationale and remains in the ratchet denominator (Anti-Pattern 1)
+- [ ] **CG-MT-5:** A ratchet FAIL is recorded with an explanation or action; re-baseline only on a stated scope change (Anti-Pattern 2)
+- [ ] **CG-MT-6:** No production code edited; production-bug findings pushed to the fix manifest
+
+## What Good Classification Looks Like
+
+Every surviving mutant resolves to exactly one classification. The bar for each:
+
+- **Equivalent mutant** — the mutation changes the code but not its behaviour: no reachable input produces a different return value, side effect, or output. This is a proof obligation, not a hunch — state the reason (e.g. the mutated branch is unreachable; the variable is never read; the literal is never compared).
+- **Real test gap** — behaviour differs but no test notices. The original code is correct; the suite is incomplete. Resolve by adding or strengthening a test, or by recording an earned ignore.
+- **Production bug** — the mutation reveals the *original* code is wrong (the mutated form is the behaviour you actually want, or both forms are broken). The fix is production code, so it routes to the fix manifest — it is not fixed in the session.
+
+**Under uncertainty, default to real test gap.** If the design and test manifest are silent on the behaviour the mutation reveals, the suite is under-specified — treat it as a gap, not an equivalent. Silence is not proof of equivalence.
+
+## Anti-Patterns
+
+### 1. Using `ignore` to make the ratchet pass
+
+**Failure mode:** A real test gap is marked `ignore` to skip the fix. Ignored mutants still count in the denominator, but the verdict can still read PASS — so test quality degrades behind a green verdict.
+
+```
+INVALID:
+  Real test gap, recommended severity.
+  Action: ignore — "low priority"
+
+VALID:
+  Real test gap, recommended severity.
+  Action: ignore — "the enclosing function rejects this input upstream;
+  a test here would assert on unreachable control flow."
+```
+
+`ignore` needs a rationale that earns the decision. A few well-reasoned ignores per session is healthy; ignoring every recommended finding is avoiding work.
+
+### 2. Re-baselining on every FAIL
+
+**Failure mode:** A ratchet FAIL is made to disappear by resetting the baseline, erasing the regression signal the ratchet exists to capture.
+
+```
+INVALID:
+  Verdict: FAIL (78% → 71%)
+  Re-baselined: yes — rationale: ""
+
+VALID:
+  Verdict: FAIL (78% → 71%)
+  Re-baselined: no — recorded; the drop is a real regression to address
+OR
+  Re-baselined: yes — "module refactored into three new files; the previous
+  score covers different code and is no longer comparable."
+```
+
+Re-baseline is for a genuine scope change, with a stated reason — not a button to clear a FAIL.
+
+### 3. Classifying a real gap as "equivalent" to dodge the fix
+
+**Failure mode:** A surviving mutant is labelled `equivalent` without proof, because "equivalent" needs no test and no manifest entry. The burden of proof is inverted.
+
+```
+INVALID:
+  Classification: equivalent — "probably doesn't matter"
+
+VALID:
+  Classification: equivalent — "the mutated value is assigned to a local
+  that is never read before the function returns."
+OR
+  Classification: real test gap — no proof of equivalence found; add a test.
+```
+
+If you cannot state why no input changes observable behaviour, it is not equivalent.
+
+## Common Rationalisations (FORBIDDEN)
+
+| Human Says | Standard Requires |
+|---|---|
+| "It's probably equivalent" | "Equivalent is a proof, not a guess. State why no reachable input changes observable behaviour, or classify it as a real test gap." |
+| "Just ignore it — low priority" | "Ignore needs a rationale that earns it, and the mutant stays in the denominator. 'Low priority' is not a rationale." |
+| "Re-baseline so the ratchet passes" | "A FAIL is signal. Re-baseline only for a stated scope change. Otherwise record the FAIL and address the regression." |
+| "I'll just fix the production bug here" | "This skill never edits production code. Push it to the fix manifest; bugs.md fixes it under TDD." |
+| "No test names this behaviour, so it's fine" | "Silence means under-specified, not equivalent. A spec-silent mutant defaults to a real test gap." |
+
+**If the human persists:** record the override and its reason in the session file, then continue.
+
+## Final Rule
+
+```
+Surviving mutant → classified, with proof for "equivalent" and a rationale for "ignore"
+Otherwise → not done
+```
+
+---
+**END OF DOCUMENT:** Total sections: 7 | Purpose: Mutation testing standards — classification, score integrity, and triage discipline

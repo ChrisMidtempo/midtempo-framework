@@ -61,26 +61,26 @@ class TestAboutButtonInHeader:
             ".header-nav wrapper missing from index.html — "
             "needed to group Documentation and About buttons in the header"
         )
-        assert content.index("header-nav") > content.index("app-header"), (
-            ".header-nav must appear after the #app-header opening tag in source order"
-        )
+        assert content.index("header-nav") > content.index(
+            "app-header"
+        ), ".header-nav must appear after the #app-header opening tag in source order"
 
     def test_about_btn_present_in_header(self):
         """index.html contains a button with class about-btn inside #app-header."""
         content = HTML_FILE.read_text()
         assert "about-btn" in content, "about-btn class missing from index.html"
-        assert content.index("about-btn") > content.index("app-header"), (
-            "about-btn must appear after the #app-header opening tag in source order"
-        )
+        assert content.index("about-btn") > content.index(
+            "app-header"
+        ), "about-btn must appear after the #app-header opening tag in source order"
 
     def test_about_btn_appears_after_docs_btn_in_source_order(self):
         """about-btn offset in index.html exceeds docs-btn offset — About is to the right of Documentation."""
         content = HTML_FILE.read_text()
         assert "docs-btn" in content, "docs-btn missing from index.html"
         assert "about-btn" in content, "about-btn missing from index.html"
-        assert content.index("about-btn") > content.index("docs-btn"), (
-            "about-btn must appear after docs-btn in source order — About is to the right of Documentation"
-        )
+        assert content.index("about-btn") > content.index(
+            "docs-btn"
+        ), "about-btn must appear after docs-btn in source order — About is to the right of Documentation"
 
 
 class TestAboutModalHTMLStructure:
@@ -100,24 +100,23 @@ class TestAboutModalHTMLStructure:
         assert match, '<div id="about-modal"> missing from index.html'
         tag = match.group(0)
         assert "hidden" in tag, (
-            '#about-modal must carry class="hidden" by default — '
-            "the JS removes it on open"
+            '#about-modal must carry class="hidden" by default — ' "the JS removes it on open"
         )
 
     def test_about_modal_close_button_present(self):
         """index.html contains a button with id="about-modal-close"."""
         content = HTML_FILE.read_text()
-        assert 'id="about-modal-close"' in content, (
-            'button with id="about-modal-close" missing from index.html'
-        )
+        assert (
+            'id="about-modal-close"' in content
+        ), 'button with id="about-modal-close" missing from index.html'
 
     def test_about_modal_precedes_entry_screen_in_source_order(self):
         """#about-modal offset precedes #entry-screen offset in index.html."""
         content = HTML_FILE.read_text()
         assert "about-modal" in content, "#about-modal missing from index.html"
-        assert content.index("about-modal") < content.index("entry-screen"), (
-            "#about-modal must appear before #entry-screen in source order"
-        )
+        assert content.index("about-modal") < content.index(
+            "entry-screen"
+        ), "#about-modal must appear before #entry-screen in source order"
 
 
 # ── docs-modal.js ─────────────────────────────────────────────────────────────
@@ -161,9 +160,9 @@ class TestAboutModalInit:
         assert re.search(
             r"export\s+function\s+init\b", content
         ), "about-modal.js must export a named function 'init'"
-        assert "export default" not in content, (
-            "about-modal.js must not use export default — named exports only"
-        )
+        assert (
+            "export default" not in content
+        ), "about-modal.js must not use export default — named exports only"
 
     def test_init_binds_about_btn_click(self):
         """init() wires a click listener on .about-btn."""
@@ -176,12 +175,10 @@ class TestAboutModalInit:
         """init() wires about-modal-close click to closeModal."""
         content = ABOUT_MODAL_FILE.read_text()
         body = _extract_function_body(content, "init")
-        assert "about-modal-close" in body, (
-            "init() must reference about-modal-close to wire the close button"
-        )
-        assert "closeModal" in body, (
-            "init() must call closeModal from the close button listener"
-        )
+        assert (
+            "about-modal-close" in body
+        ), "init() must reference about-modal-close to wire the close button"
+        assert "closeModal" in body, "init() must call closeModal from the close button listener"
 
     def test_init_binds_escape_key_to_close_modal(self):
         """init() binds a keydown Escape listener that calls closeModal."""
@@ -221,9 +218,9 @@ class TestAboutModalOpenBehaviour:
         content = ABOUT_MODAL_FILE.read_text()
         body = _extract_function_body(content, "openModal")
         assert body, "openModal function not found in about-modal.js"
-        assert "remove" in body and "hidden" in body, (
-            "openModal() must call classList.remove('hidden') on #about-modal"
-        )
+        assert (
+            "remove" in body and "hidden" in body
+        ), "openModal() must call classList.remove('hidden') on #about-modal"
 
 
 class TestAboutModalCloseBehaviour:
@@ -234,28 +231,26 @@ class TestAboutModalCloseBehaviour:
         content = ABOUT_MODAL_FILE.read_text()
         body = _extract_function_body(content, "closeModal")
         assert body, "closeModal function not found in about-modal.js"
-        assert "add" in body and "hidden" in body, (
-            "closeModal() must call classList.add('hidden') on #about-modal"
-        )
+        assert (
+            "add" in body and "hidden" in body
+        ), "closeModal() must call classList.add('hidden') on #about-modal"
 
     def test_close_modal_returns_focus_to_about_btn(self):
         """closeModal() calls focus() on the .about-btn element."""
         content = ABOUT_MODAL_FILE.read_text()
         body = _extract_function_body(content, "closeModal")
         assert body, "closeModal function not found in about-modal.js"
-        assert "about-btn" in body, (
-            "closeModal() must query .about-btn to return focus"
-        )
-        assert "focus" in body, (
-            "closeModal() must call focus() on .about-btn after closing the modal"
-        )
+        assert "about-btn" in body, "closeModal() must query .about-btn to return focus"
+        assert (
+            "focus" in body
+        ), "closeModal() must call focus() on .about-btn after closing the modal"
 
     def test_no_console_log_in_about_modal_js(self):
         """about-modal.js contains no console.log calls."""
         content = ABOUT_MODAL_FILE.read_text()
-        assert "console.log" not in content, (
-            "about-modal.js must not use console.log — use console.warn or console.error only"
-        )
+        assert (
+            "console.log" not in content
+        ), "about-modal.js must not use console.log — use console.warn or console.error only"
 
 
 # ── form.js ───────────────────────────────────────────────────────────────────
@@ -275,9 +270,9 @@ class TestFormJsWiresAboutModal:
     def test_form_js_calls_about_modal_init_at_dom_content_loaded(self):
         """form.js calls aboutModalInit() inside the DOMContentLoaded listener."""
         content = FORM_FILE.read_text()
-        assert re.search(r"aboutModalInit\b", content), (
-            "form.js must call aboutModalInit() at DOMContentLoaded"
-        )
+        assert re.search(
+            r"aboutModalInit\b", content
+        ), "form.js must call aboutModalInit() at DOMContentLoaded"
         assert re.search(
             r"DOMContentLoaded.{0,500}aboutModalInit",
             content,

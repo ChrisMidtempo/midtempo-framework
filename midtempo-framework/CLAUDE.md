@@ -1,6 +1,6 @@
 # Agent Rules
 
-Last Updated: 25/05/2026
+Last Updated: 13/06/2026
 
 **Agent's Core Principle:** Do the simplest thing that works.
 
@@ -151,6 +151,8 @@ These handle specific work types outside the main workflow.
 | refactor, clean, simplify, tidy       | `/midtempo-framework/refactor.md`    | Improve structure, keep behaviour | Tests green       |
 | refine, tweak, fix                 | `/midtempo-framework/refine.md`   | Refine delivered feature          | Design doc exists |
 | build e2e, e2e tests, write e2e, end-to-end | `/midtempo-framework/build-e2e.md` | Build E2E tests post-delivery     | Design doc exists |
+| run mutation testing, mutation test, mutate | `/midtempo-framework/mt.md` | Pre-triage: scope, run, capture, cluster, sort | None |
+| mutation triage, triage mutations, mt-fix | `/midtempo-framework/mt-fix.md` | Triage + inline fix + ratchet + complete | mt.md run first |
 
 ### 4.3 Review Skills
 
@@ -222,6 +224,12 @@ npm run typecheck:python    # Run Python type checker (mypy)
 ```bash
 `npm run generate midtempo-framework`    # Generate Midtempo Framework from templates
 `npm run schema:generate`    # Generates JSON schema from configuration
+```
+#### Mutation
+```bash
+`npm run mutate`    # Run the full mutation test suite over scripts/
+`npm run mutate:diff`    # Run mutation tests scoped to lines changed since HEAD
+`npm run mutate:targeted`    # Run mutation tests on the supplied paths
 ```
 #### Utilities
 ```bash

@@ -129,6 +129,62 @@ def test_malformed_schema_json():
         Path(schema_path).unlink()
 
 
+def test_real_capabilities_schema_contains_has_mutation_testing(tmp_path):
+    """Schema generated from real CAPABILITIES contains hasMutationTesting as a boolean property. (T2.1, B4)"""
+    from scripts.capabilities import CAPABILITIES
+
+    schema_fixture = {
+        "properties": {
+            "name": {"type": "string"},
+            "capabilities": {"properties": {}},
+        }
+    }
+    schema_path = tmp_path / "config.schema.json"
+    import json
+
+    schema_path.write_text(json.dumps(schema_fixture))
+
+    generate_schema(CAPABILITIES, str(schema_path))
+
+    with schema_path.open() as f:
+        result = json.load(f)
+
+    assert "hasMutationTesting" in result["properties"]["capabilities"]["properties"], (
+        "Generated schema does not contain 'hasMutationTesting' property — "
+        "add hasMutationTesting to CAPABILITIES registry before regenerating schema"
+    )
+    assert (
+        result["properties"]["capabilities"]["properties"]["hasMutationTesting"]["type"]
+        == "boolean"
+    ), "hasMutationTesting schema property type is not 'boolean'"
+
+
+def test_real_capabilities_schema_preserves_existing_properties(tmp_path):
+    """Schema regeneration from real CAPABILITIES does not remove existing capability properties. (T2.2, B4)"""
+    from scripts.capabilities import CAPABILITIES
+
+    schema_fixture = {
+        "properties": {
+            "name": {"type": "string"},
+            "capabilities": {"properties": {}},
+        }
+    }
+    schema_path = tmp_path / "config.schema.json"
+    import json
+
+    schema_path.write_text(json.dumps(schema_fixture))
+
+    generate_schema(CAPABILITIES, str(schema_path))
+
+    with schema_path.open() as f:
+        result = json.load(f)
+
+    assert "hasUI" in result["properties"]["capabilities"]["properties"], (
+        "Existing 'hasUI' property missing from generated schema — "
+        "schema regeneration must preserve all existing capability properties"
+    )
+
+
 def test_registry_with_non_boolean_default():
     """Generated schema has type boolean even when registry default is wrong type."""
     # Registry with wrong type default

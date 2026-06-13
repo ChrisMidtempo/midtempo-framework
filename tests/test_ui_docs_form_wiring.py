@@ -66,9 +66,9 @@ class TestConfigurationLinkWiring:
         planning/doc-modal-design.md.
         """
         content = Path("ui/js/event-wiring.js").read_text()
-        assert "openModalAt" in content, (
-            "event-wiring.js must call openModalAt to wire docs anchor links"
-        )
+        assert (
+            "openModalAt" in content
+        ), "event-wiring.js must call openModalAt to wire docs anchor links"
         assert "[data-docs-tab][data-docs-anchor]" in content, (
             "event-wiring.js must query [data-docs-tab][data-docs-anchor] elements "
             "to wire their click handlers generically"

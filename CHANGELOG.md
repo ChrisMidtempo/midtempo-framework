@@ -4,6 +4,24 @@ All notable changes to the Midtempo Framework are documented here.
 
 ---
 
+## [0.5.2] — 13/06/2026
+
+### Mutation testing skills, design docs as living specifications, and ownership-driven investigation routing
+
+**Mutation testing — two-part skill (new, capability-gated):**  
+A complete mutation-testing workflow is introduced behind a new `hasMutationTesting` capability. It splits across two skills run in separate conversations: `mt.md` handles **pre-triage** (pick scope, run the mutation command, capture results, an equivalent pre-pass, cluster survivors by enclosing function, severity-prior sort) and exits at `Status: ready-for-triage`; `mt-fix.md` handles **triage + fix** (classify each survivor, fix test gaps inline, route production bugs to `bugs.md` via a `mt-fix-manifest.md`, compute a ratchet verdict, archive the session). `mt.md` never touches production code; `mt-fix.md` may edit test code only. Supporting artefacts: `rules/mutation-testing.md` (equivalence and ignore-rationale standards) and the `templates/mt-session.md` working-session schema (authoritative for M/C/D/MT-ID conventions, state enum, and section ownership). The ratchet records BASELINE/PASS/FAIL and keeps ignored gaps in the denominator so a decision not to fix stays visible.
+
+**Mutation testing — capability gating and command stubs:**  
+`hasMutationTesting` is added to `scripts/capabilities.py` and `schema/config.schema.json`. New `TEMPLATE_SKIP_RULES` gate `agents/mt`, `agents/mt-fix`, `templates/mt-session`, and `rules/mutation-testing` so they render only when the capability is on; `AGENTS.md.j2`, `README.md.j2`, and `GUIDE.md.j2` gate their mutation-testing rows and sections to match. Each `commands/*.yml.j2` gains a commented-out `mutate:` stub (unvalidated, review-before-use), and `scripts/build_ui_manifest.py` now extracts these stubs. **Manifest shape change:** each language entry in the UI manifest changes from a flat list to `{ "commands": [...], "mutationCommands": {...} }`.
+
+**Design docs as living specifications:**  
+`bugs.md`, `refine.md`, and `refactor.md` no longer append free-form narrative sections (`## Bug Fixes`, `Refinement`, `## Bug Report`) to the design doc. Instead each reconciles the authoritative spec (§1–8) **in place** so the numbered sections always describe current behaviour, then records exactly one dated row in a new **Change History** table — the full trace, root cause, and rationale live in the commit body, not the doc. Stale decisions are deleted and reconciled. The `design.md` template gains a "Document Conventions" header and the append-only Change History table at the foot. Each skill also adds an **out-of-scope guard**: it reads the design doc's §2.2 and stops to confirm the owning doc if the change touches an excluded layer. `README.md.j2` and `GUIDE.md.j2` document the living-specification model.
+
+**Investigation — ownership-driven routing:**  
+`investigate.md` now triages recommendations by ownership before classifying them. Step 1.1 inventories every design doc (active and archived, substantive vs. adjacent); a new §4.7 **Ownership Map** records the owning doc per behaviour-changing candidate; and a new §5.0 **Cost & Ownership Principle** forks the routing: owned behaviour → `refine.md` (cheap, contained), unowned → `build.md` (full pipeline), with Investigation reserved as a last resort that never spawns another investigation. Schema/foundational tasks may stand alone with a declared dependency link. `GUIDE.md.j2` adds a "Why Investigation Routes by Ownership" rationale section.
+
+---
+
 ## [0.5.1] — 28/05/2026
 
 ### Root cause synthesis in architecture reviews, coupling assessment in design, two new test rules

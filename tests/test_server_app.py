@@ -446,11 +446,11 @@ class TestGenerateCors:
             response = client.post(
                 "/api/generate",
                 json={"config": {"name": "my-project"}},
-                headers={"Origin": "http://localhost:8000"},
+                headers={"Origin": "http://localhost:8888"},
             )
 
         assert response.status_code == 200
-        assert response.headers.get("Access-Control-Allow-Origin") == "http://localhost:8000"
+        assert response.headers.get("Access-Control-Allow-Origin") == "http://localhost:8888"
 
     def test_cors_wildcard_absent_from_response(self, temp_dir_mocks):
         """Access-Control-Allow-Origin response header does not equal *."""
@@ -466,7 +466,7 @@ class TestGenerateCors:
             response = client.post(
                 "/api/generate",
                 json={"config": {"name": "my-project"}},
-                headers={"Origin": "http://localhost:8000"},
+                headers={"Origin": "http://localhost:8888"},
             )
 
         assert response.headers.get("Access-Control-Allow-Origin") != "*"

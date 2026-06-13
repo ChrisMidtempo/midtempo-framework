@@ -31,6 +31,7 @@ from server.app import create_app
 from tests.helpers.config_factory import create_valid_config
 
 JS_FILE = Path("ui/js/form.js")
+DOWNLOAD_MODAL_FILE = Path("ui/js/download-modal.js")
 HTML_FILE = Path("ui/index.html")
 
 
@@ -118,55 +119,56 @@ class TestFormJsStage7:
     def test_no_dynamic_inner_html_in_server_calls_or_modal_groups(self):
         """No innerHTML assignment carries an unvetted variable or expression. (T1.6, B6, CG-IV6)
 
-        Three innerHTML assignments are permitted:
-        - card.innerHTML = "" — clears fixed modal structure; no user content
+        Three innerHTML assignments are permitted across form.js and download-modal.js:
+        - card.innerHTML = "" — clears fixed modal structure; no user content (download-modal.js)
         - panel.innerHTML = hljs.highlight(...).value — highlight.js escapes HTML entities
           in the input before adding span markup, so user-derived YAML values cannot inject HTML
         - panel.innerHTML = highlighted.replace(...) — highlighted is the already-escaped output
           of hljs.highlight(); .replace() only inserts a fixed class name string; no user content
           reaches innerHTML
         """
-        content = JS_FILE.read_text()
         _approved = {
             '""',
             "''",
             'hljs.highlight(yaml, { language: "yaml" }).value',
             "highlighted.replace(",
         }
-        matches = re.findall(r"\.innerHTML\s*=\s*(.+)", content)
-        for rhs in matches:
-            rhs_stripped = rhs.strip().rstrip(";").strip()
-            assert rhs_stripped in _approved, (
-                f"Unapproved innerHTML assignment found — value: {rhs_stripped!r}. "
-                "User-derived content must use textContent or an approved escaped source (CG-IV6)."
-            )
+        for path in (JS_FILE, DOWNLOAD_MODAL_FILE):
+            content = path.read_text()
+            matches = re.findall(r"\.innerHTML\s*=\s*(.+)", content)
+            for rhs in matches:
+                rhs_stripped = rhs.strip().rstrip(";").strip()
+                assert rhs_stripped in _approved, (
+                    f"Unapproved innerHTML assignment in {path.name} — value: {rhs_stripped!r}. "
+                    "User-derived content must use textContent or an approved escaped source (CG-IV6)."
+                )
 
     def test_show_modal_function_defined(self):
-        """showModal is declared as a function in form.js. (T1.7, B7)"""
-        content = JS_FILE.read_text()
+        """showModal is declared as a function in download-modal.js. (T1.7, B7)"""
+        content = DOWNLOAD_MODAL_FILE.read_text()
         assert re.search(
             r"function\s+showModal\b", content
-        ), "showModal function not defined in form.js"
+        ), "showModal function not defined in download-modal.js"
 
     def test_hide_modal_function_defined(self):
-        """hideModal is declared as a function in form.js. (T1.8, B8)"""
-        content = JS_FILE.read_text()
+        """hideModal is declared as a function in download-modal.js. (T1.8, B8)"""
+        content = DOWNLOAD_MODAL_FILE.read_text()
         assert re.search(
             r"function\s+hideModal\b", content
-        ), "hideModal function not defined in form.js"
+        ), "hideModal function not defined in download-modal.js"
 
     def test_show_modal_body_references_modal_download(self):
         """showModal body references modal-download, confirming the download anchor is built. (T1.9, B9)"""
-        content = JS_FILE.read_text()
+        content = DOWNLOAD_MODAL_FILE.read_text()
         body = _extract_function_body(content, "showModal")
-        assert body, "showModal function body not found in form.js"
+        assert body, "showModal function body not found in download-modal.js"
         assert "modal-download" in body, "showModal body does not reference modal-download"
 
     def test_modal_icon_is_appended_to_filename_element(self):
         """showModal appends the icon span into nameEl so icon and filename render on one line. (T1.10)"""
-        content = JS_FILE.read_text()
+        content = DOWNLOAD_MODAL_FILE.read_text()
         body = _extract_function_body(content, "showModal")
-        assert body, "showModal function body not found in form.js"
+        assert body, "showModal function body not found in download-modal.js"
         assert re.search(
             r"nameEl\.(?:append|prepend)\s*\(\s*icon\b", body
         ), "showModal does not append/prepend icon into nameEl — icon must be the first child of modal-filename"
@@ -179,12 +181,10 @@ class TestFormJsStage7:
         order — the about-modal card — leaving the download modal visually empty.
         The selector must be scoped to "#modal .modal-card". (T1.11, BUG-modal-card)
         """
-        content = JS_FILE.read_text()
+        content = DOWNLOAD_MODAL_FILE.read_text()
         body = _extract_function_body(content, "showModal")
-        assert body, "showModal function body not found in form.js"
-        assert re.search(
-            r'querySelector\s*\(\s*["\']#modal\s+\.modal-card["\']', body
-        ), (
+        assert body, "showModal function body not found in download-modal.js"
+        assert re.search(r'querySelector\s*\(\s*["\']#modal\s+\.modal-card["\']', body), (
             "showModal queries '.modal-card' without scoping to '#modal'. "
             "index.html has two .modal-card elements; the unscoped query targets "
             "the about-modal card, leaving the download modal empty."

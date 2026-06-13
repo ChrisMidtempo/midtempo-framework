@@ -77,8 +77,8 @@ class TestCapabilitiesRegistry:
 
     # Test 1.5
     def test_registry_has_exactly_six_entries(self):
-        """Registry has exactly 6 entries (3 existing + 3 new)."""
-        assert len(CAPABILITIES) == 6
+        """Registry has exactly 7 entries (6 existing + 1 new hasMutationTesting)."""
+        assert len(CAPABILITIES) == 7
 
 
 # --- Section 2: Schema Validation — Security Capabilities ---

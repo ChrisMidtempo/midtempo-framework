@@ -127,6 +127,10 @@
         "hasAuthentication": {
           "type": "boolean",
           "description": "Application implements authentication"
+        },
+        "hasMutationTesting": {
+          "type": "boolean",
+          "description": "Whether the repository uses mutation testing"
         }
       },
       "additionalProperties": false
@@ -205,13 +209,11 @@
             "page": {
               "type": "string",
               "minLength": 1,
-              "maxLength": 1000,
               "description": "Path to instruction file relative to instructions/ directory"
             },
             "description": {
               "type": "string",
               "minLength": 1,
-              "maxLength": 500,
               "description": "Human-readable description of what this instruction covers"
             }
           },
@@ -233,13 +235,11 @@
             "page": {
               "type": "string",
               "minLength": 1,
-              "maxLength": 1000,
               "description": "Path to security rule sub-document"
             },
             "description": {
               "type": "string",
               "minLength": 1,
-              "maxLength": 500,
               "description": "Human-readable description of the security domain"
             }
           },

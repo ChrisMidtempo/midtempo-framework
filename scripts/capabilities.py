@@ -43,6 +43,10 @@ CAPABILITIES: dict[str, dict[str, bool | str]] = {
         "default": False,
         "description": "Application implements authentication",
     },
+    "hasMutationTesting": {
+        "default": False,
+        "description": "Whether the repository uses mutation testing",
+    },
 }
 
 # Backward-compatible export for existing config creation paths.
@@ -61,4 +65,8 @@ TEMPLATE_SKIP_RULES: dict[str, str | list[str]] = {
     "rules/security/authentication": "hasAuthentication",
     "rules/security/data-protection": "handlesConfidentialData",
     "rules/security/public-hardening": "isPublicFacing",
+    "agents/mt": "hasMutationTesting",
+    "agents/mt-fix": "hasMutationTesting",
+    "templates/mt-session": "hasMutationTesting",
+    "rules/mutation-testing": "hasMutationTesting",
 }

@@ -132,7 +132,9 @@ class TestCommandModalConfirm:
     def test_confirm_command_modal_function_defined(self):
         """confirmCommandModal function defined in event-wiring.js. (AC2)"""
         content = WIRING_FILE.read_text()
-        assert "confirmCommandModal" in content, "confirmCommandModal not defined in event-wiring.js"
+        assert (
+            "confirmCommandModal" in content
+        ), "confirmCommandModal not defined in event-wiring.js"
 
     def test_confirm_add_path_calls_set_state_with_new_command(self):
         """confirmCommandModal add path calls setState to commit the new command. (AC2)
@@ -282,7 +284,9 @@ class TestCommandModalDuplicateKeyValidation:
     def test_validate_command_name_function_defined(self):
         """validateCommandName function defined in event-wiring.js. (AC4)"""
         content = WIRING_FILE.read_text()
-        assert "validateCommandName" in content, "validateCommandName not defined in event-wiring.js"
+        assert (
+            "validateCommandName" in content
+        ), "validateCommandName not defined in event-wiring.js"
 
     def test_validate_command_name_checks_state_commands(self):
         """validateCommandName body checks state.commands for the entered name. (AC4)"""

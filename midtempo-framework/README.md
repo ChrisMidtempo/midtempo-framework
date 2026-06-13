@@ -19,6 +19,7 @@ A framework for building production-quality code with AI coding agents.
 - [Repo Setup](#repo-setup)
 - [Main Workflow](#main-workflow)
 - [Other Skills](#other-skills)
+- [Mutation Testing](#mutation-testing)
 - [Updating Framework](#updating-framework)
 - [Rules the Agent Follows](#rules-the-agent-follows)
 - [Key Files](#key-files)
@@ -128,6 +129,8 @@ Prompts to move to the next phase should be provided by the agent at the end of 
 
 All pipeline artefacts live in `planning/`. Design docs (`*-design.md`) are your source of truth and should be committed. Everything else - decisions, plans, test manifests - are working documents that can be discarded post delivery.
 
+Design docs are living specifications, not append-only logs. When `bugs.md`, `refine.md`, or `refactor.md` change a feature, they edit the numbered spec sections in place to match the new behaviour, then add one dated row to the doc's Change History table. The detail of *why* goes in the commit message; the spec itself stays current and readable.
+
 Two planning subfolders hold outputs from non-pipeline skills:
 
 - **`planning/investigations/`** - Investigation reports and recommendation documents from `investigate.md`
@@ -143,14 +146,22 @@ Not everything goes through Build, Bugs, or Refine. Other skills handle specific
 
 | Skill | Purpose |
 |---|---|
-| `investigate.md` | Codebase delivery research - no code changes, but clear understanding of what to deliver with actionable tasks for the framework to pick-up |
+| `investigate.md` | Codebase delivery research - no code changes. Maps each finding to the design doc that owns it, then routes the work: owned behaviour to `refine.md`, unowned to `build.md`. Produces actionable tasks for the framework to pick up |
 | `refactor.md` | Improves structure without changing behaviour - tests must be green first. Part of the Build workflow, but can be run independently |
 | `review-tests.md` | Checks test quality and coverage, reports file-by-file, with inline fixes or saved docs that can be actioned later. Can be run on a test manifest, or after TDD red state, or post-delivery review |
 | `review-code.md` | Checks feature delivery quality. Issues categorised, referenced, and described with clear resolution paths. Can be run after TDD refactor, or as a stand-alone skill |
 | `review-architecture.md` | Checks boundaries and coupling. Tries to identify broader issues and solutions |
+| `mt.md` | Mutation testing pre-triage - scopes the run, executes the mutation tool, captures and clusters survivors. See [Mutation Testing](#mutation-testing) |
+| `mt-fix.md` | Mutation testing triage - classifies survivors, fixes test gaps inline, routes production bugs to `bugs.md`, records the ratchet verdict |
 
 ---
+## Mutation Testing
 
+Tests prove your code passes. Mutation testing proves your tests would *catch a regression*. It changes one line of production code at a time - flips a `>` to `>=`, deletes a branch, swaps a return value - then reruns your suite against each change. If a test fails, the mutation is **killed**. If every test still passes, the mutation **survives** - a line your tests don't actually verify.
+
+Run it after delivery, on a green suite. 
+
+---
 ## Updating Framework
 
 **Website**: 
@@ -219,6 +230,8 @@ Additional security rules load automatically based on your repo's capabilities (
     ├── [feature]-design.md         # Technical design (source of truth)
     ├── [feature]-plan.md           # Step-by-step delivery plan
     ├── [feature]-tests.md          # Test scenarios (Given/When/Then)
+    ├── mt-session.md               # Mutation testing working session
+    ├── mt-fix-manifest.md          # Production bugs found during mutation triage
     ├── investigations/             # Investigation reports and recommendations
     ├── reviews/                    # Review reports and recommendations
     └── archive/                    # Old design docs (subfolders ftw!)

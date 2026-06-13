@@ -46,7 +46,8 @@ Investigate unknown problems, unexplained behaviour, or uncertainty through stru
   - [What Could Happen](#44-what-could-happen)
   - [Glossary](#45-glossary)
   - [Impact Assessment](#46-impact-assessment)
-  - [Present Analysis](#47-present-analysis)
+  - [Ownership Map](#47-ownership-map)
+  - [Present Analysis](#48-present-analysis)
 - [Step 5: Propose Recommendations](#step-5-propose-recommendations)
   - [Classification](#51-classification)
     - [Refinement criteria](#511-refinement-criteria)
@@ -150,6 +151,14 @@ IF investigation involves error handling
 IF investigation involves adding a new page
   → READ: {{ "new-page" | instructions }}
 {% endif %}
+
+INVENTORY all design documents (feeds §5 ownership):
+  SCAN planning/**/*-design.md — active docs
+  SCAN planning/archive/**/*-design.md — archived docs (skip if directory absent)
+  FOR EACH doc found:
+    RECORD: path | active/archived | date from `**Date:**` header | substantive/adjacent
+    Substantive: specifies multiple functionality points
+    Adjacent: specifies only one neighbouring point
 
 ```
 
@@ -591,7 +600,25 @@ For each significant finding:
 | ------------- | -------- | ---------------------- | ---------------- |
 | [Description] | [Effect] | [blocking/recommended] | [Files/features] |
 
-### 4.7 Present Analysis
+### 4.7 Ownership Map
+
+Map ownership evidence for each behaviour-changing candidate before §5 classification.
+
+```
+FOR EACH behaviour-changing candidate:
+  LOOK UP from §1.1 inventory: docs that specify this behaviour
+  OWNED: any substantive doc (active or archived) specifies it — most recent wins
+  UNOWNED: no substantive doc specifies it
+
+DOCUMENT (one entry per candidate):
+
+### Ownership: [Behaviour description]
+
+**Owning doc:** [path (active/archived, YYYY-MM-DD)] | none
+**Owned?** OWNED | UNOWNED
+```
+
+### 4.8 Present Analysis
 
 **Output to human:**
 
@@ -628,6 +655,10 @@ Impact summary:
 - [Blocking issue] — must fix before [work]
 - [Recommended action] — improves [aspect]
 
+Ownership map:
+- [Behaviour]: OWNED — [path (active/archived, YYYY-MM-DD)]
+- [Behaviour]: UNOWNED
+
 Ready to propose recommendations?
 ```
 
@@ -635,13 +666,37 @@ Ready to propose recommendations?
 
 **After validation:** APPEND to `planning/investigations/[name]-investigation.md`:
 
-- §4 Analysis — Pattern Recognition, Mechanism, Current State, What Could Happen, Glossary (if applicable), Impact Assessment, root causes and anomalies from the Step 4 output above
+- §4 Analysis — Pattern Recognition, Mechanism, Current State, Ownership Map, What Could Happen, Glossary (if applicable), Impact Assessment, root causes and anomalies from the Step 4 output above
 
 ---
 
 ## Step 5: Propose Recommendations
 
 **Present proposed recommendations for discussion before writing files.**
+
+### 5.0 Cost & Ownership Principle
+
+**Build is expensive.** It manufactures a design doc and plan through a fixed pipeline (~2–3 hr). When a design doc already exists for the behaviour, that pipeline is waste — Refine runs one contained TDD flow off the existing doc. Ownership (does a design doc specify this behaviour?) only ever forks Refine-vs-Build. Bug and Refactor bypass ownership entirely.
+
+**Investigation is a last resort.** Classify as Investigation only when no other classification fits. Never spawn another investigation from an investigation.
+
+Apply this procedure to every recommendation before running §5.1 gates:
+
+0. Schema change (new tables or columns)?
+   → Isolate as a standalone Refactor (dependency-linked). Never bundle with other work.
+1. Broken behaviour (root cause found)?
+   → Bug. Ownership irrelevant.
+2. Behaviour-preserving cleanup?
+   → Refactor. Ownership irrelevant. ≤15 files.
+3. Behaviour-changing work?
+   Determine ownership first:
+   A behaviour is OWNED if a design doc — active or archived, substantive (multiple
+   functionality points, not merely adjacent) — specifies it. Most recent wins.
+   Archived means surface not actively worked on, not deleted.
+
+   OWNED → Refine. Too big for Refine gates → split into more Refines. Never re-Build.
+   UNOWNED → Build. Oversize → surface-separated Builds, or core-Build + follow-on Refines.
+              No clean split? → Investigation (last resort — never spawns another investigation).
 
 ### 5.1 Classification
 
@@ -668,6 +723,9 @@ IF a recommendation only makes sense when combined with another
 IF merging would exceed Build size limits (§5.1.3)
   → Classify as Investigation (§5.1.4 — decomposition case)
 
+IF work is a foundational task (schema migration, scaffolding) that enables a dependent recommendation
+  → VALID: May stand alone — declare the dependency link in both recommendation files
+
 DO NOT split work across recommendations to keep individual sizes small
 if the pieces are not independently useful.
 ```
@@ -675,11 +733,11 @@ if the pieces are not independently useful.
 
 #### 5.1.1 Refinement criteria
 
-IF original design document does not exist
-  → INVALID: STOP - No design doc means no delivered feature. Use build skill for new work.
+IF behaviour is UNOWNED per §5.0 step 3
+  → INVALID: STOP — Unowned behaviour requires Build skill.
 
 IF work affects 4+ files
-  → INVALID: STOP - Too large for Refine skill. Use Build skill.
+  → INVALID: Split into more Refines (each ≤3 files, ≤3 criteria). Never re-Build owned behaviour.
 
 IF work adds new UI page
   → INVALID: STOP - New pages require full workflow. Use build skill.
@@ -699,6 +757,10 @@ IF work is small refinement (≤3 files, ≤3 acceptance criteria, tweaks existi
 
 #### 5.1.2 Refactor criteria
 
+IF work is an isolated schema migration (standalone Refactor per §5.0 step 0)
+  → VALID: Use refactor skill
+  TYPE: migration — declare dependency link in both recommendation files
+
 IF work changes observable behaviour (API contracts, UI output, data formats)
   → INVALID: STOP - Behaviour changes require build skill.
 
@@ -710,24 +772,34 @@ IF work affects 16+ files
 
 IF work restructures existing code without changing behaviour (renaming, extracting, reorganising, simplifying)
   → VALID: Use refactor skill
+  TYPE: cleanup
 
 
 #### 5.1.3 Build criteria
 
+IF work contains schema changes (new tables or columns) bundled with logic changes
+  → EXTRACT the schema change as a standalone Refactor (§5.0 step 0, §5.1.2)
+  → Re-classify remaining logic work from the top of §5.1
+
 IF work affects 16+ files
-  → INVALID: STOP - Too large for a single build. Classify as Investigation.
+  → Split into surface-separated Builds (one Build per surface or domain boundary)
+  → Classify as Investigation only if no clean surface split exists
 
 IF work spans 3+ modules or domains
-  → INVALID: STOP - Too large for a single build. Classify as Investigation.
+  → Split into surface-separated Builds (one Build per surface or domain boundary)
+  → Classify as Investigation only if no clean surface split exists
 
 IF work would require an estimated 31+ unit tests
-  → INVALID: STOP - Too large for a single build. Classify as Investigation.
+  → Split into surface-separated Builds (one Build per surface or domain boundary)
+  → Classify as Investigation only if no clean surface split exists
 
 IF work introduces 2+ new architectural patterns
-  → INVALID: STOP - Too large for a single build. Classify as Investigation.
+  → Split into surface-separated Builds (one Build per surface or domain boundary)
+  → Classify as Investigation only if no clean surface split exists
 
 IF work has 11+ acceptance criteria
-  → INVALID: STOP - Too large for a single build. Classify as Investigation.
+  → Split into surface-separated Builds (one Build per surface or domain boundary)
+  → Classify as Investigation only if no clean surface split exists
 
 IF work is a new capability or significant change (≤15 files, ≤2 modules, ≤30 estimated tests, ≤10 acceptance criteria)
   → VALID: Use build skill
@@ -735,17 +807,11 @@ IF work is a new capability or significant change (≤15 files, ≤2 modules, �
 
 #### 5.1.4 Investigation criteria
 
-The work needs a follow-up investigation before actionable recommendations are possible. Two cases trigger this classification:
+Investigation is the last resort. Classify here only when no other classification fits and surface-separated Builds (§5.1.3) cannot resolve the scope. Never spawn another investigation from an investigation.
 
-**Uncertainty:** The sub-area lacks sufficient evidence. A focused investigation must gather evidence and clarify scope before recommending specific work.
+**Uncertainty:** The evidence gathered in §3 is insufficient to write a specific recommendation. Use only when the investigation cannot determine even the likely classification.
 
-**Decomposition:** The work exceeds Build skill size limits. A focused investigation must break it into ordered, build-sized chunks.
-
-Follow-up action: Run a new investigation (`/midtempo-framework/investigate.md`) scoped to the specific need.
-
-The follow-up investigation should produce:
-- For uncertainty: evidence gathering, analysis, and actionable recommendations (classified as Bug, Refine, Refactor, or Build)
-- For decomposition: one Build recommendation per chunk, with dependency ordering and explicit file/module boundaries
+**Decomposition:** Work exceeds Build size limits and no clean surface boundary isolates actionable chunks. Build's decisions and design phases resolve decomposition — this trigger applies only when the surfaces are genuinely unclear.
 
 
 ### 5.2 Scope Assessment
@@ -771,9 +837,11 @@ For each recommendation:
 
 **Classification precedence:**
 
-1. ANY signal exceeding the Build column → Investigation
-2. ANY signal exceeding the Refine column → Build (not Refine)
-3. ALL signals within Refine column AND §5.1.1 criteria pass → Refine
+1. Broken behaviour → Bug (§5.1 criteria; size irrelevant)
+2. Behaviour-preserving restructure → Refactor (§5.1 criteria; size ceiling ≤15 files)
+3. Behaviour-changing, ANY signal exceeding Build column → Investigation
+4. Behaviour-changing, ANY signal exceeding Refine column → Build (not Refine)
+5. Behaviour-changing, ALL signals within Refine column AND §5.1.1 criteria pass → Refine
 
 The §5.1 criteria gates are authoritative. This table is a quick reference — if table and gates disagree, follow the gates.
 
@@ -782,12 +850,13 @@ The §5.1 criteria gates are authoritative. This table is a quick reference — 
 For EACH recommendation, complete this checklist before assigning classification:
 
 ```
+Schema change: [yes → isolate as standalone Refactor (§5.0 step 0) — stop checklist here | no]
 Files affected: [N]
 Acceptance criteria: [N]
 Estimated tests: [N]
 Modules/domains: [N]
 New patterns: [N]
-Design doc exists: [yes/no]
+Owning design doc: [path (active/archived, date) | none — archived counts as owned]
 
 APPLY §5.1 criteria in order:
   §5.1.1 Refinement: [VALID/INVALID — which rule?]
@@ -822,16 +891,19 @@ Proposed Recommendations:
 
 Based on the analysis, I propose the following actions:
 
-| # | Title | Classification | Est. Tests | Modules | Files | Risk |
-|---|-------|---------------|------------|---------|-------|------|
-| 1 | [Title] | [Classification] | [N] | [N] | [N] | [Low/Med/High] |
-| 2 | [Title] | [Classification] | [N] | [N] | [N] | [Low/Med/High] |
+| # | Title | Classification | Owned by | Est. Tests | Modules | Files | Risk |
+|---|-------|---------------|----------|------------|---------|-------|------|
+| 1 | [Title] | [Classification] | [active / archived (date) / none] | [N] | [N] | [N] | [Low/Med/High] |
+| 2 | [Title] | [Classification] | [active / archived (date) / none] | [N] | [N] | [N] | [Low/Med/High] |
 
 Detail per recommendation:
 
 1. [Title] (Classification: [Classification])
    What: [One-sentence description of what needs to happen]
    Why: [Key finding/evidence that drives this recommendation]
+   Owned by: [design doc path (active/archived, YYYY-MM-DD), or "none — unowned"]
+   Surface: [surface/domain this Build covers — for surface-separated Builds; "single surface" otherwise]
+   Schema: [migration — linked to rec #N; or "none"]
    Scope: [Files/areas affected], [N] estimated tests, [N] modules
    Risk: [Low/Medium/High] — [brief justification]
    Dependencies: [Other recommendations or "None"]
@@ -973,10 +1045,10 @@ APPEND to `planning/investigations/[name]-investigation.md`:
 
 ## 5. Recommendations
 
-| Priority | Title   | Classification | File                     |
-| -------- | ------- | -------------- | ------------------------ |
-| 1        | [Title] | [Classification] | `[name]-rec-1-[slug].md` |
-| 2        | [Title] | [Classification] | `[name]-rec-2-[slug].md` |
+| Priority | Title   | Classification | Owned by | File                     |
+| -------- | ------- | -------------- | -------- | ------------------------ |
+| 1        | [Title] | [Classification] | [active / archived (date) / none] | `[name]-rec-1-[slug].md` |
+| 2        | [Title] | [Classification] | [active / archived (date) / none] | `[name]-rec-2-[slug].md` |
 
 Full detail in each recommendation file.
 
@@ -1026,10 +1098,10 @@ Files Created:
 
 Recommendations Summary:
 
-| Priority | Title | Classification | Est. Tests | Modules | Risk |
-|----------|-------|----------------|------------|---------|------|
-| 1 | [Title] | [Classification] | [N] | [N] | [Low/Med/High] |
-| 2 | [Title] | [Classification] | [N] | [N] | [Low/Med/High] |
+| Priority | Title | Classification | Owned by | Est. Tests | Modules | Risk |
+|----------|-------|----------------|----------|------------|---------|------|
+| 1 | [Title] | [Classification] | [active / archived (date) / none] | [N] | [N] | [Low/Med/High] |
+| 2 | [Title] | [Classification] | [active / archived (date) / none] | [N] | [N] | [Low/Med/High] |
 
 ---
 Start follow-up work by opening the first recommendation file and using it

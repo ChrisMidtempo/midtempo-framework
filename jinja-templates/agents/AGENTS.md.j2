@@ -152,6 +152,10 @@ These handle specific work types outside the main workflow.
 | refactor, clean, simplify, tidy       | `/midtempo-framework/refactor.md`    | Improve structure, keep behaviour | Tests green       |
 | refine, tweak, fix                 | `/midtempo-framework/refine.md`   | Refine delivered feature          | Design doc exists |
 | build e2e, e2e tests, write e2e, end-to-end | `/midtempo-framework/build-e2e.md` | Build E2E tests post-delivery     | Design doc exists |
+{% if capabilities.hasMutationTesting %}
+| run mutation testing, mutation test, mutate | `/midtempo-framework/mt.md` | Pre-triage: scope, run, capture, cluster, sort | None |
+| mutation triage, triage mutations, mt-fix | `/midtempo-framework/mt-fix.md` | Triage + inline fix + ratchet + complete | mt.md run first |
+{% endif %}
 
 ### 4.3 Review Skills
 

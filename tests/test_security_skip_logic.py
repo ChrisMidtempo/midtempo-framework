@@ -15,6 +15,8 @@ Gate 6: Happy path and boundary conditions covered → VALID
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 from scripts.generate_docs import _should_skip_template
 
 
@@ -270,6 +272,63 @@ class TestSecuritySecretsManagementUniversal:
 
         # Then: Should NOT skip
         assert result is False
+
+
+class TestMutationTestingSkip:
+    """Test mutation testing templates skip when hasMutationTesting=false. (T1.6, T1.7)"""
+
+    MUTATION_TESTING_PATHS = [
+        "agents/mt",
+        "agents/mt-fix",
+        "templates/mt-session",
+        "rules/mutation-testing",
+    ]
+
+    @pytest.mark.parametrize(
+        "template_path_str",
+        [
+            "agents/mt",
+            "agents/mt-fix",
+            "templates/mt-session",
+            "rules/mutation-testing",
+        ],
+    )
+    def test_skips_mutation_testing_templates_when_flag_false(self, template_path_str):
+        """_should_skip_template returns True for each mutation testing path when hasMutationTesting: false. (T1.6, B5)"""
+        from tests.helpers.config_factory import create_valid_config
+
+        config = create_valid_config(capabilities={"hasMutationTesting": False})
+        template_path = Path(f"{template_path_str}.md.j2")
+
+        result = _should_skip_template(template_path, config)
+
+        assert result is True, (
+            f"_should_skip_template returned False for '{template_path_str}' "
+            "when hasMutationTesting=false — mutation testing templates must skip when flag is off"
+        )
+
+    @pytest.mark.parametrize(
+        "template_path_str",
+        [
+            "agents/mt",
+            "agents/mt-fix",
+            "templates/mt-session",
+            "rules/mutation-testing",
+        ],
+    )
+    def test_generates_mutation_testing_templates_when_flag_true(self, template_path_str):
+        """_should_skip_template returns False for each mutation testing path when hasMutationTesting: true. (T1.7, B6)"""
+        from tests.helpers.config_factory import create_valid_config
+
+        config = create_valid_config(capabilities={"hasMutationTesting": True})
+        template_path = Path(f"{template_path_str}.md.j2")
+
+        result = _should_skip_template(template_path, config)
+
+        assert result is False, (
+            f"_should_skip_template returned True for '{template_path_str}' "
+            "when hasMutationTesting=true — mutation testing templates must generate when flag is on"
+        )
 
 
 class TestExistingSkipLogicUnchanged:

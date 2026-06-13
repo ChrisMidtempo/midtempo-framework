@@ -222,3 +222,23 @@ class TestIndexHtmlStage6:
         """index.html contains form-hasUI, confirming capability checkboxes are added to #form-panel. (T2.1, B4)"""
         content = HTML_FILE.read_text()
         assert "form-hasUI" in content, 'data-testid="form-hasUI" not present in index.html'
+
+
+class TestHasMutationTestingCheckbox:
+    """Tests for hasMutationTesting checkbox in ui/index.html. (T5.1, T5.2)"""
+
+    def test_has_mutation_testing_checkbox_testid_present(self):
+        """index.html contains hasMutationTesting checkbox with correct data-testid. (T5.1, B12)"""
+        content = HTML_FILE.read_text()
+        assert 'data-testid="form-hasMutationTesting"' in content, (
+            'data-testid="form-hasMutationTesting" not present in index.html — '
+            "add checkbox to Capabilities fieldset after form-hasAuthentication label"
+        )
+
+    def test_has_mutation_testing_checkbox_label_text(self):
+        """index.html contains label text 'My service uses mutation testing'. (T5.2, B12)"""
+        content = HTML_FILE.read_text()
+        assert "My service uses mutation testing" in content, (
+            "'My service uses mutation testing' label text not present in index.html — "
+            "add label text alongside the hasMutationTesting checkbox"
+        )

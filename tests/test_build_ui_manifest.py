@@ -46,7 +46,9 @@ class TestBuildUiManifest:
         ).exists(), "languages.json was not created"
         content = json.loads((tmp_path / "ui" / "json" / "languages.json").read_text())
         assert "python" in content
-        entries = content["python"]
+        lang_data = content["python"]
+        assert isinstance(lang_data, dict)
+        entries = lang_data["commands"]
         assert isinstance(entries, list)
         # Every entry has required keys
         for entry in entries:
@@ -114,10 +116,10 @@ class TestBuildUiManifest:
         content = json.loads((tmp_path / "ui" / "json" / "languages.json").read_text())
         assert "python" in content
         assert "typescript" in content
-        assert isinstance(content["python"], list)
-        assert len(content["python"]) >= 1
-        assert isinstance(content["typescript"], list)
-        assert len(content["typescript"]) >= 1
+        assert isinstance(content["python"]["commands"], list)
+        assert len(content["python"]["commands"]) >= 1
+        assert isinstance(content["typescript"]["commands"], list)
+        assert len(content["typescript"]["commands"]) >= 1
 
     def test_skips_template_that_fails_to_parse_and_logs_warning(self, tmp_path, caplog):
         """build_ui_manifest() skips invalid templates, logs a warning, still processes valid ones."""
@@ -205,13 +207,124 @@ class TestBuildUiManifest:
 
         content = json.loads((tmp_path / "ui" / "json" / "languages.json").read_text())
         assert language in content, f"Expected '{language}' in languages.json"
-        entries = content[language]
+        entries = content[language]["commands"]
         categories = {e["category"] for e in entries}
         assert "test" in categories, f"'{language}' missing test command"
         assert "lint" in categories, f"'{language}' missing lint command"
         assert "typecheck" in categories, f"'{language}' missing typecheck command"
         for entry in entries:
             assert entry["command"] != "", f"Empty command in '{language}' entry: {entry['name']}"
+
+    def test_language_entry_has_commands_and_mutation_commands_keys(self, tmp_path):
+        """build_ui_manifest() wraps each language in {commands: [...], mutationCommands: {...}}."""
+        commands_dir = tmp_path / "commands"
+        commands_dir.mkdir()
+        (commands_dir / "python.yml.j2").write_text(
+            "{{ base_config }}\ncommands:\n"
+            "  test:\n    command: pytest\n    description: Run all tests\n    category: test\n"
+        )
+
+        with mock.patch("scripts.build_ui_manifest.PROJECT_ROOT", tmp_path):
+            build_ui_manifest()
+
+        content = json.loads((tmp_path / "ui" / "json" / "languages.json").read_text())
+        assert "python" in content
+        lang_data = content["python"]
+        assert isinstance(lang_data, dict), "language entry must be a dict with 'commands' and 'mutationCommands'"
+        assert "commands" in lang_data
+        assert "mutationCommands" in lang_data
+        assert isinstance(lang_data["commands"], list)
+        assert isinstance(lang_data["mutationCommands"], dict)
+
+    def test_extracts_single_mutation_command_stub_into_mutation_commands(self, tmp_path):
+        """build_ui_manifest() extracts a commented mutate stub into mutationCommands."""
+        commands_dir = tmp_path / "commands"
+        commands_dir.mkdir()
+        (commands_dir / "python.yml.j2").write_text(
+            "{{ base_config }}\ncommands:\n"
+            "  test:\n    command: pytest\n    description: Run all tests\n    category: test\n"
+            "\n"
+            "  # mutate:\n"
+            "  #   command: mutmut run\n"
+            "  #   description: Run mutation tests\n"
+            "  #   category: test\n"
+        )
+
+        with mock.patch("scripts.build_ui_manifest.PROJECT_ROOT", tmp_path):
+            build_ui_manifest()
+
+        content = json.loads((tmp_path / "ui" / "json" / "languages.json").read_text())
+        mutation_cmds = content["python"]["mutationCommands"]
+        assert "mutate" in mutation_cmds
+        assert mutation_cmds["mutate"]["command"] == "mutmut run"
+        assert mutation_cmds["mutate"]["description"] == "Run mutation tests"
+        assert mutation_cmds["mutate"]["category"] == "test"
+
+    def test_extracts_mutate_and_mutate_diff_stubs_for_typescript_style_language(self, tmp_path):
+        """build_ui_manifest() extracts both mutate and mutate_diff stubs when both are present."""
+        commands_dir = tmp_path / "commands"
+        commands_dir.mkdir()
+        (commands_dir / "typescript.yml.j2").write_text(
+            "{{ base_config }}\ncommands:\n"
+            "  test:\n    command: npm test\n    description: Run all tests\n    category: test\n"
+            "\n"
+            "  # mutate:\n"
+            "  #   command: npx stryker run\n"
+            "  #   description: Run mutation tests\n"
+            "  #   category: test\n"
+            "\n"
+            "  # mutate_diff:\n"
+            "  #   command: npx stryker run --since HEAD~1\n"
+            "  #   description: Run mutation tests on changed files since last commit\n"
+            "  #   category: test\n"
+        )
+
+        with mock.patch("scripts.build_ui_manifest.PROJECT_ROOT", tmp_path):
+            build_ui_manifest()
+
+        content = json.loads((tmp_path / "ui" / "json" / "languages.json").read_text())
+        mutation_cmds = content["typescript"]["mutationCommands"]
+        assert "mutate" in mutation_cmds
+        assert mutation_cmds["mutate"]["command"] == "npx stryker run"
+        assert "mutate_diff" in mutation_cmds
+        assert mutation_cmds["mutate_diff"]["command"] == "npx stryker run --since HEAD~1"
+
+    def test_mutation_commands_empty_when_no_stubs_in_template(self, tmp_path):
+        """build_ui_manifest() produces empty mutationCommands when template has no mutation stubs."""
+        commands_dir = tmp_path / "commands"
+        commands_dir.mkdir()
+        (commands_dir / "go.yml.j2").write_text(
+            "{{ base_config }}\ncommands:\n"
+            "  test:\n    command: go test ./...\n    description: Run all tests\n    category: test\n"
+        )
+
+        with mock.patch("scripts.build_ui_manifest.PROJECT_ROOT", tmp_path):
+            build_ui_manifest()
+
+        content = json.loads((tmp_path / "ui" / "json" / "languages.json").read_text())
+        assert content["go"]["mutationCommands"] == {}
+
+    def test_mutation_command_with_inline_yaml_comment_in_command_value(self, tmp_path):
+        """build_ui_manifest() strips inline YAML comment from command value in mutation stub."""
+        commands_dir = tmp_path / "commands"
+        commands_dir.mkdir()
+        (commands_dir / "python.yml.j2").write_text(
+            "{{ base_config }}\ncommands:\n"
+            "  test:\n    command: pytest\n    description: Run all tests\n    category: test\n"
+            "\n"
+            '  # mutate:\n'
+            '  #   command: "mutmut run"  # not validated; review before use\n'
+            "  #   description: Run mutation tests\n"
+            "  #   category: test\n"
+        )
+
+        with mock.patch("scripts.build_ui_manifest.PROJECT_ROOT", tmp_path):
+            build_ui_manifest()
+
+        content = json.loads((tmp_path / "ui" / "json" / "languages.json").read_text())
+        mutation_cmds = content["python"]["mutationCommands"]
+        assert "mutate" in mutation_cmds
+        assert mutation_cmds["mutate"]["command"] == "mutmut run"
 
     @pytest.mark.integration
     def test_integration_produces_valid_json_from_real_commands_dir(self, tmp_path):
@@ -231,10 +344,14 @@ class TestBuildUiManifest:
         assert isinstance(content, dict)
         # At least python is present
         assert "python" in content
-        # Each language maps to a non-empty list
-        for language, entries in content.items():
-            assert isinstance(entries, list), f"{language} entries should be a list"
-            assert len(entries) > 0, f"{language} entries should not be empty"
+        # Each language maps to a dict with commands and mutationCommands
+        for language, lang_data in content.items():
+            assert isinstance(lang_data, dict), f"{language} entry should be a dict"
+            assert "commands" in lang_data, f"{language} missing 'commands' key"
+            assert "mutationCommands" in lang_data, f"{language} missing 'mutationCommands' key"
+            entries = lang_data["commands"]
+            assert isinstance(entries, list), f"{language} commands should be a list"
+            assert len(entries) > 0, f"{language} commands should not be empty"
             # Each entry has required keys and no empty command
             for entry in entries:
                 assert "name" in entry

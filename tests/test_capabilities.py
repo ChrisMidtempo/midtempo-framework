@@ -86,6 +86,53 @@ def test_empty_registry_edge_case():
     assert isinstance(derived, dict)
 
 
+class TestHasMutationTestingCapabilityEntry:
+    """Tests for hasMutationTesting entry in the CAPABILITIES registry. (T1.1-T1.5)"""
+
+    MUTATION_TESTING_PATHS = [
+        "agents/mt",
+        "agents/mt-fix",
+        "templates/mt-session",
+        "rules/mutation-testing",
+    ]
+
+    def test_has_mutation_testing_default_is_false(self):
+        """hasMutationTesting CAPABILITIES entry has default False. (T1.1, B1)"""
+        assert CAPABILITIES["hasMutationTesting"]["default"] is False
+
+    def test_has_mutation_testing_description_is_non_empty(self):
+        """hasMutationTesting CAPABILITIES entry has a non-empty description. (T1.2, B1)"""
+        description = CAPABILITIES["hasMutationTesting"]["description"]
+        assert isinstance(description, str)
+        assert len(description) > 0
+
+    def test_all_four_mutation_testing_paths_in_template_skip_rules(self):
+        """All four mutation testing template paths present in TEMPLATE_SKIP_RULES. (T1.3, B2)"""
+        for path in self.MUTATION_TESTING_PATHS:
+            assert path in TEMPLATE_SKIP_RULES, (
+                f"'{path}' not found in TEMPLATE_SKIP_RULES — "
+                "path strings must match actual template paths used by the rendering loop"
+            )
+
+    def test_each_mutation_testing_skip_rule_maps_to_has_mutation_testing(self):
+        """Each mutation testing TEMPLATE_SKIP_RULES entry maps to 'hasMutationTesting'. (T1.4, B2)"""
+        for path in self.MUTATION_TESTING_PATHS:
+            value = TEMPLATE_SKIP_RULES[path]
+            assert value == "hasMutationTesting", (
+                f"TEMPLATE_SKIP_RULES['{path}'] == {value!r}, expected 'hasMutationTesting' — "
+                "wrong capability key causes skip on the wrong flag"
+            )
+
+    def test_mutation_testing_skip_rule_values_reference_valid_capability_key(self):
+        """Each mutation testing skip rule value references a valid CAPABILITIES key. (T1.5, B3)"""
+        for path in self.MUTATION_TESTING_PATHS:
+            cap_key = TEMPLATE_SKIP_RULES[path]
+            assert cap_key in CAPABILITIES, (
+                f"TEMPLATE_SKIP_RULES['{path}'] = '{cap_key}' is not a key in CAPABILITIES — "
+                "missing capability key causes silent always-skip"
+            )
+
+
 class TestTemplateSkipRules:
     """Test TEMPLATE_SKIP_RULES constant structure and integrity."""
 

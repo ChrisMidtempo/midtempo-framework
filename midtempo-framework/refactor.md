@@ -82,7 +82,7 @@ Refactoring improves the internal structure of the code **without changing its e
 - You MUST ensure architectural, UI, and import-layer rules remain valid after refactor
 - You MUST provide at least one positive observation in any Refactor Report output
 - You MUST present refactor report to human and await approval before executing
-- You MUST, when invoked standalone, update the feature design doc with refactor outcomes before producing exit output — also update the recommendation document if one was provided
+- You MUST, when invoked standalone, reconcile the design doc's §3.3 Architecture/component sections in place and add one Change History row before producing exit output — also update the recommendation document if one was provided
 
 </CRITICAL_REQUIREMENT>
 
@@ -113,7 +113,32 @@ READ ALL of `/midtempo-framework/instructions/purpose.md` → before proceeding
 READ ALL of `/midtempo-framework/instructions/architecture.md` → before proceeding
 READ ALL of `/midtempo-framework/instructions/error-handling.md` → before proceeding
 
-READ ALL of `/planning/[feature-name]-design.md` → to understand feature intent
+FIND design document:
+
+STEP 1: Check for explicit reference
+  IF the user's message or any supporting document contains a `planning/[path]-design.md` path
+    → Use that path directly — skip remaining steps
+
+STEP 2: Derive slug and glob
+  Determine the most granular noun phrase that captures the exact subject of the request
+  (e.g. "avatar-upload" not "avatar", "pagination-offset" not "pagination")
+  Glob `planning/**/*[slug]*-design.md`
+
+STEP 3: Resolve
+  IF exactly one match → use it
+  IF multiple matches → present the list: "I found multiple matching design documents — which applies?"
+    → Wait for human to select before proceeding
+  IF zero matches
+    → STOP: "I could not locate the design document. Please provide the path."
+    → Wait for human response before proceeding
+
+
+CONFIRM the located design doc owns the refactored code:
+  READ its §2.2 Explicitly Out of Scope.
+  IF the refactor restructures code in a layer §2.2 excludes
+    → STOP: "This refactor changes [layer], which this design doc marks out of scope.
+       Which design doc owns it?"
+    → Confirm the correct doc before reconciling it in §5.4.
 READ ALL of `/planning/[feature-name]-plan.md` → to understand delivery approach
 
 IF the current task involves UI
@@ -513,13 +538,14 @@ IF step breaks behaviour
 ```
 IF refactoring reveals a bug (logic error, dead code, unreachable branch):
   → DO NOT fix the bug within the refactor skill
-  → APPEND to planning/[feature-name]-design.md under "## Bug Report" section:
-    - Date: [date]
-    - File: [file:line]
-    - Description: [what the bug is]
-    - Evidence: [how it was discovered during refactor]
-    - Severity: [blocking/non-blocking for refactor]
-  → Report to human: "Bug logged in design doc — route through bugs.md skill"
+  → ADD one row to the design doc's Change History table — nothing more:
+
+    | Date | Type | Summary | Commit |
+    |------|------|---------|--------|
+    | DD/MM/YYYY | refactor | [bug — file:line, severity] | [commit ref] |
+
+    The full trace lives in the bugs.md follow-up / commit, not the doc.
+  → Report to human: "Bug logged as a Change History row — route through bugs.md skill"
   → Continue refactoring unless bug makes refactor unsafe
 
 IF bug makes refactor unsafe (refactored code depends on buggy behaviour):
@@ -602,6 +628,28 @@ IF §5.3 Final Checklist all complete
 
 ### 5.4 Refactor Complete
 
+**Reconcile the design doc before declaring complete.**
+
+IF invoked as a sub-skill of deliver.md
+  → SKIP this gate — deliver.md owns documentation
+
+A refactor preserves behaviour but can restructure it — the design doc's §3.3 Architecture / component sections then describe a structure that no longer exists.
+
+1. IDENTIFY every §3.3 Architecture / component section the refactor restructured
+2. EDIT each in place so it describes the new structure
+3. IF a prior structural decision is now invalid → delete the stale text, never annotate it
+
+IF any affected §3.3 section still describes the old structure
+  → INVALID: STOP — reconcile the spec before producing exit output
+
+Record the change. Add one row to the design doc's Change History table — nothing more:
+
+| Date | Type | Summary | Commit |
+|------|------|---------|--------|
+| DD/MM/YYYY | refactor | [what was restructured — one line] | [commit ref] |
+
+The refactor rationale lives in the commit body, not the doc.
+
 <CRITICAL_REQUIREMENT type="MANDATORY">
 
 - You MUST produce this output after Exit Gate passes - include every section and field
@@ -637,7 +685,7 @@ Review refactors and commit.
 
  Or start a new conversation with:
 
- Phase 4 - use /midtempo-framework/deliver.md with /planning/[feature-name]-plan.md. Run Phase 4.
+ Phase 4 - use /midtempo-framework/deliver.md with /planning/[feature-name]-plan.md.
 
 ---
 ```

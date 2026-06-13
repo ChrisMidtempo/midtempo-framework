@@ -21,6 +21,7 @@ capabilities:
   hasAuthentication: true
   handlesConfidentialData: true
   isPublicFacing: true
+  hasMutationTesting: true
 
 
 # --------------------
@@ -166,6 +167,22 @@ commands:
     description: Generates JSON schema from configuration
     category: generate
 
+  # Mutation testing (example wiring using mutmut — swap for your repo's mutation tool)
+  mutate:
+    command: npm run mutate
+    description: Run the full mutation test suite over scripts/
+    category: mutation
+
+  mutate_diff:
+    command: npm run mutate:diff
+    description: Run mutation tests scoped to lines changed since HEAD
+    category: mutation
+
+  mutate_targeted:
+    command: npm run mutate:targeted
+    description: Run mutation tests on the supplied paths
+    category: mutation
+
 
 # --------------------
 # 7. INSTRUCTIONS
@@ -229,5 +246,5 @@ instructions:
 #     description: 'Public-facing security headers, CORS, and attack surface reduction'
 
 metadata:
-  generated_at: '2026-05-25T21:46:21.842815+00:00'
-  framework_version: 0.4.9
+  generated_at: '2026-06-13T15:50:17.093142+00:00'
+  framework_version: 0.5.2

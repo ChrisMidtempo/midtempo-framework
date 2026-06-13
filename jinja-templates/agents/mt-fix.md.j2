@@ -1,0 +1,875 @@
+# Mutation Testing — Triage + Fix (mt-fix.md)
+
+**Skill scope:** Triage + inline test fix + ratchet verdict + complete. Consumes the session file produced by `mt.md`.
+
+**Companion skill:** `/midtempo-framework/mt.md` (pre-triage — scope + run + capture + equivalent pre-pass + cluster + sort). Run `mt.md` first.
+
+---
+
+## Overview
+
+This skill runs the **triage + fix** half of an MT session:
+
+1. Reads `planning/mt-session.md` (produced by `mt.md`); requires `Status: ready-for-triage` or `triage-in-progress`.
+2. Per file (heuristic order by file-prior): analyse each cluster silently, present the finding to the human, apply the chosen action (inline test fix / ignore / push bug to manifest), verify, advance.
+3. Compute ratchet verdict at end of triage.
+4. Emit All Complete output; archive the session file.
+
+May edit test code inline. Never edits production code. Production-bug findings push to `planning/mt-fix-manifest.md` for later `bugs.md` follow-up.
+
+**Session-file schema:** see [`/midtempo-framework/templates/mt-session.md`](templates/mt-session.md). The template is authoritative for field definitions, section ownership, state enum, ID conventions (M-IDs, C-IDs, D-IDs, MT-IDs), and human manual-edit rules.
+
+**Outputs:**
+
+- Inline test edits verified by `{{ "test" | cmd }} <path>`
+- Bug entries appended to `planning/mt-fix-manifest.md`
+- Ratchet verdict written to `planning/mt-session.md`
+- Archived session: `planning/mt-session.md` → `planning/archive/mt-session-<timestamp>.md`
+- Copy-pasteable commit message + grouped-by-file bug-fix session suggestions
+
+**Not produced by this skill:**
+
+- Changes to production code, mutation-tool configuration, package manifests, or CI configuration
+- New mutation runs (those live in `mt.md`)
+
+---
+
+## Table of Contents
+
+- [Non-Negotiable Rules](#non-negotiable-rules)
+- [Entry Gate](#entry-gate)
+- [Step 1 — Resume to Next File](#step-1--resume-to-next-file)
+- [Step 2 — Per-cluster Analysis](#step-2--per-cluster-analysis)
+- [Step 3 — Present Cluster Finding](#step-3--present-cluster-finding)
+- [Step 4 — Action by Severity + Classification](#step-4--action-by-severity--classification)
+- [Step 5 — Inline Fix Process](#step-5--inline-fix-process)
+- [Step 6 — Per-file Write + Advance](#step-6--per-file-write--advance)
+- [Step 7 — Ratchet Verdict](#step-7--ratchet-verdict)
+- [Step 8 — All Complete Output](#step-8--all-complete-output)
+- [Fix Manifest Convention](#fix-manifest-convention)
+- [Anti-Patterns](#anti-patterns)
+- [Quick Reference](#quick-reference)
+
+---
+
+## Non-Negotiable Rules
+
+<CRITICAL_REQUIREMENT type="MANDATORY">
+
+- You MUST NOT change production code, mutation-tool configuration, package manifests, or CI configuration in this skill. Production-code findings are file-pushed to `planning/mt-fix-manifest.md` for follow-up via `bugs.md` in a separate conversation.
+- You MAY change test code inline ONLY when the human selects `Action: fix-now` (or `refine`) in Step 4. The inline-fix process (Step 5) mirrors `review-tests.md` Step 2 "Review + Fix Loop": identify the covering test, add the new test or strengthen the assertion, run `{{ "test" | cmd }} <path>` against the modified test file, confirm green, advance to the next cluster.
+- You MUST process every cluster as a `Read → think → Edit → next` loop on disk. Conversation context holds AT MOST one cluster's analysis + the file's cached design-section + the file's cached manifest-behaviour. Move to the next cluster ⇒ release the prior cluster from context (it's on disk).
+- You MUST emit exactly ONE progress line per file batch — after every cluster in the current file has been processed and the file's outcomes are written. The format is: "File <path>: <N> fix-now / <I> ignored / <B> bugs-pushed + <P> discoveries pushed, <D> discarded (<C> clusters classified; <R> remaining files)". No mid-file progress lines, no prompts in progress lines.
+- You MUST present each cluster individually (Step 3) — never batch multiple findings into one prompt. The human confirms or overrides per cluster, mirroring `review-tests.md` §2 "Review + Fix Loop".
+- You MUST resolve every real-test-gap cluster as either `fix-now` (inline edit + verify) or `ignore` (rationale recorded; stays in ratchet denominator) or reclassified to `bug`/`equivalent`. There is no defer-to-later for test gaps — the only manifest entries are production bugs.
+- You MUST perform per-cluster analysis (read the head's file at `<file:line>`, the design doc, the test manifest) and produce the structured finding (Context, Observable-behaviour analysis, Why-this-matters, Recommendation, Severity, Proposed classification, Proposed action) BEFORE asking the human to confirm. The human confirms or overrides; the human does not re-derive.
+- You MUST classify every surviving mutant before Status can move to `triage-complete` — either directly (head) or by inheritance (linked). Skipping is forbidden.
+- You MUST honour `split <M-ID>` overrides by removing the listed mutant(s) from their cluster, returning them to the head of the unclassified queue as single-member clusters; each split mutant becomes its own cluster — no re-grouping with other mutants.
+- You MUST check the open fix manifest for scope duplicates (Step 2) and propose `link MT-<ID>` instead of creating a new entry when the head's file:line is within ±10 of an existing entry's head AND classification matches.
+- You MUST record a one-line rationale for every `ignore` action, every reclassification, and every `equivalent` mutant.
+- You MUST surface any cluster head marked `Likely-equivalent: borderline` in Stage 1 (`mt.md` 5.2) — present the borderline flag + 5.2 rationale in Step 3's finding. Human's classification override is the resolution.
+- You MUST surface every production bug your per-cluster analysis discovers at a file:line OTHER than the current cluster's mutant. Surface them as `Side findings discovered:` in Step 3 presentation AND log them to the session file's `## Discoveries` section with `Status: logged` as part of per-cluster persistence. Discoveries are triaged per file at Step 6 (push / review / discard), with a defensive sweep at Step 7.5 for any `Status: logged` entries that weren't reviewed. Recording a discovery in conversation reasoning without writing it to the session file is forbidden.
+- You MUST run only the exact command `{{ "test" | cmd }} <path>` (test verification after a fix-now inline fix). The path is human-supplied or session-resolved scope data, not an agent-invented flag.
+- You MUST write `planning/mt-session.md` to disk after every cluster classification (per-cluster persistence). Per-file write happens at the end of the file batch (Step 6).
+- You MUST update the `## Current Batch` pointer at the top of the session file after every file batch (Step 6) — this pointer is the single point of truth for resume. Every resume reads ONLY this pointer + the named file's cluster heads; never the whole `## Surviving Mutants` list.
+- You MUST use section-targeted reads — never load the full design doc, full test manifest, or full session file when a named section will do. Step 2 reads only the section covering the current cluster's file on demand.
+- You MUST NOT re-read content already in this conversation's context. If a prior cluster in this session loaded a design-doc section or test-manifest behaviour and the current cluster's file is covered by the same section, reuse — do not re-read.
+- You MUST update `## Status` at every transition (first classification → triage-in-progress; Step 7 verdict written → triage-complete).
+- You MUST NOT invoke `bugs.md`, `write-tests.md`, `fix-tests.md`, or any other framework skill inline. Bug-manifest items are addressed in dedicated conversations later. `fix-now` is handled by this skill itself (test edits) — no skill handoff.
+- You MUST NOT use "[enter] to accept" or any keystroke-based convention. Every confirmation prompt uses explicit polarity: `yes` accepts, typing an override changes the proposed value.
+
+</CRITICAL_REQUIREMENT>
+
+---
+
+## Entry Gate
+
+State drives mode. Reads are **targeted by section** — do NOT load `## Surviving Mutants` in full.
+
+```
+TARGETED READ planning/mt-session.md sections `## Status` and `## Current Batch`
+  (file may not exist — that is fresh-start)
+
+IF file does not exist
+  → REDIRECT — emit one line and STOP:
+    "No MT session in progress. Start with:
+       Run mutation testing using /midtempo-framework/mt.md"
+
+ELSE read the `## Status` field
+
+  IF Status: kickoff | running | captured
+    → REDIRECT — pre-triage hasn't finished yet. Emit one line and STOP:
+      "Pre-triage not complete (Status: <status>). Run:
+         Run mutation testing using /midtempo-framework/mt.md"
+
+  IF Status: ready-for-triage
+    → GOTO Step 1 — start at the first file batch.
+
+  IF Status: triage-in-progress
+    → GOTO Step 1 — resume at the next file with unclassified clusters.
+
+  IF Status: triage-complete
+    → GOTO Step 8 (All Complete Output) — emit once and STOP.
+```
+
+Triage may classify multiple file batches in one conversation. Each loop is Step 1 → 2 → 3 → 4 (→ 5) → 6. The skill stays in the loop until either (a) every file batch is classified — advance to Step 7, or (b) the human exits the conversation. The next conversation resumes from `Status: triage-in-progress` + the Current Batch pointer.
+
+**Discipline (applies to every step):**
+
+- **Read → think → Edit → next, per cluster.** Conversation context holds AT MOST one cluster's analysis + the file's cached design-section + the file's cached manifest-behaviour. Move to next cluster ⇒ release the prior cluster from context (it's on disk).
+- **One progress emission per file batch completion.** After all clusters in a file are processed, emit one line. No mid-file progress emissions.
+- **Borderline-from-mt.md surfacing.** Any cluster head carrying `Likely-equivalent: borderline` in the session file MUST be flagged in Step 3 — it is by definition unresolved.
+
+---
+
+## Step 1 — Resume to Next File
+
+```
+READ `## Current Batch` from the session file.
+TARGETED READ cluster heads: in `## Surviving Mutants`, load only the `Next:` file's block — do not read other files' cluster entries.
+
+IF Remaining files list is empty
+  → All file batches triaged. GOTO Step 7 (Ratchet Verdict).
+
+ELSE
+  → CURRENT file batch = the `Next:` file
+  IF the Entry Gate read Status: triage-in-progress
+    → EMIT resume line (one line to human):
+        "Resuming triage at <Next: file> — <N> of <total> files classified; <R> files remaining."
+  → Identify all clusters in that file whose head's `Classification:`
+    reads `unclassified` — these form the current batch
+  → Continue to Step 2 for per-cluster analysis
+```
+
+---
+
+## Step 2 — Per-cluster Analysis (silent; head only; one cluster at a time)
+
+For the CURRENT cluster, the agent analyses the HEAD member. Reads are **section-targeted** and **conversation-cached** — never re-read content already in this conversation's context.
+
+```
+1. Read 5-10 lines around <file:line> in the head's production file.
+   (Skip re-read if a prior cluster's analysis already loaded these lines.)
+
+2. Test manifest (if loaded in mt.md 1.2 — only choice 1):
+   a. Use the file→behaviour index captured at mt.md 1.2 to find which
+      behaviour(s) name the head's file.
+   b. TARGETED READ only those behaviour blocks — never the whole manifest.
+   c. IF the same behaviour block is already in this conversation's
+      context (a prior cluster in the same file pulled it), reuse — do
+      not re-read.
+
+3. Design doc (if loaded in mt.md 1.2 — only choice 1):
+   a. From the §3 Architecture & Data section, identify which sub-section
+      covers the head's module.
+   b. TARGETED READ the section covering the head's file (e.g. §3.2 if
+      the head is in the Repository Pattern subsystem).
+   c. IF that section is already in this conversation's context, reuse.
+
+4. Borderline flag check — cluster head's `Likely-equivalent:` field:
+   IF value is `borderline`
+     → Note the flag and the 5.2 rationale — both are required fields
+       in the structured finding (step 5); carry them forward.
+   IF value absent or not `borderline` → continue.
+
+5. Derive the structured finding from what's now in context.
+```
+
+After deriving the finding, run two additional silent checks:
+
+```
+A. Manifest-dedup check:
+   - Compare the head's file:line + function (extracted from the read
+     lines in step 1) against open manifest-entry metadata loaded in
+     mt.md 1.2.
+   - IF the file matches AND the line is within ±10 of an existing entry's
+     head AND the Classification is the same → propose Action: link to
+     existing entry MT-<ID> rather than creating a new entry.
+
+B. Sub-class derivation (real-test-gap only):
+   - no-coverage      The mutated line is not exercised by any test
+                      (the mutation tool reports this from coverage data;
+                      if not available, the agent infers from "no test file
+                      named for this code path exists").
+   - new-behaviour    A test file exists and exercises the line, but the
+                      design doc / manifest does not name the behaviour
+                      the mutation reveals — manifest must be extended
+                      first, then a new test added.
+   - strengthen-assertion
+                      A test exists, the behaviour is named in the manifest,
+                      but the existing assertion is too loose to catch
+                      the mutation — tighten the assertion.
+
+   Sub-class drives the inline-fix shape: no-coverage and new-behaviour
+   add a new test; strengthen-assertion modifies an existing assertion.
+```
+
+Derived fields for Step 3 presentation:
+
+```
+Context              2-3 sentences: what the code does, what the
+                     mutation changes, what surrounding code constrains it
+Observable-behaviour YES | NO | SPEC-SILENT — with evidence from code +
+                     test manifest (primary) + design doc (secondary)
+Why this matters     one sentence: what breaks downstream if this gap is
+                     real ("no observable impact" if equivalent)
+Recommendation       one sentence: what to do (e.g. "add boundary test
+                     for delta == 0 — covers M3 specifically")
+Severity             blocking      — correctness gap; could ship a real bug
+                     recommended   — strengthens test quality; not critical
+                     nit           — cosmetic or naming
+Classification       NO            → equivalent mutant
+                     YES + manifest/design says original correct
+                                   → real test gap
+                     YES + manifest/design says mutant correct
+                                   → production bug
+                     SPEC-SILENT   → real test gap (default; the test
+                                     manifest is the contract — silence
+                                     means under-specified)
+Handoff scope        one short line: what the bugs.md follow-up must accomplish
+                     (production-bug only)
+```
+
+---
+
+## Step 3 — Present Cluster Finding (per-cluster loop; mirrors review-tests.md §2.3)
+
+For the current file, the skill processes its clusters one at a time. No batch prompt — each cluster gets its own present-then-act cycle.
+
+**Per cluster (in heuristic order within the file):**
+
+```
+File: <file:line>
+Mutator: <kind>
+Cluster: C<N>  (head M<N>; linked M<…>; enclosing function `<name>`)
+
+Original: `<code>`
+Mutated:  `<code>`
+
+{ IF head's Likely-equivalent: borderline (from mt.md 5.2) }
+Pre-pass flag: BORDERLINE
+  5.2 rationale: <one-line rationale from mt.md>
+  Human's classification override is the resolution.
+{ ENDIF }
+
+Problem:
+  <2-3 sentence analysis — what behaviour the mutation reveals is unverified>
+
+Why this matters:
+  <one sentence — what breaks downstream if this gap is real>
+
+Severity:        <blocking | recommended | nit>
+Classification:  <real test gap | production bug>
+Sub-class:       <no-coverage | new-behaviour | strengthen-assertion>   (real-test-gap only)
+
+Fix:
+  <exact code change OR test addition for the inline fix>
+
+Recommendation:
+  <one sentence — why this fix matters and how it ties to the spec>
+
+{ IF analysis surfaced production bug(s) at file:line(s) OTHER than this cluster's mutant }
+Side findings discovered:
+  - <file:line>  <severity> — <one-line problem>
+    Logged as D<N>; will be triaged at the end of this file batch (Step 6).
+  - <file:line>  <severity> — <one-line problem>
+    Logged as D<N+1>; …
+{ ENDIF }
+```
+
+**Per-cluster persistence requirement:** When a Side finding is surfaced, the agent writes a new entry to `## Discoveries` in the session file with `Status: logged` BEFORE prompting the human for the cluster's action. The discovery is captured on disk regardless of how the human responds to the cluster's action menu.
+
+---
+
+## Step 4 — Action by Severity + Classification
+
+Action menu varies by the agent's proposed classification + severity. The human's response is acted on immediately; no batch confirm.
+
+| Severity + Classification | Human options |
+|---|---|
+| **Blocking + real test gap** | `yes` (apply fix + verify) / `refine <new approach>` (human-supplied edit) / `bug <rationale>` (reclassify as production bug → push to manifest) |
+| **Recommended + real test gap** | `fix-now` / `ignore <rationale>` (record + advance) / `bug <rationale>` |
+| **Nit + real test gap** | `fix-now` / `ignore <rationale>` / `bug <rationale>` |
+| **Production bug (any severity)** | `yes` (push to manifest as proposed) / `gap <rationale>` (reclassify → severity-driven options reappear) / `equivalent <rationale>` (reclassify → record only) |
+| **Equivalent** | n/a — already handled by `mt.md` 5.3 |
+
+`split M<id> [M<id> …]` available on any cluster → remove listed mutants; return each to the head of the unclassified queue as a single-member cluster — no re-grouping with other mutants; re-present.
+
+**Action processing:**
+
+- `yes` / `fix-now` (on real test gap) → run Step 5 (Inline fix process). On verified pass: record `Action: fix-now`, `Fix applied: <test path>`, `Verification: passed`. On failure after retry: see Step 5 recovery.
+- `yes` (on production bug) → append a new entry to `planning/mt-fix-manifest.md` with the cluster's metadata; record `Action: bug-pushed`, `Manifest entry: MT-<YYYYMMDD>-<seq>`. Advance.
+- `refine <new approach>` → human supplies an alternative edit; agent applies it in Step 5 instead of the proposed fix. Same verification.
+- `ignore <rationale>` → record `Action: ignored` + rationale. Ignored mutants stay in the ratchet denominator (Step 7). Advance.
+- `bug <rationale>` → flip Classification to production bug; immediately push to manifest (same as `yes` on a production bug); record rationale.
+- `gap <rationale>` → flip Classification to real test gap; re-derive severity-driven options; re-prompt.
+- `equivalent <rationale>` → flip Classification to equivalent mutant; record `Action: recorded` + rationale. Advance.
+- `split M<id>` → return each listed mutant to the head of the unclassified queue as a single-member cluster; re-present.
+
+---
+
+## Step 5 — Inline Fix Process (invoked when Action: fix-now or refine) — mirrors review-tests.md Step 2
+
+```
+1. Identify the covering test:
+   a. Search for a test file whose path matches the production file
+      (mirror the production path under the project's test directory).
+   b. IF the test manifest is loaded, also check whether a behaviour names
+      the file/function — its "Given/When/Then" tells you what assertion
+      shape to write.
+   c. IF no covering test file exists → "add a new test" fix.
+      IF a covering test file exists → "strengthen assertion" fix.
+
+2. Apply the fix:
+   - Resume guard: IF the session file shows this cluster still `unclassified`
+     but the covering test file already contains the fix → skip re-application;
+     proceed directly to step 3.
+   - On `yes` / `fix-now`: apply the proposed Fix from Step 3.
+   - On `refine <new approach>`: apply the human's alternative edit.
+   - Add new test: write a test exercising the mutated boundary/condition
+     /logic, asserting on the observable behaviour from Step 2.
+   - Strengthen assertion: tighten the existing assertion so the mutant
+     would have been killed.
+
+3. Verify:
+   - Run `{{ "test" | cmd }} <path-to-modified-test-file>`.
+   - IF exit 0 → fix verified. Record on the head:
+       Action: fix-now
+       Fix applied: <test file path>
+       Verification: passed
+   - IF non-zero → surface failure to human:
+       "Fix verification failed. Options:
+          retry <new approach>   try a different fix and re-verify
+          ignore <rationale>     flip Action to ignored and advance
+                                 (Ignored mutants count against the ratchet —
+                                  use only when the fix genuinely isn't worth it)
+          revert                 undo the edit; re-present the cluster with
+                                 the original options"
+     WAIT for choice; act accordingly.
+
+4. GOTO Step 6 (advance to next cluster, or per-file write if last).
+```
+
+A single inline fix may kill the head's mutant AND all linked members (same enclosing function ⇒ likely same root cause). The skill does not re-run the mutation tool to confirm — the human trusts that the test addition catches the shared pattern.
+
+---
+
+## Step 6 — Per-file Write + Advance
+
+```
+Per-cluster: write each cluster's outcome to planning/mt-session.md
+immediately after its action is processed (do not batch).
+  - HEAD: full classification + action + (if fix-now) Fix applied
+    + Verification.
+  - LINKED: `Linked to: M<head-id>` + inherited classification + action.
+  - Manifest update (production bug pushes): append one entry per cluster
+    with Action: bug-pushed → MT-<YYYYMMDD>-<seq>.
+
+After EVERY cluster in the current file has been processed:
+
+1. UPDATE the running override counters on each processed head row:
+     Classification proposed/accepted, Severity proposed/accepted,
+     Action proposed/accepted, Sub-class proposed/accepted.
+
+2. **Discovery review for this file** (only if any cluster in this file
+   logged discoveries to `## Discoveries`):
+
+   Read all `## Discoveries` entries whose `Discovered during:` field
+   references a cluster in the just-finished file AND `Status: logged`.
+
+   Present:
+
+   ```
+   SIDE FINDINGS DISCOVERED IN <file>:
+
+     D<N> — <file:line>  (from C<N>) <severity> — <one-line problem>
+     D<N+1> — <file:line>  (from C<N>) <severity> — <one-line problem>
+
+   Action options:
+     push              push ALL listed as new manifest entries; mark
+                       each D-ID Status: pushed; add Manifest entry
+     review            walk through each individually
+                       (per-D-ID prompt: push <rationale> / discard <rationale>)
+     discard           preserve in archive only; mark each D-ID
+                       Status: discarded; require a one-line rationale
+   ```
+
+   WAIT for the human's reply.
+
+   - `push` → For each D-ID, append a new entry to
+     `planning/mt-fix-manifest.md` with the discovery's file:line +
+     severity + problem (Handoff scope refined later in bugs.md).
+     Edit each D-ID's `Status: pushed` and `Manifest entry: MT-<...>`.
+   - `review` → loop: present each D-ID; human types
+     `push <rationale>` or `discard <rationale>`; act accordingly.
+   - `discard` → prompt once for the one-line rationale; apply to all.
+
+3. UPDATE `## Current Batch` at the top of the session file:
+     Next: <next file> (<N> unclassified clusters)  (or "—" if none left)
+     Progress: <N+1> of <total> files classified
+       Cluster-level outcomes: fix-now <N> | ignored <N> | bugs-pushed <N>
+                               equivalent (from mt.md) <N>
+       Discoveries this file:  pushed <P>, discarded <D>
+     Remaining files: <list>
+4. Set `## Status: triage-in-progress`.
+5. Emit progress (one line):
+
+   "File <path>: <N> fix-now / <I> ignored / <B> bugs-pushed
+     + <P> discoveries pushed, <D> discarded
+     (<C> clusters classified; <R> remaining files)"
+
+6. IF this was the last file → GOTO Step 7.
+   ELSE → GOTO Step 1 for the next file.
+```
+
+The Current Batch pointer is the single point of truth for resume — every later conversation reads only this pointer + the named file's cluster heads, not the whole session file.
+
+### Triage exit criteria
+
+Every cluster head Classified (none `unclassified`); every linked member has `Linked to: M<head-id>` plus inherited Classification + Action; every real-test-gap cluster has Action ∈ {fix-now, ignored, bug-pushed}; every production-bug cluster has Action = bug-pushed (with Manifest entry); every equivalent cluster has a Rationale (recorded in `mt.md` 5.3); every `ignored` action has a Rationale; Status: triage-in-progress at all intermediate points; on Step 7 entry, Status: triage-complete.
+
+---
+
+## Step 7 — Ratchet Verdict
+
+### 7.1 Compute effective score
+
+```
+real_count        = count of mutants classified `real test gap` or `production bug`
+                    (ignored mutants are INCLUDED — `ignore` means "noted not
+                     acting", not a free pass on test quality)
+equivalent_count  = count of mutants classified `equivalent mutant`
+                    (only category excluded from denominator)
+kills_count       = killed mutants from `## Run Results` (mutation report)
+
+effective_score = kills_count / (kills_count + real_count)        # equivalent excluded only
+```
+
+### 7.2 Verdict
+
+```
+IF previous-session score is "none" (first session)
+  → Verdict: BASELINE — first session sets the bar; no pass/fail
+ELSE
+  IF effective_score >= previous_session_score
+    → Verdict: PASS
+  ELSE
+    → Verdict: FAIL
+```
+
+EMIT to the human before the Step 7.3 prompt — and before writing the
+verdict to the session file (7.4):
+
+  RATCHET VERDICT
+    Effective score (this session):  <X%>
+    Effective score (previous):      <X% or "—">
+    Delta:                           <±X pp>
+    Verdict:                         <BASELINE | PASS | FAIL>
+
+> **Regression vs scope-diff noise.** Comparison is approximate — scopes differ session-to-session. The verdict reports the delta numerically; the human decides whether a small delta (e.g. ≤3pp) is signal or noise and whether it warrants action.
+
+### 7.3 Re-baseline (human option)
+
+```
+HUMAN DECISION (only if Verdict: FAIL or human explicitly invokes)
+
+  keep                  proceed with FAIL recorded
+  rebaseline <one line> treat this session's effective score as the new
+                        previous-session score; rationale mandatory
+```
+
+### 7.4 Write Ratchet Verdict to the session file
+
+Populate `## Ratchet Verdict` with per-class counts, action counts (fix-now / ignored / bugs-pushed), effective score, previous-session score, delta, verdict, and re-baseline rationale (if applied).
+
+### 7.5 Defensive sweep — unreviewed discoveries
+
+```
+READ `## Discoveries` from the session file.
+FILTER for entries where `Status: logged` (not pushed, not discarded).
+
+IF the filtered list is empty
+  → Skip. Continue to Step 8.
+
+ELSE present:
+```
+
+```
+DEFENSIVE SWEEP — unreviewed discoveries from earlier conversations
+
+These were logged during per-cluster analysis but never reviewed at the
+file batch's Step 6 prompt (likely because the earlier conversation
+ended between cluster classification and the Step 6 review).
+
+  D<N> — <file:line>  (from C<N>, conversation <YYYY-MM-DD HH:MM>)
+    <severity> — <one-line problem>
+    Re-read the originating cluster's block in the session archive if
+    you need the analysis rationale.
+
+  D<N+1> — <file:line>  (from C<N>, conversation <YYYY-MM-DD HH:MM>)
+    …
+
+Action options:
+  push all              push every unreviewed discovery as a new manifest entry
+  push D<N> D<N+1>      push listed; discard the rest with a default rationale
+  discard all           preserve in archive only; mark each Status: discarded
+                        (requires a single one-line rationale applied to all)
+  review                walk through each individually
+```
+
+WAIT for the human's reply. Apply the same processing as Step 6's discovery review (push appends to manifest; discard records rationale; review prompts per D-ID).
+
+The defensive sweep is usually empty — most conversations exit cleanly at Step 6. When it isn't, this is the final chance to push a discovered bug before archive.
+
+### Step 7 exit criteria
+
+Effective score + Verdict (BASELINE / PASS / FAIL) recorded; re-baseline decision recorded if Verdict: FAIL; all `## Discoveries` entries have `Status: pushed` or `Status: discarded` (none `Status: logged`); Status: triage-complete.
+
+---
+
+## Step 8 — All Complete Output
+
+<CRITICAL_REQUIREMENT type="MANDATORY">
+
+- You MUST produce this output exactly. Do not skip, paraphrase, or omit any section.
+- You MUST set Status: triage-complete and archive the session file before exiting.
+- You MUST prompt the human about design-doc updates when any blocking-severity production bug was recorded.
+
+</CRITICAL_REQUIREMENT>
+
+### 8.1 Design-doc review (conditional)
+
+```
+IF ≥1 mutant with Classification: production bug AND Severity: blocking
+  → Record an Open-Handoffs entry:
+    "Review design doc <path> — blocking bug(s) imply gaps in §1/§2/§3/§4.
+     Mutants: <M-IDs>. Open the doc and update if the assumptions changed."
+ELSE
+  → Skip 8.1.
+```
+
+### 8.2 Archive
+
+```
+1. Set Status: triage-complete in planning/mt-session.md
+2. Move file to planning/archive/mt-session-<YYYYMMDD-HHMM>.md
+3. Create planning/archive/ if absent
+```
+
+### 8.3 Emit the output
+
+```
+MT SESSION COMPLETE
+
+Resolved scope: <git range or path filter>
+Source design doc: <path or "—">
+Source test manifest: <path or "—">
+
+Run Results:
+  Mutation score (raw):  <X%>
+  Killed: <N> | Survived: <N> | Runtime: <Xh Xm>
+
+Triage classifications:
+  Real test gaps:   <N>
+  Equivalent:       <N>
+  Production bugs:  <N>
+
+Triage actions:
+  Fix-now applied:  <N>  (inline test edits verified by `{{ "test" | cmd }} <path>`)
+  Ignored:          <N>  (rationale recorded; stays in ratchet denominator)
+  Bugs pushed:      <N>  (production bugs queued in planning/mt-fix-manifest.md)
+
+Ratchet:
+  Effective score (this session):  <X%>
+  Effective score (previous):      <X% or "—">
+  Delta:                           <±X pp>
+  Verdict:                         <BASELINE | PASS | FAIL>
+  Re-baselined:                    <yes (rationale) | no>
+
+Archived: planning/archive/mt-session-<YYYYMMDD-HHMM>.md
+Fix manifest updated: <N entries appended> to planning/mt-fix-manifest.md
+
+COMMIT MESSAGE (copy/paste):
+─────────────────────────────────────────────────────────────────
+mt: session <YYYY-MM-DD> — <verdict>
+
+- Scope: <scope summary>
+- Real test gaps: <N> | Equivalent: <N> | Production bugs: <N>
+- Actions: fix-now <N> | ignored <N> | bugs-pushed <N>
+- Effective score: <X%> (Δ <±X pp> vs previous)
+─────────────────────────────────────────────────────────────────
+
+FIXES APPLIED THIS SESSION (inline):
+<for each fix-now mutant:>
+  Mutant M<N>: <test file path edited>          (Verification: passed)
+
+IGNORED THIS SESSION (rationale recorded; stays in ratchet denominator):
+<for each ignored mutant:>
+  Mutant M<N>: <rationale summary>
+
+BUGS PUSHED THIS SESSION — addressed via bugs.md in dedicated conversations:
+  New manifest entries: MT-<...> to MT-<...>
+  Prior-session entries linked (extended): MT-<...>, MT-<...>     (no new bodies)
+
+SUGGESTED BUG-FIX SESSIONS (grouped by file):
+  Group <A> — bugs.md on <file:function-or-region>  (covers N bug entries):
+    MT-<ID>, MT-<ID> → M<N>, M<N>, …
+  Group <B> — …
+
+<for each design-doc review prompt from 8.1:>
+DESIGN-DOC REVIEW:
+  Review design doc: <path>
+  Reason: blocking production bug(s) in this session (M-IDs in session archive)
+```
+
+---
+
+## Fix Manifest Convention
+
+`planning/mt-fix-manifest.md` is a cumulative aggregator of **production bugs only**, surviving across MT sessions. Test gaps are addressed inline in Step 5 (fix-now) or recorded as ignored — they do NOT land here. Step 4 appends bug entries on `Action: bug-pushed`; `bugs.md` (in a later conversation) closes them when each bug is investigated and fixed. `mt.md` Step 1 reads it (Open-section header + per-entry metadata only) for human awareness and dedup.
+
+### Format
+
+```
+# MT Fix Manifest
+
+## Open
+
+### MT-<YYYYMMDD>-<seq> — <one-line summary>
+- Source session: planning/archive/mt-session-<YYYYMMDD-HHMM>.md
+- Cluster head: M<head-id> at <file:line>
+- Cluster members: M<head-id>, M<id>, M<id>, …
+- Severity: <blocking | recommended | nit>
+- Classification: production bug    (test gaps are addressed inline; only bugs land here)
+- Route: bugs.md
+- Handoff scope: <one line — refined when bugs.md picks up the entry>
+- Status: open
+- Extended by (when later sessions link to this entry):
+    session <YYYYMMDD-HHMM>: + M<id>, M<id>, …  (from cluster C<N>)
+    session <YYYYMMDD-HHMM>: + M<id>, …
+
+## Closed
+
+### MT-<YYYYMMDD>-<seq> — <one-line summary>
+- (Same fields, plus:)
+- Status: closed — <commit SHA or PR link>
+- Closed: <YYYY-MM-DD>
+```
+
+Entry ID `MT-<YYYYMMDD>-<seq>` uses a per-day zero-padded counter starting at `01`. The skill never moves entries between Open and Closed.
+
+---
+
+## Anti-Patterns
+
+### AP-1 — Silent acceptance instead of confirmation
+
+**Failure mode:** Human skips the agent's Context / Observable-behaviour / Why-this-matters / Recommendation block and types `yes` without cross-checking the cited file:line. The agent's analysis earns confirmation — it does not replace human judgement.
+
+```
+INVALID:
+  [Agent presents the structured finding for M3 of 39]
+  Human (without reading): "yes"
+
+VALID:
+  Human reads the finding, cross-checks Context against the file at the
+  cited line, then either "yes" or types an override with a one-line rationale.
+```
+
+### AP-2 — Using `ignore` to make the ratchet pass
+
+The standard for ignore discipline — ignored mutants stay in the ratchet denominator, and every `ignore` needs a rationale that earns the decision — is defined in `/midtempo-framework/rules/mutation-testing.md` "Anti-Patterns" §1 and CG-MT-4. Operationally: at Step 4, reject a bare "low priority"; record why the mutant is acceptable to leave surviving, or fix it.
+
+### AP-3 — Re-baselining on every FAIL
+
+The standard for ratchet integrity — a FAIL is recorded and explained or acted on, and re-baseline is reserved for a stated scope change — is defined in `/midtempo-framework/rules/mutation-testing.md` "Anti-Patterns" §2 and CG-MT-5. Operationally: at Step 7.3, an empty re-baseline rationale is invalid; record the FAIL or state the scope change.
+
+### AP-4 — Manual `Action: ignored` on a blocking finding
+
+**Failure mode:** Step 4's action selector hides `ignore` when severity is blocking. Editing the session file manually to bypass the selector breaks the contract.
+
+```
+INVALID:
+  Severity: blocking
+  Action: ignored
+
+VALID (blocking test gap → fix-now is the only Action option):
+  Severity: blocking
+  Classification: real test gap
+  Action: fix-now
+  Fix applied: <path to covering test>
+  Verification: passed
+
+VALID (human believes the blocking gap is actually a production bug):
+  Severity: blocking
+  Classification: production bug         (reclassified via `bug <rationale>`)
+  Action: bug-pushed
+  Manifest entry: MT-20260601-04
+```
+
+### AP-5 — Silent side findings (discovery not surfaced or not logged)
+
+**Failure mode:** Per-cluster analysis surfaces a production bug at a file:line OTHER than the current cluster's mutant. The agent reasons through the discovery in conversation thinking, decides "I'll note this for the fix manifest", but neither (a) surfaces it as a `Side findings discovered:` line in the Step 3 presentation, nor (b) writes a `## Discoveries` entry to the session file. The cluster's own classification proceeds; the discovery is lost when the conversation ends.
+
+```
+INVALID:
+  [Agent's per-cluster analysis of C8 (M30/M31) concludes the cluster is
+   equivalent because the production code crashes earlier at <other-file>:<line>
+   on an unguarded property access (the parent object is undefined).]
+
+  Agent (in conversation thinking): "This is a production bug — note it
+   for the fix manifest."
+
+  Step 3 presentation:
+    Classification: equivalent mutant
+    [no Side findings discovered section]
+
+  Human: "equivalent <rationale>"
+  → Cluster recorded; the <other-file> bug never lands anywhere.
+
+VALID:
+  [Same analysis.]
+
+  Agent writes to ## Discoveries BEFORE presenting Step 3:
+
+    ### D7 — <other-file>:<line>
+    - Discovered during: cluster C8 (M30) in <current-file>
+    - Conversation: 2026-06-02 14:30
+    - Proposed severity: blocking
+    - Problem: a property is accessed on a parent object without guarding
+      that the parent exists. Runtime error when the parent is undefined.
+    - Why this matters: blocks reaching M30/M31; production crash for
+      any caller that passes an undefined parent.
+    - Status: logged
+
+  Step 3 presentation includes:
+    Side findings discovered:
+      - <other-file>:<line>  blocking — unguarded property access on a
+        possibly-undefined parent
+        Logged as D7; triaged at end of this file batch (Step 6).
+
+  Human handles the cluster; at Step 6, the discovery review prompts
+  for push / review / discard on D7.
+```
+
+The discovery MUST land in `## Discoveries` with `Status: logged` BEFORE the Step 3 prompt fires. If the human exits between Step 3 and Step 6 review, the discovery survives on disk for the Step 7.5 defensive sweep in a later conversation.
+
+### AP-6 — Ignoring a borderline-from-mt.md flag
+
+**Failure mode:** Step 3 presentation shows `Pre-pass flag: BORDERLINE (5.2 rationale: …)` and the human types `yes` without reading or addressing the borderline note. The borderline rationale exists because Stage 1 wasn't confident — it earns a deliberate decision.
+
+```
+INVALID:
+  [Cluster C8 head M36 — Pre-pass flag: BORDERLINE (writes to error file)]
+  Human: "yes"
+  (Action recorded as fix-now without reading the borderline note)
+
+VALID:
+  Human reads the 5.2 rationale, decides:
+    - "equivalent <reason>"  if the borderline doesn't matter after deeper look
+    - "yes" / "fix-now"      if there IS an observable gap (and notes why
+                              the borderline analysis was incomplete)
+    - "bug <reason>"         if the error-file-write path is actually
+                              important and the original is wrong
+```
+
+---
+
+## Quick Reference
+
+### Invocation
+
+```
+Run mutation testing using /midtempo-framework/mt-fix.md
+```
+
+Detects mode from `planning/mt-session.md` Status. Run `mt.md` first if the session hasn't been pre-triaged.
+
+### Commands
+
+```
+{{ "test" | cmd }} <path>                     # verify inline fix-now test edit
+```
+
+### Files
+
+```
+planning/mt-session.md                          — working session (shared with mt.md)
+planning/archive/mt-session-*.md                — completed sessions
+planning/mt-fix-manifest.md                     — production bugs queued for bugs.md
+planning/<feature>-design.md                    — developer intent (loaded by mt.md)
+planning/<feature>-tests.md                     — described behaviour (loaded by mt.md)
+/midtempo-framework/templates/mt-session.md     — session-file schema (authoritative)
+```
+
+### Handling per classification
+
+| Classification     | Where the work happens                                                    |
+|--------------------|---------------------------------------------------------------------------|
+| Real test gap      | Inline test edit in-session (fix-now) verified by `{{ "test" | cmd }} <path>`, OR `ignore` (recorded; stays in ratchet denominator) |
+| Production bug     | Pushed to `mt-fix-manifest.md`; addressed via `bugs.md` in a later conversation |
+| Equivalent mutant  | Already recorded by `mt.md` 5.3; surfaces only via Step 4 reclassification |
+
+### Real-test-gap sub-class
+
+| Sub-class               | Meaning                                                | Inline-fix shape |
+|-------------------------|--------------------------------------------------------|------------------|
+| no-coverage             | No test exercises the mutated line                      | Add a new test   |
+| new-behaviour           | Test exists; behaviour not in test manifest             | Extend manifest + add a test |
+| strengthen-assertion    | Test + manifest cover behaviour; assertion too loose    | Tighten existing assertion |
+
+### Severity → action
+
+| Severity     | Test gap                                                           | Production bug   | Equivalent |
+|--------------|--------------------------------------------------------------------|------------------|------------|
+| blocking     | fix-now (mandatory; mirrors review-tests.md). Reclassify → `bug` to push to manifest if genuinely a bug. | bug-pushed (mandatory) | n/a |
+| recommended  | fix-now / ignore  (human picks)                                  | bug-pushed       | n/a |
+| nit          | fix-now / ignore  (human picks)                                  | bug-pushed       | n/a |
+
+`ignore` is hidden for blocking test gaps (use `bug` reclassification if the finding genuinely shouldn't be a test gap). Ignored mutants **stay in the ratchet denominator** — `ignore` is "noted not acting", not a free pass.
+
+### Severity-prior heuristic
+
+See `mt.md` §Severity-prior Heuristic (authoritative). Briefly: `mutator-weight + path-weight`, sorted descending. `mt.md` 5.5 computes and writes the prior per cluster head; this skill consumes it for file-batch ordering.
+
+### State transitions handled by mt-fix.md
+
+```
+ready-for-triage      → triage-in-progress (first classification)
+triage-in-progress    → triage-complete (all clusters classified + Step 7 verdict)
+triage-complete       → archived (Step 8 archive)
+
+Out-of-range statuses (fresh-start / kickoff / running / captured):
+  → Entry Gate redirects human to mt.md (one line) and STOPs.
+```
+
+### Triage flow
+
+```
+Step 1   Resume to next file with unclassified clusters → silent
+Step 2   Per-cluster analysis (cached file-section reads)    → silent
+Step 3   Present cluster finding (per-cluster loop; flag any borderline-from-mt.md)
+         + Side findings discovered (logged to ## Discoveries before prompt)
+Step 4   Action by severity + classification:
+           blocking gap   → yes / refine / bug
+           rec/nit gap    → fix-now / ignore / bug
+           production bug → yes (push to manifest) / gap / equivalent
+Step 5   Inline fix process (Action: fix-now or refine) → {{ "test" | cmd }} <path>
+Step 6   Per-file write + advance:
+           - Cluster outcomes persisted
+           - Discovery review (push / review / discard) for this file's discoveries
+           - progress: "File <path>: N fix-now / I ignored / B bugs-pushed
+                       + P discoveries pushed, D discarded"
+Step 7   Ratchet verdict (after every file batch classified)
+  7.5    Defensive sweep — push/discard any `Status: logged` discoveries
+         from earlier conversations that missed their Step 6 review
+Step 8   All Complete output + archive
+```
+
+### Production-code Iron Law
+
+This skill never edits production code. Production-bug findings push to the fix manifest; addressing them later runs `bugs.md`, which enforces TDD / testing / bugs / completion. Test code may be edited inline via `fix-now`, mirroring `review-tests.md` Step 2.
+
+---
+
+**END OF DOCUMENT** Purpose: Triage + inline fix + ratchet + complete half of a mutation-testing session. Consumes the session file produced by `mt.md`.

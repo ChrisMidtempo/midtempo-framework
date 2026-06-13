@@ -57,7 +57,7 @@ class TestBuildBaseConfig:
         assert result["capabilities"]["handlesConfidentialData"] is False
         assert result["capabilities"]["hasAuthentication"] is False
         # Verify count matches DEFAULT_CAPABILITIES
-        assert len(result["capabilities"]) == 6
+        assert len(result["capabilities"]) == 7
 
     def test_empty_folder_name_raises_value_error(self):
         """_build_base_config() raises ValueError when folder_name is empty string."""

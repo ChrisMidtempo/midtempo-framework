@@ -9,6 +9,7 @@ A companion to [overview](README.md) for those who want to understand the reason
 - [The Problem](#the-problem)
 - [Why Test-Driven Development?](#why-test-driven-development)
 - [Why External Validation?](#why-external-validation)
+- [Why Mutation Testing?](#why-mutation-testing)
 - [Why Fresh Conversations?](#why-fresh-conversations)
 - [Why So Many Documents?](#why-so-many-documents)
 - [Why Complexity Limits?](#why-complexity-limits)
@@ -16,6 +17,7 @@ A companion to [overview](README.md) for those who want to understand the reason
 - [Why Security Rules?](#why-security-rules)
 - [Why Bugs Need the Design Doc](#why-bugs-need-the-design-doc)
 - [Why Refine Needs a Design Doc](#why-refine-needs-a-design-doc)
+- [Why Investigation Routes by Ownership](#why-investigation-routes-by-ownership)
 - [How the Instructions Stay Honest](#how-the-instructions-stay-honest)
 - [What the Agent Gets Wrong (and How to Spot It)](#what-the-agent-gets-wrong-and-how-to-spot-it)
 - [The Framework's Limitations](#the-frameworks-limitations)
@@ -80,7 +82,34 @@ Any pre-existing warning or error becomes an excuse. The agent will point to exi
 Clean baselines remove ambiguity. Every warning is signal. Every error is the agent's responsibility.
 
 ---
+## Why Mutation Testing?
 
+Your tests pass. That tells you the code does what the tests check. It doesn't tell you the tests check the right things - a suite can be green and verify almost nothing.
+
+Mutation testing closes that gap. It changes one line of production code at a time - a `>` becomes `>=`, a branch is deleted, a return value is swapped - and reruns the suite against each change. The logic is simple:
+
+- A test fails → the mutation is **killed**. Something was guarding that line.
+- Every test still passes → the mutation **survives**. Nothing verifies that line's behaviour.
+
+Survivors are the point. Each one is a specific, located gap - not a coverage percentage that says "this line ran", but a demonstration that "this line could be wrong and you'd never know".
+
+### Why a human still decides
+
+A survivor isn't automatically a problem. It's one of three things, and only judgement tells which:
+
+- **Equivalent** - the change produces no observable difference, so no test *could* catch it. These are noise. But the burden of proof sits on "equivalent": if you can't explain why no input behaves differently, assume it's a real gap. Silence means under-specified, not safe.
+- **Real test gap** - the behaviour differs and the suite missed it. The code is correct; the tests are incomplete. Add the test.
+- **Production bug** - the mutation exposed that the original code was already wrong. The framework never fixes this in the mutation session - it routes the bug to `bugs.md` for a failing test and a root-cause fix, like any other bug.
+
+This three-way split is why mutation testing can't be fully automated. The tool finds survivors; judgement classifies them.
+
+### Why the ratchet
+
+A one-off mutation score is a number. A ratchet is a commitment. Each session compares its effective score to the previous one and returns a verdict - **BASELINE**, **PASS**, or **FAIL**. A regression is recorded and explained, not silently absorbed. You re-baseline only when scope genuinely changes, never to make a failing run look like a pass. Ignored gaps stay in the denominator, so choosing not to fix a gap still counts against the score - the decision stays visible.
+
+The standards that keep these classifications honest - what counts as equivalent, what a valid ignore rationale looks like - live in `midtempo-framework/rules/mutation-testing.md`.
+
+---
 ## Why Fresh Conversations?
 
 AI agents have a context window - a fixed amount of text it can hold in memory. As a conversation grows, older instructions get pushed out or compressed. The agent's behaviour degrades:
@@ -194,7 +223,9 @@ This matters because surface-level patches create layers of workarounds. A null 
 
 The bug skill requires the agent to find and read the relevant design document before starting. This isn't busywork - the design doc tells the agent what the code is *supposed* to do. Without it, the agent fixes what it *thinks* the code should do, which may be wrong. A bug in a payment flow looks different when you know the design says "retry once, then fail" versus "retry until success".
 
-After the fix, the agent updates the design doc with what it learned. This means the next person (or agent) working on that feature has the full picture - including the bug, its root cause, and why the fix was applied where it was.
+After the fix, the agent reconciles the design doc with what changed. It edits the affected acceptance criteria and specification sections *in place* so they describe the fixed behaviour - the spec never goes stale - then adds one dated row to the doc's Change History table. The forensic detail (the full trace, the root cause) goes into the commit message, not the doc, so the spec stays readable. The next person (or agent) reads a current specification with a compact, commit-linked history beneath it.
+
+The skill also guards against polluting the wrong doc. If the root cause sits in a layer the design doc explicitly marks out of scope, the agent stops and confirms the correct doc before recording anything. A fix recorded against a doc that doesn't own the code is worse than no record at all.
 
 For complex bugs, the skill also enforces defence-in-depth: the agent validates that the fix holds under related failure scenarios, not just the one that was reported.
 
@@ -208,7 +239,20 @@ The design doc requirement exists because even small changes can break assumptio
 
 Without the design doc, the agent treats the code as the source of truth. But code doesn't record *why* it was written that way - only *what* it does. The agent might "improve" something that was deliberately done a specific way, or change behaviour that downstream code depends on.
 
-The refine skill reads the design doc, follows TDD for the change, then updates the docs with the refinement context. This keeps the documentation accurate and the change traceable. If the design doc doesn't exist, the skill won't proceed - that's a signal that the feature either wasn't built through the framework or the docs were lost, and either way the agent shouldn't be making production changes without full understanding.
+The refine skill reads the design doc, confirms the doc actually owns the feature, follows TDD for the change, then reconciles the spec in place and adds a one-line Change History row - the same living-specification discipline the bug skill uses. If the design doc doesn't exist, the skill won't proceed - that's a signal that the feature either wasn't built through the framework or the docs were lost, and either way the agent shouldn't be making production changes without full understanding.
+
+---
+
+## Why Investigation Routes by Ownership
+
+Investigation produces recommendations, and every recommendation eventually becomes work. The expensive question is *which kind* of work. Building a feature runs the full pipeline - decisions, design, plan, tests - hours of effort, and the right cost when the behaviour is genuinely new. Spending that cost on behaviour a design doc already specifies is waste.
+
+So investigation triages by ownership before it recommends. It inventories every design doc, active and archived, and maps each finding to the doc that specifies it:
+
+- **Owned** - a design doc already covers this behaviour. The work routes to `refine.md`, a contained change against the existing spec. An *archived* doc still counts as owned: archived means the surface isn't actively worked on, not that the specification was deleted. This stops the framework re-building something it already designed.
+- **Unowned** - no doc specifies it. This is new behaviour, so it routes to `build.md` for the full pipeline.
+
+The output records the owning doc against each recommendation, so you can see the routing decision and challenge it. Ownership is the cheapest lever the framework has for avoiding redundant work - it decides cost before any code is written.
 
 ---
 
