@@ -289,6 +289,39 @@ class TestBuildUiManifest:
         assert "mutate_diff" in mutation_cmds
         assert mutation_cmds["mutate_diff"]["command"] == "npx stryker run --since HEAD~1"
 
+    def test_extracts_mutate_targeted_stub_for_stryker_style_language(self, tmp_path):
+        """build_ui_manifest() extracts the mutate_targeted stub alongside mutate and mutate_diff."""
+        commands_dir = tmp_path / "commands"
+        commands_dir.mkdir()
+        (commands_dir / "typescript.yml.j2").write_text(
+            "{{ base_config }}\ncommands:\n"
+            "  test:\n    command: npm test\n    description: Run all tests\n    category: test\n"
+            "\n"
+            "  # mutate:\n"
+            "  #   command: npx stryker run\n"
+            "  #   description: Run mutation tests\n"
+            "  #   category: test\n"
+            "\n"
+            "  # mutate_diff:\n"
+            "  #   command: npx stryker run --since HEAD~1\n"
+            "  #   description: Run mutation tests on changed files since last commit\n"
+            "  #   category: test\n"
+            "\n"
+            "  # mutate_targeted:\n"
+            "  #   command: npx stryker run --mutate\n"
+            "  #   description: Run mutation tests on supplied paths\n"
+            "  #   category: test\n"
+        )
+
+        with mock.patch("scripts.build_ui_manifest.PROJECT_ROOT", tmp_path):
+            build_ui_manifest()
+
+        content = json.loads((tmp_path / "ui" / "json" / "languages.json").read_text())
+        mutation_cmds = content["typescript"]["mutationCommands"]
+        assert "mutate_targeted" in mutation_cmds
+        assert mutation_cmds["mutate_targeted"]["command"] == "npx stryker run --mutate"
+        assert mutation_cmds["mutate_targeted"]["category"] == "test"
+
     def test_mutation_commands_empty_when_no_stubs_in_template(self, tmp_path):
         """build_ui_manifest() produces empty mutationCommands when template has no mutation stubs."""
         commands_dir = tmp_path / "commands"

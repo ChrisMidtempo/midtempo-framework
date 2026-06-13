@@ -11,7 +11,7 @@ from scripts.paths import PROJECT_ROOT
 
 logger = logging.getLogger(__name__)
 
-_MUTATION_KEY_PATTERN = re.compile(r"^  # (mutate(?:_diff)?):\s*$")
+_MUTATION_KEY_PATTERN = re.compile(r"^  # (mutate(?:_diff|_targeted)?):\s*$")
 _MUTATION_SUB_KEY_PREFIX = "  #   "
 
 

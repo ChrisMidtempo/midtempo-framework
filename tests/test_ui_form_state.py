@@ -406,6 +406,19 @@ class TestCapabilityCheckboxWiring:
             "and silently mis-wires existing capabilities"
         )
 
+    def test_toggling_mutation_off_deletes_mutate_targeted_command(self):
+        """Toggling hasMutationTesting off removes mutate_targeted from state.commands.
+
+        Defence-in-depth: the inject side adds every mutationCommands entry, so the
+        toggle-off side must remove every one it could have added — otherwise a stale
+        mutate_targeted survives a toggle-off and crashes generation downstream.
+        """
+        body = WIRING_FILE.read_text()
+        assert "delete updatedCommands.mutate_targeted" in body, (
+            "'delete updatedCommands.mutate_targeted' not found in event-wiring.js — "
+            "toggling mutation testing off must remove mutate_targeted to match the inject side"
+        )
+
 
 class TestPopulateFromYmlDoesNotRenderCommandRows:
     """Tests that populateFromYml does NOT call renderCommandRows. (T4.x)

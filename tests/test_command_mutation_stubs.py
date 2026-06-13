@@ -136,6 +136,44 @@ def test_mutate_diff_stub_absent_from_non_ts_js_files(file_name):
     )
 
 
+@pytest.mark.parametrize("file_name", TS_JS_FILES)
+def test_mutate_targeted_stub_present_in_ts_js_files(file_name):
+    """`mutate_targeted` stub present in each of the 4 TypeScript/JavaScript files.
+
+    Stryker is the only mutation tool with a validated path-filter flag, so the
+    targeted stub ships for the TypeScript/JavaScript family only. `mt.md.j2`
+    falls back to the full `mutate` command for every other language.
+    """
+    content = (COMMANDS_DIR / file_name).read_text()
+
+    assert "# mutate_targeted:" in content, (
+        f"{file_name}: commented '# mutate_targeted:' stub not found — "
+        "TypeScript/JavaScript files require a path-filter mutation stub"
+    )
+
+
+@pytest.mark.parametrize("file_name", TS_JS_FILES)
+def test_ts_js_mutate_targeted_stub_uses_stryker_mutate_flag(file_name):
+    """TypeScript/JavaScript `mutate_targeted` stub uses Stryker's `--mutate` flag."""
+    content = (COMMANDS_DIR / file_name).read_text()
+
+    assert 'command: "npx stryker run --mutate"' in content, (
+        f"{file_name}: mutate_targeted stub must use '\"npx stryker run --mutate\"' — "
+        "Stryker's --mutate flag scopes mutation to supplied paths"
+    )
+
+
+@pytest.mark.parametrize("file_name", NON_TS_JS_FILES)
+def test_mutate_targeted_stub_absent_from_non_ts_js_files(file_name):
+    """`mutate_targeted` stub absent from each of the 14 non-TypeScript/JavaScript files."""
+    content = (COMMANDS_DIR / file_name).read_text()
+
+    assert "# mutate_targeted:" not in content, (
+        f"{file_name}: '# mutate_targeted:' stub must not be present — "
+        "mutate_targeted stub is for the Stryker (TypeScript/JavaScript) family only"
+    )
+
+
 @pytest.mark.parametrize("file_name", UNCHANGED_FILES)
 def test_unchanged_files_contain_no_mutation_stubs(file_name):
     """5 unchanged files contain neither `mutate` nor `mutate_diff` stub. (T3.8, B9)"""
@@ -147,5 +185,9 @@ def test_unchanged_files_contain_no_mutation_stubs(file_name):
     )
     assert "# mutate_diff:" not in content, (
         f"{file_name}: '# mutate_diff:' stub must not be present — "
+        "no mature mutation testing tooling exists for this language"
+    )
+    assert "# mutate_targeted:" not in content, (
+        f"{file_name}: '# mutate_targeted:' stub must not be present — "
         "no mature mutation testing tooling exists for this language"
     )

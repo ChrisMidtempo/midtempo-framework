@@ -192,10 +192,10 @@ Scope choice captured (one of 1-5); for choice 1, named design doc + paired test
 ```
 Scope type derived from Step 1 choice:
   1 (Design doc)        → paths from design doc §3 stated modules
-                          command = mutate_targeted -- "<paths>"
+                          command = npm run mutate:targeted -- "<paths>"
   2 (Changed files)     → paths from `git diff HEAD --name-only` plus
                           `git diff --staged --name-only`
-                          command = mutate_targeted -- "<paths>"
+                          command = npm run mutate:targeted -- "<paths>"
   3 (Branch)            → range = main..HEAD
                           command = mutate_diff
   4 (Test-path pattern) → resolve test files matching the glob; for each,
@@ -203,7 +203,7 @@ Scope type derived from Step 1 choice:
                           production path (e.g. foo.test.<ext> → foo.<ext>,
                           tests/foo.<ext> → src/foo.<ext>); note ambiguous
                           derivations.
-                          command = mutate_targeted -- "<paths>"
+                          command = npm run mutate:targeted -- "<paths>"
   5 (Since last MT)     → range = <previous-SHA>..HEAD
                           command = mutate_diff
 ```

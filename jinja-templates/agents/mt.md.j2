@@ -1,3 +1,4 @@
+{% set targeted_cmd = "mutate_targeted" if "mutate_targeted" in commands else "mutate" %}
 # Mutation Testing — Pre-Triage (mt.md)
 
 **Operating pattern:** diff-scoped + incremental + filtered.
@@ -61,7 +62,7 @@ No per-cluster analysis, no inline fixes, no manifest writes — those live in `
 - You MUST run the equivalent pre-pass (Step 5.2) BEFORE clustering. The lightweight 5-line check applies at mutant level for mutator-weight ≤ 2. The check produces THREE values — `yes` (likely-equivalent), `borderline` (rationale non-trivial; defer to human), `no` (carry to clustering). Borderlines surface in the 5.3 prompt as a separate list — agent never resolves borderlines alone.
 - You MUST cluster non-equivalent mutants by enclosing function (Step 5.4): same file + same enclosing function. Different mutators on the same line cluster. Distant lines in the same function cluster. Fall back to ±10 lines + same mutator family, then to same line, then to singleton — in that order — when enclosing-function extraction fails. Each cluster has a HEAD and zero or more LINKED members; downstream analysis (in `mt-fix.md`) runs on the head only; linked members inherit.
 - You MUST compute the Severity-prior heuristic (Step 5.5) and write the `## Current Batch` pointer at the top of the session file. Files are sorted by max cluster prior, descending.
-- You MUST run only the exact commands `{{ "mutate_diff" | cmd }}`, `{{ "mutate_targeted" | cmd }} -- "<paths>"`, and `{{ "mutate" | cmd }}`. The path arguments are human-supplied or session-resolved scope data, not agent-invented flags.
+- You MUST run only the exact commands `{{ "mutate_diff" | cmd }}`, `{{ targeted_cmd | cmd }} -- "<paths>"`, and `{{ "mutate" | cmd }}`. The path arguments are human-supplied or session-resolved scope data, not agent-invented flags.
 - You MUST update `## Status` at every transition (Step 3 → running; Step 4 → captured; Step 5.6 → ready-for-triage).
 - You MUST NOT continue into triage in this conversation. After Step 5.6 emits the handoff, STOP.
 - You MUST NOT use "[enter] to accept" or any keystroke-based convention. Every confirmation prompt uses explicit polarity: `yes` accepts, typing an override changes the proposed value.
@@ -192,10 +193,10 @@ Scope choice captured (one of 1-5); for choice 1, named design doc + paired test
 ```
 Scope type derived from Step 1 choice:
   1 (Design doc)        → paths from design doc §3 stated modules
-                          command = mutate_targeted -- "<paths>"
+                          command = {{ targeted_cmd | cmd }} -- "<paths>"
   2 (Changed files)     → paths from `git diff HEAD --name-only` plus
                           `git diff --staged --name-only`
-                          command = mutate_targeted -- "<paths>"
+                          command = {{ targeted_cmd | cmd }} -- "<paths>"
   3 (Branch)            → range = main..HEAD
                           command = mutate_diff
   4 (Test-path pattern) → resolve test files matching the glob; for each,
@@ -203,7 +204,7 @@ Scope type derived from Step 1 choice:
                           production path (e.g. foo.test.<ext> → foo.<ext>,
                           tests/foo.<ext> → src/foo.<ext>); note ambiguous
                           derivations.
-                          command = mutate_targeted -- "<paths>"
+                          command = {{ targeted_cmd | cmd }} -- "<paths>"
   5 (Since last MT)     → range = <previous-SHA>..HEAD
                           command = mutate_diff
 ```
@@ -222,7 +223,7 @@ Fix-manifest open count: <N or 0>  (unresolved items from prior sessions — rev
 
 Resolved scope:
   Detail:  <range or paths string>
-  Command: <{{ "mutate_diff" | cmd }} | {{ "mutate_targeted" | cmd }} -- "<paths>" | {{ "mutate" | cmd }}>
+  Command: <{{ "mutate_diff" | cmd }} | {{ targeted_cmd | cmd }} -- "<paths>" | {{ "mutate" | cmd }}>
 
 Confirm?
   yes                  accept the resolved scope
@@ -263,7 +264,7 @@ Run exactly one of:
 
 ```
 {{ "mutate_diff" | cmd }}                     # default — diff against resolved range
-{{ "mutate_targeted" | cmd }} -- "<paths>"    # path-filter mode
+{{ targeted_cmd | cmd }} -- "<paths>"    # path-filter mode
 {{ "mutate" | cmd }}                          # re-baseline only (explicit re-baseline)
 ```
 
@@ -657,7 +658,7 @@ Detects mode from `planning/mt-session.md` Status.
 
 ```
 {{ "mutate_diff" | cmd }}                     # diff-scoped (scope choices 3, 5)
-{{ "mutate_targeted" | cmd }} -- "<paths>"    # path-filter (scope choices 1, 2, 4)
+{{ targeted_cmd | cmd }} -- "<paths>"    # path-filter (scope choices 1, 2, 4)
 {{ "mutate" | cmd }}                          # full re-baseline (explicit only)
 ```
 
